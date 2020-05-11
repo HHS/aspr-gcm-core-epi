@@ -18,7 +18,7 @@ public enum CustomReport implements LoadableReport {
     }),
 
     INDIVIDUAL_PERSON_PROPERTY_CHANGE_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        Object[] personPropertyIds = CoreEpiBootstrapUtil.getPersonPropertyIdsFromStringSet(
+        PersonPropertyId[] personPropertyIds = CoreEpiBootstrapUtil.getPersonPropertyIdsFromStringSet(
                 reportWrapperItem.items(), pluginList).toArray(new PersonPropertyId[0]);
         experimentExecutor.addCustomReport(path, IndividualPersonPropertyChangeReport.class, personPropertyIds);
     }),
@@ -48,7 +48,9 @@ public enum CustomReport implements LoadableReport {
     }),
 
     PERSON_REGIONAL_PROPERTY_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addCustomReport(path, PersonRegionalPropertyReport.class, reportWrapperItem.period(), reportWrapperItem.regionAggregationLevel());
+        PersonPropertyId[] personPropertyIds = CoreEpiBootstrapUtil.getPersonPropertyIdsFromStringSet(
+                reportWrapperItem.items(), pluginList).toArray(new PersonPropertyId[0]);
+        experimentExecutor.addCustomReport(path, PersonRegionalPropertyReport.class, reportWrapperItem.period(), reportWrapperItem.regionAggregationLevel(), personPropertyIds);
     }),
 
     PERSON_REGION_RESOURCE_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {

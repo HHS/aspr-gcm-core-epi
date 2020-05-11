@@ -221,9 +221,12 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
         super.init(observableEnvironment, initialData);
 
         for (Object initialDatum : initialData) {
-            if (initialDatum instanceof PersonPropertyId) {
-                PersonPropertyId personPropertyId = (PersonPropertyId) initialDatum;
-                personPropertyIds.add(personPropertyId);
+            if (initialDatum instanceof PersonPropertyId[]) {
+                PersonPropertyId[] personPropertyList = (PersonPropertyId[]) initialDatum;
+//                Arrays.stream(personPropertyList).map(personPropertyId -> personPropertyIds.add(personPropertyId));
+                for (PersonPropertyId personProperty : personPropertyList) {
+                    personPropertyIds.add(personProperty);
+                }
             }
         }
 
