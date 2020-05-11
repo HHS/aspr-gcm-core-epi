@@ -48,6 +48,9 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
         if (fractionStayHomeWhenSuspectInfection > 0 &&
                 environment.getRandomGeneratorFromId(IsolationHygieneRandomId.ID).nextDouble() < fractionStayHomeWhenSuspectInfection) {
             environment.setPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME, true);
+            double durationOfIsolation = environment.getGlobalPropertyValue(IsolationHygieneGlobalProperty.ISOLATION_HYGIENE_DURATION);
+            double time = environment.getTime();
+            environment.addPlan(new EndIsolationPlan(personId), time + durationOfIsolation);
         }
     }
 
@@ -159,6 +162,9 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
                 .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
 
         ISOLATION_HYGIENE_DELAY(PropertyDefinition.builder()
+                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+
+        ISOLATION_HYGIENE_DURATION(PropertyDefinition.builder()
                 .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build());
 
         private final PropertyDefinition propertyDefinition;
@@ -253,7 +259,6 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
                     makePeopleInHomeAware(environment, personId);
                 } else {
                     double currentTime = environment.getTime();
-                    Plan test = new SuspectedInfectionPlan(personId);
                     environment.addPlan(new SuspectedInfectionPlan(personId), currentTime + delayToStartIsolationAndHygiene);
                     environment.addPlan(new HomeInfectionPlan(personId), currentTime + delayToStartIsolationAndHygiene);
                 }
@@ -282,6 +287,8 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
                 behaviorPlugin.handleSuspectedInfected(environment, ((SuspectedInfectionPlan) plan).personId);
             } else if (plan.getClass().equals(HomeInfectionPlan.class)) {
                 makePeopleInHomeAware(environment, ((HomeInfectionPlan) plan).personId);
+            } else if (plan.getClass().equals(EndIsolationPlan.class)) {
+                environment.setPersonPropertyValue(((EndIsolationPlan) plan).personId, PersonProperty.IS_STAYING_HOME, false);
             } else {
                 throw new RuntimeException("IsolationHygieneBehaviorPlug attempting to execute an unknown plan type");
             }
@@ -302,6 +309,12 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
         private SuspectedInfectionPlan(final PersonId personId) {
             this.personId = personId;
         }
+    }
+
+    private static class EndIsolationPlan implements Plan {
+        private final PersonId personId;
+
+        private EndIsolationPlan(final PersonId personId) { this.personId = personId;}
     }
 
 
