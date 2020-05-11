@@ -37,7 +37,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
     @Override
     public Optional<ContactGroupType> getSubstitutedContactGroup(Environment environment, PersonId personId, ContactGroupType selectedContactGroupType) {
         // If a person is staying home, substitute any school or work infections contacts with home contacts
-        boolean isStayingHome = environment.getPersonPropertyValue(personId, ContactTracingPersonProperty.IS_STAYING_HOME);
+        boolean isStayingHome = environment.getPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME);
         if (isStayingHome &&
                 selectedContactGroupType != ContactGroupType.HOME &&
                 selectedContactGroupType != ContactGroupType.GLOBAL) {
@@ -49,7 +49,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
     @Override
     public double getInfectionProbability(Environment environment, ContactGroupType contactSetting, PersonId personId) {
-        boolean isStayingHome = environment.getPersonPropertyValue(personId, ContactTracingPersonProperty.IS_STAYING_HOME);
+        boolean isStayingHome = environment.getPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME);
         if (isStayingHome &&
                 contactSetting != ContactGroupType.HOME &&
                 contactSetting != ContactGroupType.GLOBAL) {
@@ -115,10 +115,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
         // Will track infectious contacts in the GLOBAL setting
         GLOBAL_INFECTION_SOURCE_PERSON_ID(PropertyDefinition.builder()
-                .setType(Integer.class).setDefaultValue(-1).setMapOption(MapOption.ARRAY).build()),
-
-        IS_STAYING_HOME(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build());
+                .setType(Integer.class).setDefaultValue(-1).setMapOption(MapOption.ARRAY).build());
 
         final PropertyDefinition propertyDefinition;
 
@@ -250,7 +247,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                             if (environment.getRandomGeneratorFromId(ContactTracingRandomId.ID).nextDouble() <
                                     fractionInfectionsTraced) {
                                 // Person stays home
-                                environment.setPersonPropertyValue(personId, ContactTracingPersonProperty.IS_STAYING_HOME, true);
+                                environment.setPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME, true);
 
                                 // Increment counter of infections being traced
                                 currentInfectionsBeingTraced.count++;
@@ -308,7 +305,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
         private void traceAndIsolate(Environment environment, List<PersonId> peopleToTraceAndIsolate) {
             // Set person property to indicate people are staying home
             for (PersonId personId : peopleToTraceAndIsolate) {
-                environment.setPersonPropertyValue(personId, ContactTracingPersonProperty.IS_STAYING_HOME, true);
+                environment.setPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME, true);
             }
 
             // Plan to end isolation
@@ -325,7 +322,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                 List<PersonId> peopleToEndIsolation = ((EndIsolationPlan) plan).peopleToEndIsolation;
                 for (PersonId personId : peopleToEndIsolation) {
                     environment.setPersonPropertyValue(personId,
-                            ContactTracingPersonProperty.IS_STAYING_HOME, false);
+                            PersonProperty.IS_STAYING_HOME, false);
                 }
             } else if (plan.getClass().equals(ContractTracingCompletePlan.class)) {
                 // Decrement counter

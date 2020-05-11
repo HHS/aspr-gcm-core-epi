@@ -223,7 +223,6 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
         for (Object initialDatum : initialData) {
             if (initialDatum instanceof PersonPropertyId[]) {
                 PersonPropertyId[] personPropertyList = (PersonPropertyId[]) initialDatum;
-//                Arrays.stream(personPropertyList).map(personPropertyId -> personPropertyIds.add(personPropertyId));
                 for (PersonPropertyId personProperty : personPropertyList) {
                     personPropertyIds.add(personProperty);
                 }

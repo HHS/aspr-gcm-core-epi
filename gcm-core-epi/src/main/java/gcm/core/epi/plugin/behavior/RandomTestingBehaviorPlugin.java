@@ -3,6 +3,7 @@ package gcm.core.epi.plugin.behavior;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.ContactGroupType;
+import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.scenario.*;
@@ -36,7 +37,7 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
     @Override
     public Optional<ContactGroupType> getSubstitutedContactGroup(Environment environment, PersonId personId, ContactGroupType selectedContactGroupType) {
         // If a person is staying home, substitute any school or work infections contacts with home contacts
-        boolean isStayingHome = environment.getPersonPropertyValue(personId, RandomTestingPersonProperty.IS_STAYING_HOME);
+        boolean isStayingHome = environment.getPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME);
         if (isStayingHome) {
             Map<ContactGroupType, Double> transmissionReductionBySetting = environment.getGlobalPropertyValue(
                     RandomTestingGlobalProperty.TEST_ISOLATION_TRANSMISSION_REDUCTION);
@@ -57,7 +58,7 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
 
     @Override
     public double getInfectionProbability(Environment environment, ContactGroupType contactSetting, PersonId personId) {
-        boolean isStayingHome = environment.getPersonPropertyValue(personId, RandomTestingPersonProperty.IS_STAYING_HOME);
+        boolean isStayingHome = environment.getPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME);
         if (isStayingHome &&
                 contactSetting != ContactGroupType.HOME &&
                 contactSetting != ContactGroupType.GLOBAL) {
@@ -136,9 +137,6 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
     public enum RandomTestingPersonProperty implements DefinedPersonProperty {
 
         HAS_RECENTLY_TESTED_POSITIVE(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build()),
-
-        IS_STAYING_HOME(PropertyDefinition.builder()
                 .setType(Boolean.class).setDefaultValue(false).build());
 
         final PropertyDefinition propertyDefinition;
@@ -214,13 +212,13 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
             } else if (plan.getClass() == StartIsolatingPlan.class) {
                 // Start Isolating
                 PersonId personToIsolate = ((StartIsolatingPlan) plan).personId;
-                environment.setPersonPropertyValue(personToIsolate, RandomTestingPersonProperty.IS_STAYING_HOME, true);
+                environment.setPersonPropertyValue(personToIsolate, PersonProperty.IS_STAYING_HOME, true);
                 double isolationDuration = environment.getGlobalPropertyValue(RandomTestingGlobalProperty.TEST_ISOLATION_DURATION);
                 environment.addPlan(new StopIsolatingPlan(personToIsolate), environment.getTime() + isolationDuration);
             } else if (plan.getClass() == StopIsolatingPlan.class) {
                 // Stop Isolating
                 PersonId personIsolated = ((StopIsolatingPlan) plan).personId;
-                environment.setPersonPropertyValue(personIsolated, RandomTestingPersonProperty.IS_STAYING_HOME, false);
+                environment.setPersonPropertyValue(personIsolated, PersonProperty.IS_STAYING_HOME, false);
                 environment.setPersonPropertyValue(personIsolated, RandomTestingPersonProperty.HAS_RECENTLY_TESTED_POSITIVE, false);
             }
 

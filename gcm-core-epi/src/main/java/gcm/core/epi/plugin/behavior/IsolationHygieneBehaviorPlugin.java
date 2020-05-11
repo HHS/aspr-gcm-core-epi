@@ -47,7 +47,7 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
                 IsolationHygieneGlobalProperty.FRACTION_STAY_HOME_WHEN_SUSPECT_INFECTION);
         if (fractionStayHomeWhenSuspectInfection > 0 &&
                 environment.getRandomGeneratorFromId(IsolationHygieneRandomId.ID).nextDouble() < fractionStayHomeWhenSuspectInfection) {
-            environment.setPersonPropertyValue(personId, IsolationHygienePersonProperties.IS_STAYING_HOME, true);
+            environment.setPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME, true);
         }
     }
 
@@ -66,8 +66,7 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
     public Optional<ContactGroupType> getSubstitutedContactGroup(Environment environment, PersonId personId,
                                                                  ContactGroupType selectedContactGroupType) {
         // If a person is staying home, substitute any school or work infections contacts with home contacts
-        final boolean isStayingHome = environment.getPersonPropertyValue(personId,
-                IsolationHygienePersonProperties.IS_STAYING_HOME);
+        final boolean isStayingHome = environment.getPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME);
         if (isStayingHome &&
                 selectedContactGroupType != ContactGroupType.HOME &&
                 selectedContactGroupType != ContactGroupType.GLOBAL) {
@@ -125,9 +124,6 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
     }
 
     enum IsolationHygienePersonProperties implements DefinedPersonProperty {
-
-        IS_STAYING_HOME(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build()),
 
         IS_USING_HAND_HYGIENE(PropertyDefinition.builder()
                 .setType(Boolean.class).setDefaultValue(false).build());

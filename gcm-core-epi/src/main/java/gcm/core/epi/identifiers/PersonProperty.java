@@ -24,7 +24,9 @@ public enum PersonProperty implements DefinedPersonProperty {
 
     ACTIVITY_LEVEL_CHANGED(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build()),
 
-    IMMUNITY_WANED(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build());
+    IMMUNITY_WANED(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build()),
+
+    IS_STAYING_HOME(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build());
 
     private final PropertyDefinition propertyDefinition;
 
