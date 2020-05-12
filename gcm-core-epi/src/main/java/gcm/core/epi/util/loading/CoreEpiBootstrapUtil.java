@@ -248,6 +248,34 @@ public class CoreEpiBootstrapUtil {
     }
 
     /**
+     * Converts a Set of Strings to a Set of PersonPropertyIds taking into account any potential plugins
+     *
+     * @param strings    The Set of Strings to be converted
+     * @param pluginList The List of Plugins used in this experiment
+     * @return Set of PersonPropertyIds
+     */
+    public static Set<GlobalPropertyId> getGlobalPropertyIdsFromStringSet(final Set<String> strings, List<Plugin> pluginList) {
+        Set<GlobalPropertyId> globalPropertyIds = new HashSet<>();
+        // Base person properties
+
+        for (GlobalPropertyId globalProperty : GlobalProperty.values()) {
+            if (strings.contains(globalProperty.toString())) {
+                globalPropertyIds.add(globalProperty);
+            }
+        }
+        // Person properties added by plugins
+        // TODO: Deal with potential collisions among property ids in plugins (for now adds all of them)
+        for (Plugin plugin : pluginList) {
+            for (GlobalPropertyId globalPropertyId : plugin.getGlobalProperties()) {
+                if (strings.contains(globalPropertyId.toString())) {
+                    globalPropertyIds.add(globalPropertyId);
+                }
+            }
+        }
+        return globalPropertyIds;
+    }
+
+    /**
      * Loads all of the person properties from the model, selected plugins, and scenarios into the experiment builder
      *
      * @param experimentBuilder The ExperimentBuilder for the experiment

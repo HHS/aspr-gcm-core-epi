@@ -4,6 +4,7 @@ import gcm.core.epi.identifiers.Resource;
 import gcm.core.epi.plugin.Plugin;
 import gcm.experiment.ExperimentExecutor;
 import gcm.output.reports.commonreports.GroupPropertyReport;
+import gcm.scenario.GlobalPropertyId;
 import gcm.scenario.PersonPropertyId;
 
 import java.nio.file.Path;
@@ -25,10 +26,11 @@ public enum CommonReport implements LoadableReport {
         experimentExecutor.addCompartmentTransferReport(path, reportWrapperItem.period());
     }),
     GLOBAL_PROPERTY_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addGlobalPropertyReport(path);
+        GlobalPropertyId[] globalPropertyIds = CoreEpiBootstrapUtil.getGlobalPropertyIdsFromStringSet(
+                reportWrapperItem.items(), pluginList).toArray(new GlobalPropertyId[0]);
+        experimentExecutor.addGlobalPropertyReport(path, globalPropertyIds);
     }),
     GROUP_POPULATION_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-
         experimentExecutor.addGroupPopulationReport(path, reportWrapperItem.period());
     }),
     GROUP_PROPERTY_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
