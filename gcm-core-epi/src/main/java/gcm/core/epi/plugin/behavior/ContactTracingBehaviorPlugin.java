@@ -151,6 +151,9 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
         TRACED_CONTACT_STAY_HOME_DURATION(PropertyDefinition.builder()
                 .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
 
+        CONTACT_TRACING_ASCERTAINMENT_DELAY(PropertyDefinition.builder()
+                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+
         CONTACT_TRACING_DELAY(PropertyDefinition.builder()
                 .setType(Map.class)
                 .setDefaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class))
@@ -230,75 +233,88 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
             if (personPropertyId == PersonProperty.IS_SYMPTOMATIC) {
                 boolean isSymptomatic = environment.getPersonPropertyValue(personId, PersonProperty.IS_SYMPTOMATIC);
                 if (isSymptomatic) {
-                    // Determine if we are currently tracing contacts
-                    RegionId regionId = environment.getPersonRegion(personId);
-                    boolean triggerIsInEffect = TriggerUtils.checkIfTriggerIsInEffect(environment, regionId,
-                            ContactTracingRegionProperty.CONTACT_TRACING_TRIGGER_START,
-                            ContactTracingRegionProperty.CONTACT_TRACING_TRIGGER_END);
-                    if (triggerIsInEffect) {
-                        FipsCode fipsCode = scope.getFipsCode(regionId);
-                        Map<FipsCode, Counter> currentInfectionsBeingTracedMap = environment.getGlobalPropertyValue(
-                                ContactTracingGlobalProperty.CURRENT_INFECTIONS_BEING_TRACED);
-                        Counter currentInfectionsBeingTraced = currentInfectionsBeingTracedMap.get(fipsCode);
-                        Double maxInfectionsToTrace = maximumInfectionsToTrace.get(fipsCode);
-                        if (currentInfectionsBeingTraced.count < Math.round(maxInfectionsToTrace)) {
-                            double fractionInfectionsTraced = environment.getGlobalPropertyValue(
-                                    ContactTracingGlobalProperty.FRACTION_INFECTIONS_TRACED);
-                            if (environment.getRandomGeneratorFromId(ContactTracingRandomId.ID).nextDouble() <
-                                    fractionInfectionsTraced) {
-                                // Person stays home
-                                environment.setPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME, true);
+                    double caseAscertainmentDelay = environment.getGlobalPropertyValue(ContactTracingGlobalProperty.CONTACT_TRACING_ASCERTAINMENT_DELAY);
 
-                                // Increment counter of infections being traced
-                                currentInfectionsBeingTraced.count++;
-
-                                // Plan to trace and isolate contacts
-                                Map<ContactGroupType, Double> fractionToTraceAndIsolateByGroup = environment.getGlobalPropertyValue(
-                                        ContactTracingGlobalProperty.FRACTION_CONTACTS_TRACED_AND_ISOLATED);
-                                Map<ContactGroupType, Double> contactTracingDelayByGroup = environment.getGlobalPropertyValue(
-                                        ContactTracingGlobalProperty.CONTACT_TRACING_DELAY);
-                                // First home, work, and school as applicable
-                                List<ContactGroupType> contactGroupTypes = environment.getGroupTypesForPerson(personId);
-                                // Add global
-                                contactGroupTypes.add(ContactGroupType.GLOBAL);
-                                for (ContactGroupType contactGroupType : contactGroupTypes) {
-                                    List<PersonId> peopleToTraceAndIsolate = new ArrayList<>();
-                                    List<PersonId> peopleInGroup;
-                                    // Handle home/work/school directly from groups
-                                    if (contactGroupType != ContactGroupType.GLOBAL) {
-                                        GroupId groupId = environment.getGroupsForGroupTypeAndPerson(contactGroupType,
-                                                personId).get(0);
-                                        peopleInGroup = environment.getPeopleForGroup(groupId);
-                                    } else {
-                                        // Get global infections
-                                        peopleInGroup = environment.getPeopleWithPropertyValue(
-                                                ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID, personId.getValue());
-                                    }
-                                    double fractionToTraceAndIsolate = fractionToTraceAndIsolateByGroup.getOrDefault(contactGroupType, 1.0);
-                                    for (PersonId personInGroup : peopleInGroup) {
-                                        if (!personInGroup.equals(personId) &&
-                                                environment.getRandomGeneratorFromId(
-                                                        ContactTracingRandomId.ID).nextDouble() < fractionToTraceAndIsolate) {
-                                            peopleToTraceAndIsolate.add(personInGroup);
-                                        }
-                                    }
-                                    double tracingDelay = contactTracingDelayByGroup.getOrDefault(contactGroupType, 0.0);
-                                    if (tracingDelay > 0) {
-                                        environment.addPlan(new ContactTracingIsolationPlan(peopleToTraceAndIsolate),
-                                                environment.getTime() + tracingDelay);
-                                    } else {
-                                        traceAndIsolate(environment, peopleToTraceAndIsolate);
-                                    }
-                                }
-                                // Plan to return the resource of contact tracing
-                                double contactTracingTime = environment.getGlobalPropertyValue(ContactTracingGlobalProperty.CONTACT_TRACING_TIME);
-                                environment.addPlan(new ContractTracingCompletePlan(regionId), environment.getTime() + contactTracingTime);
-                            }
-                        }
+                    // Don't bother with plans if there's no need for delays
+                    if (caseAscertainmentDelay == 0.0) {
+                        ascertainSymptomaticCase(environment, personId);
+                    } else {
+                        double time = environment.getTime();
+                        environment.addPlan(new ContactTracingAscertainmentPlan(personId), time + caseAscertainmentDelay);
                     }
                 }
             } else {
                 throw new RuntimeException("ContactTracingManager observed unexpected person property change");
+            }
+        }
+
+        // A new symptomatic case was just identified. Determine if we need to do contact tracing for it.
+        private void ascertainSymptomaticCase(Environment environment, final PersonId personId) {
+            // Determine if we are currently tracing contacts
+            RegionId regionId = environment.getPersonRegion(personId);
+            boolean triggerIsInEffect = TriggerUtils.checkIfTriggerIsInEffect(environment, regionId,
+                    ContactTracingRegionProperty.CONTACT_TRACING_TRIGGER_START,
+                    ContactTracingRegionProperty.CONTACT_TRACING_TRIGGER_END);
+            if (triggerIsInEffect) {
+                FipsCode fipsCode = scope.getFipsCode(regionId);
+                Map<FipsCode, Counter> currentInfectionsBeingTracedMap = environment.getGlobalPropertyValue(
+                        ContactTracingGlobalProperty.CURRENT_INFECTIONS_BEING_TRACED);
+                Counter currentInfectionsBeingTraced = currentInfectionsBeingTracedMap.get(fipsCode);
+                Double maxInfectionsToTrace = maximumInfectionsToTrace.get(fipsCode);
+                if (currentInfectionsBeingTraced.count < Math.round(maxInfectionsToTrace)) {
+                    double fractionInfectionsTraced = environment.getGlobalPropertyValue(
+                            ContactTracingGlobalProperty.FRACTION_INFECTIONS_TRACED);
+                    if (environment.getRandomGeneratorFromId(ContactTracingRandomId.ID).nextDouble() <
+                            fractionInfectionsTraced) {
+                        // Person stays home
+                        environment.setPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME, true);
+
+                        // Increment counter of infections being traced
+                        currentInfectionsBeingTraced.count++;
+
+                        // Plan to trace and isolate contacts
+                        Map<ContactGroupType, Double> fractionToTraceAndIsolateByGroup = environment.getGlobalPropertyValue(
+                                ContactTracingGlobalProperty.FRACTION_CONTACTS_TRACED_AND_ISOLATED);
+                        Map<ContactGroupType, Double> contactTracingDelayByGroup = environment.getGlobalPropertyValue(
+                                ContactTracingGlobalProperty.CONTACT_TRACING_DELAY);
+                        // First home, work, and school as applicable
+                        List<ContactGroupType> contactGroupTypes = environment.getGroupTypesForPerson(personId);
+                        // Add global
+                        contactGroupTypes.add(ContactGroupType.GLOBAL);
+                        for (ContactGroupType contactGroupType : contactGroupTypes) {
+                            List<PersonId> peopleToTraceAndIsolate = new ArrayList<>();
+                            List<PersonId> peopleInGroup;
+                            // Handle home/work/school directly from groups
+                            if (contactGroupType != ContactGroupType.GLOBAL) {
+                                GroupId groupId = environment.getGroupsForGroupTypeAndPerson(contactGroupType,
+                                        personId).get(0);
+                                peopleInGroup = environment.getPeopleForGroup(groupId);
+                            } else {
+                                // Get global infections
+                                peopleInGroup = environment.getPeopleWithPropertyValue(
+                                        ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID, personId.getValue());
+                            }
+                            double fractionToTraceAndIsolate = fractionToTraceAndIsolateByGroup.getOrDefault(contactGroupType, 1.0);
+                            for (PersonId personInGroup : peopleInGroup) {
+                                if (!personInGroup.equals(personId) &&
+                                        environment.getRandomGeneratorFromId(
+                                                ContactTracingRandomId.ID).nextDouble() < fractionToTraceAndIsolate) {
+                                    peopleToTraceAndIsolate.add(personInGroup);
+                                }
+                            }
+                            double tracingDelay = contactTracingDelayByGroup.getOrDefault(contactGroupType, 0.0);
+                            if (tracingDelay > 0) {
+                                environment.addPlan(new ContactTracingIsolationPlan(peopleToTraceAndIsolate),
+                                        environment.getTime() + tracingDelay);
+                            } else {
+                                traceAndIsolate(environment, peopleToTraceAndIsolate);
+                            }
+                        }
+                        // Plan to return the resource of contact tracing
+                        double contactTracingTime = environment.getGlobalPropertyValue(ContactTracingGlobalProperty.CONTACT_TRACING_TIME);
+                        environment.addPlan(new ContractTracingCompletePlan(regionId), environment.getTime() + contactTracingTime);
+                    }
+                }
             }
         }
 
@@ -331,6 +347,11 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                         ContactTracingGlobalProperty.CURRENT_INFECTIONS_BEING_TRACED);
                 Counter currentInfectionsBeingTraced = currentInfectionsBeingTracedMap.get(fipsCode);
                 currentInfectionsBeingTraced.count--;
+            } else if (plan.getClass().equals(ContactTracingAscertainmentPlan.class)) {
+                // A new case was just identified and needs to be processed
+                PersonId personId = ((ContactTracingAscertainmentPlan) plan).personId;
+
+                ascertainSymptomaticCase(environment, personId);
             } else {
                 throw new RuntimeException("ContactTracingPlugin attempting to execute an unknown plan type");
             }
@@ -387,6 +408,15 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
             private ContractTracingCompletePlan(RegionId regionId) {
                 this.regionId = regionId;
+            }
+        }
+
+        private static class ContactTracingAscertainmentPlan implements Plan {
+
+            private final PersonId personId;
+
+            private ContactTracingAscertainmentPlan(PersonId personId) {
+                this.personId = personId;
             }
 
         }
