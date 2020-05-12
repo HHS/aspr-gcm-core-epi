@@ -248,7 +248,7 @@ public class CoreEpiBootstrapUtil {
     }
 
     /**
-     * Converts a Set of Strings to a Set of PersonPropertyIds taking into account any potential plugins
+     * Converts a Set of Strings to a Set of GlobalPropertyIds taking into account any potential plugins
      *
      * @param strings    The Set of Strings to be converted
      * @param pluginList The List of Plugins used in this experiment
