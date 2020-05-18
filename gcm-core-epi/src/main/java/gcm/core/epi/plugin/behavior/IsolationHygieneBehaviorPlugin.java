@@ -59,6 +59,7 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
         double fractionUsingHandHygiene = environment.getGlobalPropertyValue(
                 IsolationHygieneGlobalProperty.FRACTION_USING_HAND_HYGIENE);
 
+        // TODO: Allow people to eventually stop washing their hands. (Add event to turn off IS_USING_HAND_HYGIENE)
         if (fractionUsingHandHygiene > 0 &&
                 environment.getRandomGeneratorFromId(IsolationHygieneRandomId.ID).nextDouble() < fractionUsingHandHygiene) {
             environment.setPersonPropertyValue(personId, IsolationHygienePersonProperties.IS_USING_HAND_HYGIENE, true);

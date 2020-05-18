@@ -39,6 +39,12 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
         // If a person is staying home, substitute any school or work infections contacts with home contacts
         boolean isStayingHome = environment.getPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME);
         if (isStayingHome) {
+            /*TODO: Need to unify all IS_STAYING_HOME logic in one place.
+               Currently this plugin drops Global contacts if TEST_ISOLATION_TRANSMISSION_REDUCTION != 0
+               Since this plugin is called by the CombinationBehaviorPlugin, this effect always happens.
+               Need to try and ensure that this effect isn't duplicated between plugins.
+               May want to unify it into a new plugin, the Combination plugin, somewhere else?
+             */
             Map<ContactGroupType, Double> transmissionReductionBySetting = environment.getGlobalPropertyValue(
                     RandomTestingGlobalProperty.TEST_ISOLATION_TRANSMISSION_REDUCTION);
             double transmissionReduction = transmissionReductionBySetting.getOrDefault(selectedContactGroupType, 0.0);
