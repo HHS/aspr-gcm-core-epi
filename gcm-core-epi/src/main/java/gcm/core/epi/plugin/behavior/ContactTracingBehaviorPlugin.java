@@ -12,8 +12,12 @@ import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
+import org.apache.commons.math3.distribution.EnumeratedDistribution;
+
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
@@ -115,6 +119,11 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
         // Will track infectious contacts in the GLOBAL setting
         GLOBAL_INFECTION_SOURCE_PERSON_ID(PropertyDefinition.builder()
+                .setType(Integer.class).setDefaultValue(-1).setMapOption(MapOption.ARRAY).build()),
+
+        // Track infectious contacts outside of GLOBAL setting.
+        // This is used when CONTACT_TRACING_MAX_CONTACTS_TO_TRACE is limited
+        NON_GLOBAL_INFECTION_SOURCE_PERSON_ID(PropertyDefinition.builder()
                 .setType(Integer.class).setDefaultValue(-1).setMapOption(MapOption.ARRAY).build());
 
         final PropertyDefinition propertyDefinition;
@@ -166,7 +175,13 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                 .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
 
         CONTACT_TRACING_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build());
+                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+
+        CONTACT_TRACING_MAX_CONTACTS_TO_TRACE(PropertyDefinition.builder()
+                .setType(Integer.class).setDefaultValue(Integer.MAX_VALUE).setPropertyValueMutability(false).build()),
+
+        ADDITIONAL_GLOBAL_CONTACTS_TO_TRACE(PropertyDefinition.builder()
+                .setType(Integer.class).setDefaultValue(0).setPropertyValueMutability(false).build());
 
         final PropertyDefinition propertyDefinition;
         final boolean isExternal;
@@ -215,8 +230,11 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
             environment.setGlobalPropertyValue(ContactTracingGlobalProperty.CURRENT_INFECTIONS_BEING_TRACED,
                     currentInfectionsBeingTraced);
 
-            // Begin observing
-            setObservationStatus(environment, true);
+            // Are we ever possibly doing any contact tracing anywhere? If not, don't bother initializing anything else
+            if (maximumInfectionsToTrace.values().stream().anyMatch(value -> value != 0)) {
+                // Begin observing
+                setObservationStatus(environment, true);
+            }
         }
 
         private void setObservationStatus(Environment environment, boolean observe) {
@@ -233,7 +251,8 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
             if (personPropertyId == PersonProperty.IS_SYMPTOMATIC) {
                 boolean isSymptomatic = environment.getPersonPropertyValue(personId, PersonProperty.IS_SYMPTOMATIC);
                 if (isSymptomatic) {
-                    double caseAscertainmentDelay = environment.getGlobalPropertyValue(ContactTracingGlobalProperty.CONTACT_TRACING_ASCERTAINMENT_DELAY);
+                    double caseAscertainmentDelay = environment.getGlobalPropertyValue(
+                            ContactTracingGlobalProperty.CONTACT_TRACING_ASCERTAINMENT_DELAY);
 
                     // Don't bother with plans if there's no need for delays
                     if (caseAscertainmentDelay == 0.0) {
@@ -281,6 +300,18 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                         List<ContactGroupType> contactGroupTypes = environment.getGroupTypesForPerson(personId);
                         // Add global
                         contactGroupTypes.add(ContactGroupType.GLOBAL);
+
+                        // Determine if we need to limit the number of people we trace
+                        int maxNumberOfContactsToTrace = environment.getGlobalPropertyValue(
+                                ContactTracingGlobalProperty.CONTACT_TRACING_MAX_CONTACTS_TO_TRACE);
+                        boolean limitNumberOfContactsToTrace = maxNumberOfContactsToTrace != Integer.MAX_VALUE;
+
+                        List<PersonId> infectionsFromContact = new ArrayList<>();
+                        if (limitNumberOfContactsToTrace) {
+                            infectionsFromContact = environment.getPeopleWithPropertyValue(
+                                    ContactTracingPersonProperty.NON_GLOBAL_INFECTION_SOURCE_PERSON_ID, personId.getValue());
+                        }
+
                         for (ContactGroupType contactGroupType : contactGroupTypes) {
                             List<PersonId> peopleToTraceAndIsolate = new ArrayList<>();
                             List<PersonId> peopleInGroup;
@@ -293,15 +324,59 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                                 // Get global infections
                                 peopleInGroup = environment.getPeopleWithPropertyValue(
                                         ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID, personId.getValue());
+
+                                // Add additional random people if needed
+                                // Using a set means we don't care about grabbing the same person twice
+                                int numberOfAdditionalGlobalContactsToTrace = environment.getGlobalPropertyValue(
+                                        ContactTracingGlobalProperty.ADDITIONAL_GLOBAL_CONTACTS_TO_TRACE);
+                                Set<PersonId> additionalGlobalContacts = new HashSet<>();
+                                IntStream.range(1, numberOfAdditionalGlobalContactsToTrace)
+                                        .forEach(x -> getGlobalContactFor(environment, personId)
+                                            .ifPresent(additionalGlobalContacts::add));
+                                peopleInGroup.addAll(additionalGlobalContacts);
                             }
                             double fractionToTraceAndIsolate = fractionToTraceAndIsolateByGroup.getOrDefault(contactGroupType, 1.0);
-                            for (PersonId personInGroup : peopleInGroup) {
-                                if (!personInGroup.equals(personId) &&
-                                        environment.getRandomGeneratorFromId(
-                                                ContactTracingRandomId.ID).nextDouble() < fractionToTraceAndIsolate) {
-                                    peopleToTraceAndIsolate.add(personInGroup);
+
+                            // Determine if we need to worry about limiting how many people to trace
+                            if (limitNumberOfContactsToTrace) {
+                                // Presume that we're most likely to get actual infections first
+                                Set<PersonId> infectionsInGroupToPrioritize = infectionsFromContact.stream()
+                                        .filter(peopleInGroup::contains)
+                                        .limit(maxNumberOfContactsToTrace)
+                                        .collect(Collectors.toSet());
+
+                                // Now add additional non-infections
+                                Set<PersonId> additionalContactsToTrace = new HashSet<>();
+                                if (infectionsInGroupToPrioritize.size() < maxNumberOfContactsToTrace) {
+                                    additionalContactsToTrace = peopleInGroup.stream()
+                                            .filter(i -> ! infectionsInGroupToPrioritize.contains(i))
+                                            .limit(maxNumberOfContactsToTrace - infectionsInGroupToPrioritize.size())
+                                            .collect(Collectors.toSet());
+                                }
+                                Set<PersonId> contactsToTrace = infectionsInGroupToPrioritize;
+                                contactsToTrace.addAll(additionalContactsToTrace);
+
+                                // Finally do contact tracing
+                                for (PersonId individualContactToTrace : contactsToTrace) {
+                                    if (!individualContactToTrace.equals(personId) &&
+                                            environment.getRandomGeneratorFromId(
+                                                    ContactTracingRandomId.ID).nextDouble() < fractionToTraceAndIsolate) {
+                                        peopleToTraceAndIsolate.add(individualContactToTrace);
+                                    }
+                                }
+
+                            } else {
+                                // Just do contact tracing on everyone
+                                for (PersonId personInGroup : peopleInGroup) {
+                                    if (!personInGroup.equals(personId) &&
+                                            environment.getRandomGeneratorFromId(
+                                                    ContactTracingRandomId.ID).nextDouble() < fractionToTraceAndIsolate) {
+                                        peopleToTraceAndIsolate.add(personInGroup);
+                                    }
                                 }
                             }
+
+
                             double tracingDelay = contactTracingDelayByGroup.getOrDefault(contactGroupType, 0.0);
                             if (tracingDelay > 0) {
                                 environment.addPlan(new ContactTracingIsolationPlan(peopleToTraceAndIsolate),
@@ -365,15 +440,27 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                         GlobalProperty.MOST_RECENT_INFECTION_DATA);
                 //noinspection OptionalGetWithoutIsPresent
                 InfectionData mostRecentInfectionData = mostRecentInfectionDataContainer.get();
+                ContactGroupType setting = mostRecentInfectionData.transmissionSetting();
                 if (mostRecentInfectionData.transmissionOccurred() &&
-                        mostRecentInfectionData.transmissionSetting() == ContactGroupType.GLOBAL &&
+                        // Never look at the home
+                        setting != ContactGroupType.HOME &&
+                        // Always look at global and, if we are limiting the contact tracing, look at school & work, too
+                        (setting == ContactGroupType.GLOBAL ||
+                                (int) environment.getGlobalPropertyValue(ContactTracingGlobalProperty.CONTACT_TRACING_MAX_CONTACTS_TO_TRACE)
+                                        < Integer.MAX_VALUE) &&
                         mostRecentInfectionData.sourcePersonId().isPresent()) {
                     Optional<PersonId> targetPersonId = mostRecentInfectionData.targetPersonId();
                     if (targetPersonId.isPresent()) {
                         PersonId sourcePersonId = mostRecentInfectionData.sourcePersonId().get();
-                        environment.setPersonPropertyValue(targetPersonId.get(),
-                                ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID,
-                                sourcePersonId.getValue());
+                        if (setting == ContactGroupType.GLOBAL) {
+                            environment.setPersonPropertyValue(targetPersonId.get(),
+                                    ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID,
+                                    sourcePersonId.getValue());
+                        } else {
+                            environment.setPersonPropertyValue(targetPersonId.get(),
+                                    ContactTracingPersonProperty.NON_GLOBAL_INFECTION_SOURCE_PERSON_ID,
+                                    sourcePersonId.getValue());
+                        }
                     }
                 }
             } else {
@@ -427,4 +514,29 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
     }
 
+    // Simply copied from ContactManager but with RandomGeneratorId updated
+    private static Optional<PersonId> getGlobalContactFor(Environment environment, PersonId sourcePersonId) {
+        double fractionOfGlobalContactsInHomeRegion =
+                environment.getGlobalPropertyValue(GlobalProperty.FRACTION_OF_GLOBAL_CONTACTS_IN_HOME_REGION);
+        RegionId sourceRegionId = environment.getPersonRegion(sourcePersonId);
+        RegionId targetRegionId;
+        if (environment.getRandomGeneratorFromId(ContactTracingRandomId.ID).nextDouble() <
+                fractionOfGlobalContactsInHomeRegion) {
+            targetRegionId = sourceRegionId;
+        } else {
+            // Get a sample from the radiation flow distribution
+            Map<RegionId, EnumeratedDistribution<RegionId>> radiationTargetDistributions =
+                    environment.getGlobalPropertyValue(GlobalProperty.RADIATION_FLOW_TARGET_DISTRIBUTIONS);
+            EnumeratedDistribution<RegionId> targetDistribution = radiationTargetDistributions.get(sourceRegionId);
+            if (targetDistribution != null) {
+                targetRegionId = targetDistribution.sample();
+            } else {
+                targetRegionId = sourceRegionId;
+            }
+        }
+        return environment.getRandomIndexedPersonWithExclusionFromGenerator(
+                sourcePersonId,
+                targetRegionId,
+                ContactTracingRandomId.ID);
+    }
 }
