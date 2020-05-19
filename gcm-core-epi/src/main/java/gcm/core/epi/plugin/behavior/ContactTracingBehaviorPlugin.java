@@ -269,6 +269,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
         // A new symptomatic case was just identified. Determine if we need to do contact tracing for it.
         private void ascertainSymptomaticCase(Environment environment, final PersonId personId) {
+            //TODO: Handle contacts of contacts
             // Determine if we are currently tracing contacts
             RegionId regionId = environment.getPersonRegion(personId);
             boolean triggerIsInEffect = TriggerUtils.checkIfTriggerIsInEffect(environment, regionId,
@@ -308,6 +309,9 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
                         List<PersonId> infectionsFromContact = new ArrayList<>();
                         if (limitNumberOfContactsToTrace) {
+                            // This logic is predicated on infections stopping at this point in time.
+                            // It will take longer to identify these people, but we don't expect new infections.
+                            //TODO: If identified cases don't shelter & continue infecting people, then this logic is flawed.
                             infectionsFromContact = environment.getPeopleWithPropertyValue(
                                     ContactTracingPersonProperty.NON_GLOBAL_INFECTION_SOURCE_PERSON_ID, personId.getValue());
                         }
@@ -338,7 +342,8 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                             double fractionToTraceAndIsolate = fractionToTraceAndIsolateByGroup.getOrDefault(contactGroupType, 1.0);
 
                             // Determine if we need to worry about limiting how many people to trace
-                            if (limitNumberOfContactsToTrace) {
+                            // Don't limit GLOBAL contacts (we let them expand as needed)
+                            if (limitNumberOfContactsToTrace && contactGroupType != ContactGroupType.GLOBAL) {
                                 // Presume that we're most likely to get actual infections first
                                 Set<PersonId> infectionsInGroupToPrioritize = infectionsFromContact.stream()
                                         .filter(peopleInGroup::contains)
@@ -375,7 +380,6 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                                     }
                                 }
                             }
-
 
                             double tracingDelay = contactTracingDelayByGroup.getOrDefault(contactGroupType, 0.0);
                             if (tracingDelay > 0) {
