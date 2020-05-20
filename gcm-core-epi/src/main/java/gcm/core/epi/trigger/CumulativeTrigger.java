@@ -3,7 +3,6 @@ package gcm.core.epi.trigger;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import gcm.components.Component;
 import gcm.core.epi.components.trigger.CumulativeTriggerComponent;
-import gcm.core.epi.trigger.ImmutableCumulativeTrigger;
 import org.immutables.value.Value;
 
 @Value.Immutable

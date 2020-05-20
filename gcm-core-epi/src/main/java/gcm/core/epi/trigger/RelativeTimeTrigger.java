@@ -3,7 +3,6 @@ package gcm.core.epi.trigger;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import gcm.components.Component;
 import gcm.core.epi.components.trigger.RelativeTimeTriggerComponent;
-import gcm.core.epi.trigger.ImmutableRelativeTimeTrigger;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.scenario.PropertyDefinition;
 import org.immutables.value.Value;

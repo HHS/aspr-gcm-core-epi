@@ -14,7 +14,6 @@ import gcm.simulation.Environment;
 import gcm.simulation.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 
-
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;

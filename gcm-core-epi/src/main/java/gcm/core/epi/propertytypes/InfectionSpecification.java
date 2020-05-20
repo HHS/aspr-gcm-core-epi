@@ -1,7 +1,6 @@
 package gcm.core.epi.propertytypes;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import gcm.core.epi.propertytypes.ImmutableInfectionSpecification;
 import gcm.core.epi.trigger.AbstractFipsCodeValues;
 import gcm.core.epi.trigger.FipsCode;
 import gcm.core.epi.trigger.FipsScope;

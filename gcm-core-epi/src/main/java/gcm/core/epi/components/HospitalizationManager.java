@@ -15,11 +15,15 @@ import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.GammaDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
 
 public class HospitalizationManager extends AbstractComponent {
+
+    private static final Logger logger = LoggerFactory.getLogger(HospitalizationManager.class);
 
     @Override
     public void init(Environment environment) {
@@ -45,7 +49,7 @@ public class HospitalizationManager extends AbstractComponent {
                 double oldDischargeTime = environment.getPlanTime(personId);
                 environment.removePlan(personId);
 
-                System.out.println("Warning: Person attempted to be hospitalized due to reinfection who was already hospitalized");
+                logger.warn("Warning: Person attempted to be hospitalized due to reinfection who was already hospitalized");
 
                 // Add new plan
                 double additionalHospitalDuration = getHospitalizationDuration(environment, personId);

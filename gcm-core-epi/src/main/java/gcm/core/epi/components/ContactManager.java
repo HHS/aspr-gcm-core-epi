@@ -20,11 +20,15 @@ import gcm.simulation.Plan;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ContactManager extends AbstractComponent {
+
+    private static final Logger logger = LoggerFactory.getLogger(ContactManager.class);
 
     @Override
     public void init(Environment environment) {
@@ -128,8 +132,7 @@ public class ContactManager extends AbstractComponent {
         List<Pair<RegionId, Double>> radiationTargetProbabilities = new ArrayList<>(targetRegionIds.size());
 
         if (targetRegionIds.size() == 1) {
-            System.out.println("Warning: RegionId " + sourceRegionId + " has no neighbors within "
-                    + maxRadiusKM + " KM");
+            logger.warn("Warning: RegionId " + sourceRegionId + " has no neighbors within " + maxRadiusKM + " KM");
             // Default to contact only within source region
             radiationTargetProbabilities.add(new Pair<>(sourceRegionId, 1.0));
         }

@@ -1,7 +1,6 @@
 package gcm.core.epi.identifiers;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import gcm.core.epi.identifiers.ImmutableStringRegionId;
 import gcm.scenario.RegionId;
 import org.immutables.value.Value;
 

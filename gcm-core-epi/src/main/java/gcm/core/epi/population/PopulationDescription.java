@@ -1,8 +1,6 @@
 package gcm.core.epi.population;
 
 import gcm.core.epi.identifiers.PersonProperty;
-import gcm.core.epi.population.ImmutableAgeGroup;
-import gcm.core.epi.population.ImmutableAgeGroupPartition;
 import gcm.scenario.RegionId;
 import org.immutables.value.Value;
 

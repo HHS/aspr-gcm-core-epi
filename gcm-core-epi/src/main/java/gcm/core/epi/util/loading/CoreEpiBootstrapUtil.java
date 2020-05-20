@@ -11,6 +11,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import gcm.core.epi.Runner;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
@@ -25,6 +26,8 @@ import gcm.core.epi.util.property.PropertyGroupSpecification;
 import gcm.experiment.ExperimentExecutor;
 import gcm.scenario.*;
 import org.apache.commons.math3.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,6 +37,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class CoreEpiBootstrapUtil {
+
+    private static final Logger logger = LoggerFactory.getLogger(Runner.class);
 
     /**
      * This will load the population description by concatenating the data in the specified input files
@@ -329,8 +334,7 @@ public class CoreEpiBootstrapUtil {
 //                    }
                 }
             } else {
-                System.out.println("Warning: External property " + propertyName +
-                        " is not defined in configuration file");
+                logger.warn("Warning: External property " + propertyName + " is not defined in configuration file");
             }
         }
 
@@ -367,7 +371,7 @@ public class CoreEpiBootstrapUtil {
             if (property != null) {
                 experimentBuilder.forceGlobalPropertyExperimentColumn(property);
             } else {
-                System.out.println("Warning: forcedExperimentColumnProperties references an undefined global property: " +
+                logger.warn("Warning: forcedExperimentColumnProperties references an undefined global property: " +
                         propertyName);
             }
         }
@@ -411,13 +415,13 @@ public class CoreEpiBootstrapUtil {
                 String stringPathForLoading = (String) basePropertyValue;
                 if (stringPathForLoading.endsWith(".yaml")) {
                     // Load from YAML file via Immutables
-                    System.out.println(propertyName + ": loading from file " + stringPathForLoading);
+                    logger.info(propertyName + ": loading from file " + stringPathForLoading);
                     return objectMapper.readValue(
                             basePath.resolve(stringPathForLoading).toFile(), classType);
                 } else {
                     // Look for specialty loader
                     if (propertyName.equals(GlobalProperty.POPULATION_DESCRIPTION.toString())) {
-                        System.out.println(propertyName + ": loading from file " + stringPathForLoading);
+                        logger.info(propertyName + ": loading from file " + stringPathForLoading);
                         Path pathForLoading = basePath.resolve(stringPathForLoading);
                         if (pathForLoading.toFile().isFile()) {
                             return loadPopulationDescriptionFromFile(pathForLoading, ageGroupPartition);
