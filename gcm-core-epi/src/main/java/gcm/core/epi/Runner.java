@@ -12,6 +12,7 @@ import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.trigger.*;
 import gcm.core.epi.util.loading.*;
+import gcm.core.epi.util.logging.LogItemHandler;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.experiment.Experiment;
 import gcm.experiment.ExperimentExecutor;
@@ -176,7 +177,8 @@ public class Runner {
         experimentExecutor.setSeed(configuration.randomSeed());
         experimentExecutor.setThreadCount(configuration.threads());
         experimentExecutor.setReplicationCount(configuration.replications());
-        experimentExecutor.setConsoleOutput(true);
+        experimentExecutor.setProduceSimulationStatusOutput(true);
+        experimentExecutor.setLogItemHandler(new LogItemHandler());
         CoreEpiBootstrapUtil.loadReports(experimentExecutor, configuration.reports(), pluginList, outputPath);
         experimentExecutor.setDisplayExperimentColumnsInReports(configuration.displayExperimentColumns());
         if (configuration.includeExperimentColumnReport()) {

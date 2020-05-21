@@ -1,6 +1,5 @@
 package gcm.core.epi.plugin.infection;
 
-import gcm.core.epi.plugin.infection.ImmutableDiseaseCourseData;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.scenario.PersonId;
 import gcm.scenario.PropertyDefinition;

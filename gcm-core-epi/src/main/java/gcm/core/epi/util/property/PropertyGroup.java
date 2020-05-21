@@ -1,6 +1,5 @@
 package gcm.core.epi.util.property;
 
-import gcm.core.epi.util.property.ImmutablePropertyGroup;
 import gcm.scenario.GlobalPropertyId;
 import org.immutables.value.Value;
 

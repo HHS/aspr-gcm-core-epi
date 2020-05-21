@@ -1,7 +1,6 @@
 package gcm.core.epi.util.property;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import gcm.core.epi.util.property.ImmutablePropertyGroupSpecification;
 import org.immutables.value.Value;
 
 import java.util.List;

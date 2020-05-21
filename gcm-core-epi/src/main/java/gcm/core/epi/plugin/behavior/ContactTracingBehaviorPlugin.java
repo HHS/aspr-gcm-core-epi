@@ -14,7 +14,6 @@ import gcm.simulation.Environment;
 import gcm.simulation.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 
-
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -152,6 +151,9 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
         FRACTION_INFECTIONS_TRACED(PropertyDefinition.builder()
                 .setType(Double.class).setDefaultValue(0.0).build()),
 
+        // This value will multiply both infected & uninfected contacts
+        // There's no way to specify that you want to correctly identify and quarantine X% of infected contacts and
+        // then also say that some other number of people should quarantine with Z probability.
         FRACTION_CONTACTS_TRACED_AND_ISOLATED(PropertyDefinition.builder()
                 .setType(Map.class)
                 .setDefaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class))

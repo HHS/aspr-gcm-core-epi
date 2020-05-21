@@ -2,7 +2,6 @@ package gcm.core.epi.util.loading;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import gcm.core.epi.util.loading.ImmutableHospitalDataFileRecord;
 import org.immutables.value.Value;
 
 /**

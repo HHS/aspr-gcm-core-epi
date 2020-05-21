@@ -7,7 +7,6 @@ import gcm.core.epi.plugin.infection.InfectionPluginType;
 import gcm.core.epi.plugin.seeding.SeedingPluginType;
 import gcm.core.epi.plugin.transmission.TransmissionPluginType;
 import gcm.core.epi.trigger.TriggerDescription;
-import gcm.core.epi.util.loading.ImmutableCoreEpiConfiguration;
 import gcm.core.epi.util.property.PropertyGroupSpecification;
 import org.immutables.value.Value;
 

@@ -1,6 +1,8 @@
 package gcm.core.epi.util.configsplit;
 
 import gcm.util.TimeElapser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -21,6 +23,8 @@ public class ExperimentJoiner {
     private final Path targetDirectory;
 
     private final List<Path> childDirectories = new ArrayList<>();
+
+    private static final Logger logger = LoggerFactory.getLogger(ExperimentJoiner.class);
 
     private ExperimentJoiner(Path parentDirectory, Path targetDirectory) {
         this.parentDirectory = parentDirectory;
@@ -101,7 +105,7 @@ public class ExperimentJoiner {
             progressCount++;
             double projectedTimeRemaining = (timeElapser.getElapsedSeconds() / progressCount) * (childDirectories.size() - progressCount);
             includeHeader = false;
-            System.out.println("Progress: " + progressCount + " of " + childDirectories.size() + " with " + projectedTimeRemaining + " seconds remaining");
+            logger.info("Progress: " + progressCount + " of " + childDirectories.size() + " with " + projectedTimeRemaining + " seconds remaining");
         }
     }
 }

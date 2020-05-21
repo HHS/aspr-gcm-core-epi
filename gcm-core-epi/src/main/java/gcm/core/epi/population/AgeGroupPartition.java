@@ -1,7 +1,6 @@
 package gcm.core.epi.population;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import gcm.core.epi.population.ImmutableAgeGroupPartition;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Derived;
 

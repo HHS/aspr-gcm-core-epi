@@ -2,7 +2,6 @@ package gcm.core.epi.plugin.behavior;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import gcm.core.epi.plugin.behavior.ImmutableTriggeredParameterOverride;
 import org.immutables.value.Value;
 
 @Value.Immutable
