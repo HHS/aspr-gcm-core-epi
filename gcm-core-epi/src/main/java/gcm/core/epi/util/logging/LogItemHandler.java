@@ -1,7 +1,7 @@
 package gcm.core.epi.util.logging;
 
 import gcm.core.epi.Runner;
-import gcm.experiment.ExperimentProgressLog;
+import gcm.experiment.progress.ExperimentProgressLog;
 import gcm.output.OutputItem;
 import gcm.output.OutputItemHandler;
 import gcm.output.simstate.LogItem;
