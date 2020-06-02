@@ -360,11 +360,10 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                                             .limit(maxNumberOfContactsToTrace - infectionsInGroupToPrioritize.size())
                                             .collect(Collectors.toSet());
                                 }
-                                Set<PersonId> contactsToTrace = infectionsInGroupToPrioritize;
-                                contactsToTrace.addAll(additionalContactsToTrace);
+                                infectionsInGroupToPrioritize.addAll(additionalContactsToTrace);
 
                                 // Finally do contact tracing
-                                for (PersonId individualContactToTrace : contactsToTrace) {
+                                for (PersonId individualContactToTrace : infectionsInGroupToPrioritize) {
                                     if (!individualContactToTrace.equals(personId) &&
                                             environment.getRandomGeneratorFromId(
                                                     ContactTracingRandomId.ID).nextDouble() < fractionToTraceAndIsolate) {

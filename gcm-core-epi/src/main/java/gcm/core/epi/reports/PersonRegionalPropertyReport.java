@@ -13,10 +13,7 @@ import gcm.simulation.ObservableEnvironment;
 import gcm.util.annotations.Source;
 import gcm.util.annotations.TestStatus;
 
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A periodic Report that displays the number of people exhibiting a particular
@@ -223,9 +220,7 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
         for (Object initialDatum : initialData) {
             if (initialDatum instanceof PersonPropertyId[]) {
                 PersonPropertyId[] personPropertyList = (PersonPropertyId[]) initialDatum;
-                for (PersonPropertyId personProperty : personPropertyList) {
-                    personPropertyIds.add(personProperty);
-                }
+                personPropertyIds.addAll(Arrays.asList(personPropertyList));
             }
         }
 
