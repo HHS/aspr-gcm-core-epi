@@ -5,9 +5,7 @@ import gcm.core.epi.plugin.infection.InfectionPlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.HospitalData;
 import gcm.core.epi.population.PopulationDescription;
-import gcm.core.epi.propertytypes.ImmutableInfectionSpecification;
-import gcm.core.epi.propertytypes.InfectionSpecification;
-import gcm.core.epi.propertytypes.TransmissionStructure;
+import gcm.core.epi.propertytypes.*;
 import gcm.core.epi.trigger.TriggerContainer;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.scenario.PropertyDefinition;
@@ -20,6 +18,9 @@ import java.util.*;
 
 
 public enum GlobalProperty implements DefinedGlobalProperty {
+
+    AGE_WEIGHTS_TEST(PropertyDefinition.builder()
+            .setType(AgeWeights.class).setDefaultValue(ImmutableAgeWeights.builder().build()).build()),
 
     AVERAGE_TRANSMISSION_RATIO(PropertyDefinition.builder()
             .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
@@ -52,7 +53,7 @@ public enum GlobalProperty implements DefinedGlobalProperty {
             .setPropertyValueMutability(false).build()),
 
     FRACTION_SYMPTOMATIC(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+            .setType(AgeWeights.class).setDefaultValue(ImmutableAgeWeights.builder().build()).setPropertyValueMutability(false).build()),
 
     ASYMPTOMATIC_INFECTIOUSNESS(PropertyDefinition.builder()
             .setType(Double.class).setDefaultValue(1.0).setPropertyValueMutability(false).build()),

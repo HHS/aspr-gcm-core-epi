@@ -44,8 +44,8 @@ public class Runner {
         final Path inputConfigPath = CoreEpiBootstrapUtil.getPathFromRelativeString(args[0]);
 
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory())
-                .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY).
-                        registerModule(new Jdk8Module());
+                .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+                .registerModule(new Jdk8Module());
 
         // Open configuration file and parse
         CoreEpiConfiguration configuration = objectMapper.readValue(inputConfigPath.toFile(), ImmutableCoreEpiConfiguration.class);

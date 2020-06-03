@@ -8,6 +8,7 @@ import gcm.core.epi.plugin.transmission.TransmissionPlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.PopulationDescription;
+import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.propertytypes.TransmissionStructure;
 import gcm.scenario.GroupId;
@@ -47,10 +48,15 @@ public class ContactManager extends AbstractComponent {
         TransmissionStructure transmissionStructure = environment.getGlobalPropertyValue(
                 GlobalProperty.TRANSMISSION_STRUCTURE);
 
+        AgeWeights fractionSymptomatic = environment.getGlobalPropertyValue(GlobalProperty.FRACTION_SYMPTOMATIC);
+        double asymptomaticInfectiousness = environment.getGlobalPropertyValue(GlobalProperty.ASYMPTOMATIC_INFECTIOUSNESS);
+
         // Normalizing Transmission
         double transmissionRatioNormalizationFactor = ageGroupDistribution.entrySet().stream()
                 .map(entry -> entry.getValue() *
-                        transmissionStructure.transmissionWeights().apply(entry.getKey()))
+                        transmissionStructure.transmissionWeights().apply(entry.getKey()) *
+                        (fractionSymptomatic.getWeight(entry.getKey()) +
+                                asymptomaticInfectiousness * (1 - fractionSymptomatic.getWeight(entry.getKey()))))
                 .reduce(0.0, Double::sum) /
                 ageGroupDistribution.values().stream()
                         .reduce(0.0, Double::sum);
@@ -224,7 +230,8 @@ public class ContactManager extends AbstractComponent {
         // Symptomatic
         boolean willBeSymptomatic = environment.getPersonPropertyValue(personId, PersonProperty.WILL_BE_SYMPTOMATIC);
         double asymptomaticInfectiousness = environment.getGlobalPropertyValue(GlobalProperty.ASYMPTOMATIC_INFECTIOUSNESS);
-        double fractionSymptomatic = environment.getGlobalPropertyValue(GlobalProperty.FRACTION_SYMPTOMATIC);
+        AgeWeights fractionSymptomaticByAge = environment.getGlobalPropertyValue(GlobalProperty.FRACTION_SYMPTOMATIC);
+        double fractionSymptomatic = fractionSymptomaticByAge.getWeight(ageGroup);
         double symptomaticTransmissibility = 1 / (fractionSymptomatic + (1 - fractionSymptomatic) * asymptomaticInfectiousness);
         double relativeTransmissibilityFromSymptomaticStatus = willBeSymptomatic ?
                 symptomaticTransmissibility : asymptomaticInfectiousness * symptomaticTransmissibility;

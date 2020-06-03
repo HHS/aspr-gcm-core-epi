@@ -21,7 +21,7 @@ public class AgeGroupStringDeserializer extends JsonDeserializer<AgeGroup> {
             throws IOException {
         AgeGroup ageGroup = ageGroupPartition.getAgeGroupFromName(jsonParser.getText());
         if (ageGroup == null) {
-            throw new IOException("jsonParser.getText() is not a valid AgeGroup name");
+            throw new IOException(jsonParser.getText() + " is not a valid AgeGroup name");
         }
         return ageGroup;
     }

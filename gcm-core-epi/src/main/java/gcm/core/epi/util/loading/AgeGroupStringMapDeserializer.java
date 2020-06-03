@@ -19,7 +19,7 @@ public class AgeGroupStringMapDeserializer extends KeyDeserializer {
     public Object deserializeKey(String s, DeserializationContext deserializationContext) throws IOException {
         AgeGroup ageGroup = ageGroupPartition.getAgeGroupFromName(s);
         if (ageGroup == null) {
-            throw new IOException("jsonParser.getText() is not a valid AgeGroup name");
+            throw new IOException(s + " is not a valid AgeGroup name");
         }
         return ageGroup;
     }

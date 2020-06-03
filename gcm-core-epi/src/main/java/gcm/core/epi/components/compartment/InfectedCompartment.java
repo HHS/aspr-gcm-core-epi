@@ -6,6 +6,9 @@ import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.identifiers.RandomId;
 import gcm.core.epi.plugin.infection.DiseaseCourseData;
 import gcm.core.epi.plugin.infection.InfectionPlugin;
+import gcm.core.epi.population.AgeGroup;
+import gcm.core.epi.population.PopulationDescription;
+import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.scenario.PersonId;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
@@ -32,8 +35,13 @@ public class InfectedCompartment extends DiseaseCompartment {
                 environment.getTime() + diseaseCourseData.infectiousOnsetTime());
 
         // Determine if person should be symptomatic
+        AgeWeights fractionSymptomatic = environment.getGlobalPropertyValue(GlobalProperty.FRACTION_SYMPTOMATIC);
+        PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+                GlobalProperty.POPULATION_DESCRIPTION);
+        Integer ageGroupIndex = environment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
+        AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
         final boolean willBeSymptomatic = environment.getRandomGeneratorFromId(RandomId.INFECTED_COMPARTMENT).nextDouble() <=
-                (double) environment.getGlobalPropertyValue(GlobalProperty.FRACTION_SYMPTOMATIC);
+                fractionSymptomatic.getWeight(ageGroup);
         if (willBeSymptomatic) {
             environment.setPersonPropertyValue(personId, PersonProperty.WILL_BE_SYMPTOMATIC, true);
             environment.addPlan(new SymptomOnsetPlan(personId),
