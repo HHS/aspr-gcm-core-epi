@@ -6,6 +6,7 @@ import gcm.experiment.ExperimentExecutor;
 import gcm.output.reports.commonreports.GroupPropertyReport;
 import gcm.scenario.GlobalPropertyId;
 import gcm.scenario.PersonPropertyId;
+import gcm.scenario.RegionPropertyId;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -62,7 +63,9 @@ public enum CommonReport implements LoadableReport {
                 resourceIds.toArray(new Resource[0]));
     }),
     REGION_PROPERTY_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addRegionPropertyReport(path);
+        RegionPropertyId[] regionPropertyIds = CoreEpiBootstrapUtil.getRegionPropertyIdsFromStringSet(
+                reportWrapperItem.items(), pluginList).toArray(new RegionPropertyId[0]);
+        experimentExecutor.addRegionPropertyReport(path, regionPropertyIds);
     }),
     REGION_TRANSFER_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
         experimentExecutor.addMaterialsProducerResourceReport(path);

@@ -12,10 +12,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import gcm.core.epi.Runner;
-import gcm.core.epi.identifiers.ContactGroupType;
-import gcm.core.epi.identifiers.GlobalProperty;
-import gcm.core.epi.identifiers.PersonProperty;
-import gcm.core.epi.identifiers.StringRegionId;
+import gcm.core.epi.identifiers.*;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.population.*;
 import gcm.core.epi.reports.CustomReport;
@@ -250,6 +247,33 @@ public class CoreEpiBootstrapUtil {
             }
         }
         return personPropertyIds;
+    }
+
+    /**
+     * Converts a Set of Strings to a Set of RegionPropertyIds taking into account any potential plugins
+     *
+     * @param strings    The Set of Strings to be converted
+     * @param pluginList The List of Plugins used in this experiment
+     * @return Set of RegionPropertyIds
+     */
+    public static Set<RegionPropertyId> getRegionPropertyIdsFromStringSet(final Set<String> strings, List<Plugin> pluginList) {
+        Set<RegionPropertyId> regionPropertyIds = new HashSet<>();
+        // Base person properties
+        for (RegionProperty regionProperty : RegionProperty.values()) {
+            if (strings.contains(regionProperty.toString())) {
+                regionPropertyIds.add(regionProperty);
+            }
+        }
+        // Person properties added by plugins
+        // TODO: Deal with potential collisions among property ids in plugins (for now adds all of them)
+        for (Plugin plugin : pluginList) {
+            for (RegionPropertyId regionPropertyId : plugin.getRegionProperties()) {
+                if (strings.contains(regionPropertyId.toString())) {
+                    regionPropertyIds.add(regionPropertyId);
+                }
+            }
+        }
+        return regionPropertyIds;
     }
 
     /**
