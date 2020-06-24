@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 public class ContactManager extends AbstractComponent {
 
     private static final Logger logger = LoggerFactory.getLogger(ContactManager.class);
+    private boolean hasInitializedIndexes = false;
 
     @Override
     public void init(Environment environment) {
@@ -86,17 +87,17 @@ public class ContactManager extends AbstractComponent {
             double lon = environment.getRegionPropertyValue(regionId, RegionProperty.LON);
             geoLocatorBuilder.addLocation(lat, lon, regionId);
             // Add index for sampling
-            Filter regionFilter = Filter.region(regionId);
-            environment.addPopulationIndex(regionFilter, regionId);
+//            Filter regionFilter = Filter.region(regionId);
+//            environment.addPopulationIndex(regionFilter, regionId);
             // Add age group and region indexes for sampling when needed
-            if (transmissionStructure.groupBiWeightingFunctions().containsKey(ContactGroupType.GLOBAL)) {
-                for (AgeGroup ageGroup : ageGroupDistribution.keySet()) {
-                    int ageGroupIndex = populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.name());
-                    Filter regionAgeGroupFilter = regionFilter.and(Filter.property(PersonProperty.AGE_GROUP_INDEX,
-                            Equality.EQUAL, ageGroupIndex));
-                    environment.addPopulationIndex(regionAgeGroupFilter, new MultiKey(regionId, ageGroup));
-                }
-            }
+//            if (transmissionStructure.groupBiWeightingFunctions().containsKey(ContactGroupType.GLOBAL)) {
+//                for (AgeGroup ageGroup : ageGroupDistribution.keySet()) {
+//                    int ageGroupIndex = populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.name());
+//                    Filter regionAgeGroupFilter = regionFilter.and(Filter.property(PersonProperty.AGE_GROUP_INDEX,
+//                            Equality.EQUAL, ageGroupIndex));
+//                    environment.addPopulationIndex(regionAgeGroupFilter, new MultiKey(regionId, ageGroup));
+//                }
+//            }
         }
 
         GeoLocator<RegionId> geoLocator = geoLocatorBuilder.build();
@@ -428,6 +429,36 @@ public class ContactManager extends AbstractComponent {
             } else {
                 targetRegionId = sourceRegionId;
             }
+        }
+
+        // TODO: Temporary move for initialization
+        if (! hasInitializedIndexes) {
+            Set<RegionId> regionIds =
+                    ((PopulationDescription) environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION))
+                            .regionIds();
+            TransmissionStructure transmissionStructure = environment.getGlobalPropertyValue(
+                    GlobalProperty.TRANSMISSION_STRUCTURE);
+            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+                    GlobalProperty.POPULATION_DESCRIPTION);
+            Map<AgeGroup, Double> ageGroupDistribution = populationDescription.ageGroupDistribution();
+            for (RegionId regionId : regionIds) {
+                // Add to GeoLocator
+                double lat = environment.getRegionPropertyValue(regionId, RegionProperty.LAT);
+                double lon = environment.getRegionPropertyValue(regionId, RegionProperty.LON);
+                // Add index for sampling
+                Filter regionFilter = Filter.region(regionId);
+                environment.addPopulationIndex(regionFilter, regionId);
+                // Add age group and region indexes for sampling when needed
+                if (transmissionStructure.groupBiWeightingFunctions().containsKey(ContactGroupType.GLOBAL)) {
+                    for (AgeGroup ageGroup : ageGroupDistribution.keySet()) {
+                        int ageGroupIndex = populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.name());
+                        Filter regionAgeGroupFilter = regionFilter.and(Filter.property(PersonProperty.AGE_GROUP_INDEX,
+                                Equality.EQUAL, ageGroupIndex));
+                        environment.addPopulationIndex(regionAgeGroupFilter, new MultiKey(regionId, ageGroup));
+                    }
+                }
+            }
+            hasInitializedIndexes = true;
         }
 
         // Use a weighting by age if provided, otherwise choose uniformly at random
