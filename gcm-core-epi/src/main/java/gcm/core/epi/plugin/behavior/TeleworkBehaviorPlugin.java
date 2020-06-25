@@ -4,10 +4,7 @@ import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerUtils;
-import gcm.core.epi.util.property.DefinedGlobalProperty;
-import gcm.core.epi.util.property.DefinedGroupProperty;
-import gcm.core.epi.util.property.DefinedPersonProperty;
-import gcm.core.epi.util.property.DefinedRegionProperty;
+import gcm.core.epi.util.property.*;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
@@ -38,10 +35,10 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
             GroupId workplaceId = environment.getGroupsForGroupTypeAndPerson(ContactGroupType.WORK, personId).get(0);
             float workplaceTeleworkPropensity = environment.getGroupPropertyValue(workplaceId,
                     TeleworkWorkProperty.TELEWORK_PROPENSITY);
-            double fractionOfWorkplacesTeleworking = environment.getGlobalPropertyValue(
-                    TeleworkGlobalProperty.FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES);
-            double fractionOfEmployeesTeleworking = environment.getGlobalPropertyValue(
-                    TeleworkGlobalProperty.FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE);
+            double fractionOfWorkplacesTeleworking = getRegionalPropertyValue(environment, regionId,
+                    TeleworkGlobalAndRegionProperty.FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES);
+            double fractionOfEmployeesTeleworking = getRegionalPropertyValue(environment, regionId,
+                    TeleworkGlobalAndRegionProperty.FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE);
             // Telework only if workplace and person are teleworking
             return (fractionOfWorkplacesTeleworking > 1 - workplaceTeleworkPropensity &&
                     fractionOfEmployeesTeleworking > 1 - personTeleworkPropensity);
@@ -54,13 +51,14 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
         // Can only affect workplace transmission
         if (selectedContactGroupType == ContactGroupType.WORK) {
             if (isPersonTeleworkAble(environment, personId)) {
-                double teleworkTimeFraction = environment.getGlobalPropertyValue(
-                        TeleworkGlobalProperty.TELEWORK_TIME_FRACTION);
+                RegionId regionId = environment.getPersonRegion(personId);
+                double teleworkTimeFraction = getRegionalPropertyValue(environment, regionId,
+                        TeleworkGlobalAndRegionProperty.TELEWORK_TIME_FRACTION);
                 if (environment.getRandomGeneratorFromId(TeleworkRandomId.ID).nextDouble() <
                         teleworkTimeFraction) {
                     // Substitute workplace contacts
-                    Map<ContactGroupType, Double> teleworkContactSubstitutionWeights = environment.getGlobalPropertyValue(
-                            TeleworkGlobalProperty.WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS);
+                    Map<ContactGroupType, Double> teleworkContactSubstitutionWeights = getRegionalPropertyValue(environment, regionId,
+                            TeleworkGlobalAndRegionProperty.WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS);
                     List<Pair<ContactGroupType, Double>> teleworkContactSubstitutionWeightsList = teleworkContactSubstitutionWeights
                             .entrySet()
                             .stream()
@@ -91,12 +89,18 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
 
     @Override
     public Set<DefinedGlobalProperty> getGlobalProperties() {
-        return new HashSet<>(EnumSet.allOf(TeleworkGlobalProperty.class));
+        Set<DefinedGlobalProperty> globalProperties = new HashSet<>();
+        globalProperties.addAll(EnumSet.allOf(TeleworkGlobalProperty.class));
+        globalProperties.addAll(EnumSet.allOf(TeleworkGlobalAndRegionProperty.class));
+        return globalProperties;
     }
 
     @Override
     public Set<DefinedRegionProperty> getRegionProperties() {
-        return new HashSet<>(EnumSet.allOf(TeleworkRegionProperty.class));
+        Set<DefinedRegionProperty> regionProperties = new HashSet<>();
+        regionProperties.addAll(EnumSet.allOf(TeleworkRegionProperty.class));
+        regionProperties.addAll(EnumSet.allOf(TeleworkGlobalAndRegionProperty.class));
+        return regionProperties;
     }
 
     @Override
@@ -109,10 +113,16 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
     @Override
     public Map<String, Set<TriggerCallback>> getTriggerCallbacks(Environment environment) {
         Map<String, Set<TriggerCallback>> triggerCallbacks = new HashMap<>();
+        // First add overall start/stop triggers
         String triggerId = environment.getGlobalPropertyValue(TeleworkGlobalProperty.TELEWORK_START);
         TriggerUtils.addBooleanCallback(triggerCallbacks, triggerId, TeleworkRegionProperty.TELEWORK_TRIGGER_START);
         triggerId = environment.getGlobalPropertyValue(TeleworkGlobalProperty.TELEWORK_END);
         TriggerUtils.addBooleanCallback(triggerCallbacks, triggerId, TeleworkRegionProperty.TELEWORK_TRIGGER_END);
+        // Then add trigger property overrides
+        List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
+                TeleworkGlobalProperty.TELEWORK_TRIGGER_OVERRIDES);
+        addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
+                Arrays.stream(TeleworkGlobalAndRegionProperty.values()).collect(Collectors.toSet()), environment);
         return triggerCallbacks;
     }
 
@@ -121,8 +131,9 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
         // Can only affect workplace transmission
         if (contactSetting == ContactGroupType.WORK) {
             if (isPersonTeleworkAble(environment, personId)) {
-                double teleworkTimeFraction = environment.getGlobalPropertyValue(
-                        TeleworkGlobalProperty.TELEWORK_TIME_FRACTION);
+                RegionId regionId = environment.getPersonRegion(personId);
+                double teleworkTimeFraction = getRegionalPropertyValue(environment, regionId,
+                        TeleworkGlobalAndRegionProperty.TELEWORK_TIME_FRACTION);
                 return 1.0 - teleworkTimeFraction;
             }
         }
@@ -178,6 +189,41 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
 
     public enum TeleworkGlobalProperty implements DefinedGlobalProperty {
 
+        TELEWORK_START(PropertyDefinition.builder()
+                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+
+        TELEWORK_END(PropertyDefinition.builder()
+                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+
+        TELEWORK_TRIGGER_OVERRIDES(PropertyDefinition.builder().setType(List.class).setDefaultValue(new ArrayList<>()).build());
+
+        private final PropertyDefinition propertyDefinition;
+
+        TeleworkGlobalProperty(PropertyDefinition propertyDefinition) {
+            this.propertyDefinition = propertyDefinition;
+        }
+
+        private static Map<ContactGroupType, Double> getDefaultContactSubstitutionWeights() {
+            Map<ContactGroupType, Double> weights = new EnumMap<>(ContactGroupType.class);
+            weights.put(ContactGroupType.HOME, 0.95);
+            weights.put(ContactGroupType.GLOBAL, 0.05);
+            return weights;
+        }
+
+        @Override
+        public PropertyDefinition getPropertyDefinition() {
+            return propertyDefinition;
+        }
+
+        @Override
+        public boolean isExternalProperty() {
+            return true;
+        }
+
+    }
+
+    public enum TeleworkGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
+
         FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES(PropertyDefinition.builder()
                 .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
 
@@ -189,17 +235,11 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
 
         WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS(PropertyDefinition.builder()
                 .setType(Map.class).setDefaultValue(getDefaultContactSubstitutionWeights())
-                .setPropertyValueMutability(false).build()),
-
-        TELEWORK_START(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
-
-        TELEWORK_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build());
+                .setPropertyValueMutability(false).build());
 
         private final PropertyDefinition propertyDefinition;
 
-        TeleworkGlobalProperty(PropertyDefinition propertyDefinition) {
+        TeleworkGlobalAndRegionProperty(PropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 

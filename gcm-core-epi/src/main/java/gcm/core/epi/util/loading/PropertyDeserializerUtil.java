@@ -46,7 +46,7 @@ public class PropertyDeserializerUtil {
                 }));
         // Telework
         propertyDeserializers.put(
-                TeleworkBehaviorPlugin.TeleworkGlobalProperty.WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS.toString(),
+                TeleworkBehaviorPlugin.TeleworkGlobalAndRegionProperty.WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS.toString(),
                 new PropertyDeserializer(new TypeReference<Map<ContactGroupType, Double>>() {
                 }));
         // School Closure

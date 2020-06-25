@@ -4,14 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.immutables.value.Value;
 
+import java.util.Map;
+
 @Value.Immutable
 @JsonDeserialize(as = ImmutableTriggeredPropertyOverride.class)
 public interface TriggeredPropertyOverride {
 
     String trigger();
 
-    String property();
-
-    JsonNode value();
+    Map<String, JsonNode> overrides();
 
 }

@@ -290,7 +290,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                             fractionInfectionsTraced) {
                         // Person stays home
                         environment.setPersonPropertyValue(personId, PersonProperty.IS_STAYING_HOME, true);
-                        List<PersonId> personStayingHome = new ArrayList(1);
+                        List<PersonId> personStayingHome = new ArrayList<>(1);
                         personStayingHome.add(personId);
                         double stayAtHomeDuration = environment.getGlobalPropertyValue(ContactTracingGlobalProperty.TRACED_CONTACT_STAY_HOME_DURATION);
                         environment.addPlan(new EndIsolationPlan(personStayingHome), environment.getTime() + stayAtHomeDuration);

@@ -1,22 +1,18 @@
 package gcm.core.epi.plugin.behavior;
 
 import gcm.core.epi.identifiers.ContactGroupType;
-import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.population.AgeGroup;
-import gcm.core.epi.population.AgeGroupPartition;
-import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.population.Util;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerUtils;
-import gcm.core.epi.util.loading.CoreEpiBootstrapUtil;
 import gcm.core.epi.util.property.DefinedGlobalAndRegionProperty;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 
-import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class LocationInfectionReductionPlugin extends BehaviorPlugin {
     @Override
@@ -46,18 +42,9 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
         if (triggerIsInEffect) {
             // We are in the timeframe when infections should be reduced
             AgeGroup ageGroup = Util.getAgeGroupForPerson(environment, personId);
-            // See if region property value has been set
             Map<AgeGroup, Map<ContactGroupType, Double>> infectionReductionByAgeAndLocationMap =
-                    environment.getRegionPropertyValue(regionId,
+                    getRegionalPropertyValue(environment, regionId,
                             LocationInfectionReductionGlobalAndRegionProperty.LOCATION_INFECTION_REDUCTION);
-            //noinspection OptionalGetWithoutIsPresent
-            if (infectionReductionByAgeAndLocationMap.equals(environment.getRegionPropertyDefinition(
-                    LocationInfectionReductionGlobalAndRegionProperty.LOCATION_INFECTION_REDUCTION)
-                    .getDefaultValue().get())) {
-                // If still is the default region property, use the value from global definition
-                infectionReductionByAgeAndLocationMap = environment.getGlobalPropertyValue(
-                        LocationInfectionReductionGlobalAndRegionProperty.LOCATION_INFECTION_REDUCTION);
-            }
             Map<ContactGroupType, Double> infectionReductionByLocationMap = infectionReductionByAgeAndLocationMap
                     .getOrDefault(ageGroup, new HashMap<>());
             infectionReduction = infectionReductionByLocationMap.getOrDefault(contactSetting, 0.0);
@@ -85,24 +72,9 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
         // Then add trigger property overrides
         List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
                 LocationInfectionReductionGlobalProperty.LOCATION_INFECTION_REDUCTION_TRIGGER_OVERRIDES);
-        for (TriggeredPropertyOverride override : triggeredPropertyOverrides) {
-            triggerId = override.trigger();
-            // This should only be called for LOCATION_INFECTION_REDUCTION
-            String parameterId = override.property();
-            if (!parameterId.equals(LocationInfectionReductionGlobalAndRegionProperty.LOCATION_INFECTION_REDUCTION.toString())) {
-                throw new RuntimeException("Unrecognized property for triggered parameter override: " + parameterId);
-            }
-            DefinedGlobalAndRegionProperty property = LocationInfectionReductionGlobalAndRegionProperty.LOCATION_INFECTION_REDUCTION;
-            try {
-                PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
-                AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
-                Object overrideValue = CoreEpiBootstrapUtil.getPropertyValueFromJson(override.value(), property, ageGroupPartition);
-                TriggerUtils.addCallback(triggerCallbacks, triggerId,
-                        (env, regionId) -> env.setRegionPropertyValue(regionId, property, overrideValue));
-            } catch (IOException e) {
-                throw new RuntimeException("Property override value cannot be parsed from: " + override.value());
-            }
-        }
+        addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
+                Arrays.stream(LocationInfectionReductionGlobalAndRegionProperty.values()).collect(Collectors.toSet()),
+                environment);
         return triggerCallbacks;
     }
 
