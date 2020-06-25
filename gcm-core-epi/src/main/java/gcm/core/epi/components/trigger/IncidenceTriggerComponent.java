@@ -20,6 +20,7 @@ public class IncidenceTriggerComponent extends AbstractComponent {
 
     private final Set<TriggerCallback> triggerCallbacks = new HashSet<>();
     private final Map<FipsCode, Double> thresholds = new HashMap<>();
+    private final Map<FipsCode, Double> cutoffs = new HashMap<>();
     private final Map<FipsCode, Counter> counterMap = new HashMap<>();
     private final Map<FipsCode, Boolean> triggerActive = new HashMap<>();
     Map<FipsCode, Set<RegionId>> fipsCodeRegionMap;
@@ -39,6 +40,8 @@ public class IncidenceTriggerComponent extends AbstractComponent {
         initializeCountersAndObservations(environment);
         // Store thresholds
         thresholds.putAll(incidenceTrigger.getFipsCodeValues(environment));
+        // Store cutoffs
+        cutoffs.putAll(incidenceTrigger.getFipsCodeCutoffs(environment));
     }
 
     private void initializeCountersAndObservations(Environment environment) {
@@ -154,9 +157,10 @@ public class IncidenceTriggerComponent extends AbstractComponent {
                 FipsCode fipsCode = entry.getKey();
                 Counter counter = entry.getValue();
                 double threshold = thresholds.get(fipsCode);
+                double cutoff = cutoffs.get(fipsCode);
                 switch (incidenceTrigger.comparison()) {
                     case ABOVE:
-                        if (counter.count > threshold && !triggerActive.get(fipsCode)) {
+                        if (counter.count > threshold && counter.count <= cutoff && !triggerActive.get(fipsCode)) {
                             // Trigger should be activated
                             triggerRegionProperties(environment, fipsCode);
                         } else if (counter.count <= threshold && triggerActive.get(fipsCode)) {
@@ -164,7 +168,7 @@ public class IncidenceTriggerComponent extends AbstractComponent {
                         }
                         break;
                     case BELOW:
-                        if (counter.count < threshold && !triggerActive.get(fipsCode)) {
+                        if (counter.count < threshold && counter.count >= cutoff && !triggerActive.get(fipsCode)) {
                             // Trigger should be activated
                             triggerRegionProperties(environment, fipsCode);
                         } else if (counter.count >= threshold && triggerActive.get(fipsCode)) {
