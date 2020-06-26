@@ -49,6 +49,10 @@ public class PropertyDeserializerUtil {
                 TeleworkBehaviorPlugin.TeleworkGlobalAndRegionProperty.WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS.toString(),
                 new PropertyDeserializer(new TypeReference<Map<ContactGroupType, Double>>() {
                 }));
+        propertyDeserializers.put(
+                TeleworkBehaviorPlugin.TeleworkGlobalProperty.TELEWORK_TRIGGER_OVERRIDES.toString(),
+                new PropertyDeserializer(new TypeReference<List<TriggeredPropertyOverride>>() {
+                }));
         // School Closure
         propertyDeserializers.put(
                 SchoolClosureBehaviorPlugin.SchoolClosureGlobalProperty.SCHOOL_CLOSED_CONTACT_SUBSTITUTION_WEIGHTS.toString(),

@@ -195,7 +195,9 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
         TELEWORK_END(PropertyDefinition.builder()
                 .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
 
-        TELEWORK_TRIGGER_OVERRIDES(PropertyDefinition.builder().setType(List.class).setDefaultValue(new ArrayList<>()).build());
+        TELEWORK_TRIGGER_OVERRIDES(PropertyDefinition.builder()
+                .setType(List.class).setDefaultValue(new ArrayList<TriggeredPropertyOverride>())
+                .setPropertyValueMutability(false).build());
 
         private final PropertyDefinition propertyDefinition;
 

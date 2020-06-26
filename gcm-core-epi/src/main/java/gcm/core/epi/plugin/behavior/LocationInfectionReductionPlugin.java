@@ -96,7 +96,8 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
                 .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
 
         LOCATION_INFECTION_REDUCTION_TRIGGER_OVERRIDES(PropertyDefinition.builder()
-                .setType(List.class).setDefaultValue(new ArrayList<>()).setPropertyValueMutability(false).build());
+                .setType(List.class).setDefaultValue(new ArrayList<TriggeredPropertyOverride>())
+                .setPropertyValueMutability(false).build());
 
         private final PropertyDefinition propertyDefinition;
         private final boolean isExternal;
