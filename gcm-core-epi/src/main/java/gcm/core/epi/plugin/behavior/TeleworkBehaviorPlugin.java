@@ -227,13 +227,13 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
     public enum TeleworkGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
 
         FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+                .setType(Double.class).setDefaultValue(0.0).build()),
 
         FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+                .setType(Double.class).setDefaultValue(0.0).build()),
 
         TELEWORK_TIME_FRACTION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+                .setType(Double.class).setDefaultValue(0.0).build()),
 
         WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS(PropertyDefinition.builder()
                 .setType(Map.class).setDefaultValue(getDefaultContactSubstitutionWeights())
