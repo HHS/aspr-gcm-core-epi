@@ -76,13 +76,9 @@ public class IncidenceTriggerComponent extends AbstractComponent {
         // Initialize FIPS code region map
         fipsCodeRegionMap = incidenceTrigger.scope().getFipsCodeRegionMap(environment);
 
-        // Determine if trigger is already active
+        // Initialize flags
         for (FipsCode fipsCode : fipsCodeRegionMap.keySet()) {
-            if (incidenceTrigger.comparison() == IncidenceTrigger.Comparison.BELOW) {
-                triggerRegionProperties(environment, fipsCode);
-            } else {
-                triggerActive.put(fipsCode, false);
-            }
+            triggerActive.put(fipsCode, false);
         }
 
         // Wait to schedule a flush plan until needed
