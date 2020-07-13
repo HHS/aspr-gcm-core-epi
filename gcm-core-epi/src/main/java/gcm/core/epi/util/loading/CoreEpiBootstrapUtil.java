@@ -386,6 +386,8 @@ public class CoreEpiBootstrapUtil {
                 for (String label : propertyGroupSpecification.labels()) {
                     experimentBuilder.addGlobalPropertyValue(covariationGroup, label);
                 }
+                // Force inclusion in experiment columns
+                experimentBuilder.forceGlobalPropertyExperimentColumn(covariationGroup);
             }
         }
 
