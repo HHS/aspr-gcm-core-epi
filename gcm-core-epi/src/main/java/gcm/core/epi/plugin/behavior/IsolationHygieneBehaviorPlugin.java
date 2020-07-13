@@ -315,7 +315,9 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
     private static class EndIsolationPlan implements Plan {
         private final PersonId personId;
 
-        private EndIsolationPlan(final PersonId personId) { this.personId = personId;}
+        private EndIsolationPlan(final PersonId personId) {
+            this.personId = personId;
+        }
     }
 
 

@@ -1,6 +1,7 @@
 package gcm.core.epi.plugin.behavior;
 
 import gcm.components.AbstractComponent;
+import gcm.core.epi.components.ContactManager;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
@@ -11,9 +12,7 @@ import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
-import gcm.simulation.Filter;
 import gcm.simulation.Plan;
-import org.apache.commons.math3.distribution.EnumeratedDistribution;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -342,8 +341,9 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                                         ContactTracingGlobalProperty.ADDITIONAL_GLOBAL_CONTACTS_TO_TRACE);
                                 Set<PersonId> additionalGlobalContacts = new HashSet<>();
                                 IntStream.range(1, numberOfAdditionalGlobalContactsToTrace)
-                                        .forEach(x -> getGlobalContactFor(environment, personId)
-                                            .ifPresent(additionalGlobalContacts::add));
+                                        .forEach(x -> ContactManager.getGlobalContactFor(environment, personId,
+                                                ContactTracingRandomId.ID)
+                                                .ifPresent(additionalGlobalContacts::add));
                                 peopleInGroup.addAll(additionalGlobalContacts);
                             }
                             double fractionToTraceAndIsolate = fractionToTraceAndIsolateByGroup.getOrDefault(contactGroupType, 1.0);
@@ -361,7 +361,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                                 Set<PersonId> additionalContactsToTrace = new HashSet<>();
                                 if (infectionsInGroupToPrioritize.size() < maxNumberOfContactsToTrace) {
                                     additionalContactsToTrace = peopleInGroup.stream()
-                                            .filter(i -> ! infectionsInGroupToPrioritize.contains(i))
+                                            .filter(i -> !infectionsInGroupToPrioritize.contains(i))
                                             .limit(maxNumberOfContactsToTrace - infectionsInGroupToPrioritize.size())
                                             .collect(Collectors.toSet());
                                 }
@@ -522,36 +522,5 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
             int count;
         }
 
-    }
-
-    // Simply copied from ContactManager but with RandomGeneratorId updated
-    private static Optional<PersonId> getGlobalContactFor(Environment environment, PersonId sourcePersonId) {
-        double fractionOfGlobalContactsInHomeRegion =
-                environment.getGlobalPropertyValue(GlobalProperty.FRACTION_OF_GLOBAL_CONTACTS_IN_HOME_REGION);
-        RegionId sourceRegionId = environment.getPersonRegion(sourcePersonId);
-        RegionId targetRegionId;
-        if (environment.getRandomGeneratorFromId(ContactTracingRandomId.ID).nextDouble() <
-                fractionOfGlobalContactsInHomeRegion) {
-            targetRegionId = sourceRegionId;
-        } else {
-            // Get a sample from the radiation flow distribution
-            Map<RegionId, EnumeratedDistribution<RegionId>> radiationTargetDistributions =
-                    environment.getGlobalPropertyValue(GlobalProperty.RADIATION_FLOW_TARGET_DISTRIBUTIONS);
-            EnumeratedDistribution<RegionId> targetDistribution = radiationTargetDistributions.get(sourceRegionId);
-            if (targetDistribution != null) {
-                targetRegionId = targetDistribution.sample();
-            } else {
-                targetRegionId = sourceRegionId;
-            }
-        }
-        // Temporary index creation
-        Filter regionFilter = Filter.region(targetRegionId);
-        environment.addPopulationIndex(regionFilter, targetRegionId);
-        Optional<PersonId> targetPersonId = environment.getRandomIndexedPersonWithExclusionFromGenerator(
-                sourcePersonId,
-                targetRegionId,
-                ContactTracingRandomId.ID);
-        environment.removePopulationIndex(targetRegionId);
-        return targetPersonId;
     }
 }

@@ -42,7 +42,7 @@ public class LogItemHandler implements OutputItemHandler {
     public void handle(OutputItem outputItem) {
         LogItem logItem = (LogItem) outputItem;
         StringBuilder sb = new StringBuilder();
-        if(logItem.getScenarioId().getValue() != 0 || logItem.getReplicationId().getValue() != 0) {
+        if (logItem.getScenarioId().getValue() != 0 || logItem.getReplicationId().getValue() != 0) {
             sb.append("[Scenario = ");
             sb.append(logItem.getScenarioId().getValue());
             sb.append(", Replication = ");

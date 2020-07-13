@@ -23,6 +23,63 @@ import java.util.stream.Collectors;
 public abstract class BehaviorPlugin implements Plugin {
 
     /*
+        Get the regional value of a global property with a potential regional triggered override
+     */
+    static <T> T getRegionalPropertyValue(Environment environment, RegionId regionId, DefinedGlobalAndRegionProperty propertyId) {
+        T regionPropertyValue = environment.getRegionPropertyValue(regionId, propertyId);
+        //noinspection OptionalGetWithoutIsPresent
+        if (regionPropertyValue.equals(environment.getRegionPropertyDefinition(propertyId).getDefaultValue().get())) {
+            return environment.getGlobalPropertyValue(propertyId);
+        } else {
+            return regionPropertyValue;
+        }
+    }
+
+    /*
+        Add trigger callbacks for each of the triggered property overrides
+     */
+    static void addTriggerOverrideCallbacks(Map<String, Set<TriggerCallback>> triggerCallbacks,
+                                            List<TriggeredPropertyOverride> triggeredPropertyOverrides,
+                                            Set<DefinedGlobalAndRegionProperty> overrideableProperties,
+                                            Environment environment) {
+        String triggerId;
+        for (TriggeredPropertyOverride override : triggeredPropertyOverrides) {
+            triggerId = override.trigger();
+            Map<String, JsonNode> propertyOverrides = override.overrides();
+            Map<String, DefinedGlobalAndRegionProperty> propertyNameMap = overrideableProperties.stream()
+                    .collect(Collectors.toMap(
+                            Objects::toString,
+                            Function.identity()
+                    ));
+            final Map<DefinedGlobalAndRegionProperty, Object> overrideValues = new HashMap<>();
+            PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
+            AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
+            propertyOverrides.forEach(
+                    (propertyId, valueJson) -> {
+                        DefinedGlobalAndRegionProperty property = propertyNameMap.get(propertyId);
+                        if (property == null) {
+                            throw new RuntimeException("Unrecognized property for triggered parameter override: " + propertyId);
+                        }
+                        try {
+                            Object overrideValue = CoreEpiBootstrapUtil.getPropertyValueFromJson(valueJson,
+                                    property, ageGroupPartition);
+                            overrideValues.put(property, overrideValue);
+                        } catch (IOException e) {
+                            throw new RuntimeException("Property override value cannot be parsed from: " + valueJson);
+                        }
+                    }
+            );
+            TriggerUtils.addCallback(triggerCallbacks, triggerId,
+                    (env, regionId) -> {
+                        // Override each value
+                        overrideValues.forEach(
+                                (property, overrideValue) -> env.setRegionPropertyValue(regionId, property, overrideValue)
+                        );
+                    });
+        }
+    }
+
+    /*
         Handle a person learning they may be infected
      */
     public void handleSuspectedInfected(Environment environment, PersonId personId) {
@@ -35,7 +92,6 @@ public abstract class BehaviorPlugin implements Plugin {
     public void handleHomeInfection(Environment environment, PersonId personId) {
         // Do nothing by default
     }
-
 
     /*
         Gets the relative frequency of attempted transmission for the person taking into account behavior change
@@ -73,64 +129,6 @@ public abstract class BehaviorPlugin implements Plugin {
      */
     public Map<String, Set<TriggerCallback>> getTriggerCallbacks(Environment environment) {
         return new HashMap<>();
-    }
-
-
-    /*
-        Get the regional value of a global property with a potential regional triggered override
-     */
-    static <T> T getRegionalPropertyValue(Environment environment, RegionId regionId, DefinedGlobalAndRegionProperty propertyId) {
-        T regionPropertyValue = environment.getRegionPropertyValue(regionId, propertyId);
-        //noinspection OptionalGetWithoutIsPresent
-        if (regionPropertyValue.equals(environment.getRegionPropertyDefinition(propertyId).getDefaultValue().get())) {
-            return environment.getGlobalPropertyValue(propertyId);
-        } else {
-            return regionPropertyValue;
-        }
-    }
-
-    /*
-        Add trigger callbacks for each of the triggered property overrides
-     */
-    static void addTriggerOverrideCallbacks(Map<String, Set<TriggerCallback>> triggerCallbacks,
-                                                    List<TriggeredPropertyOverride> triggeredPropertyOverrides,
-                                                    Set<DefinedGlobalAndRegionProperty> overrideableProperties,
-                                                    Environment environment) {
-        String triggerId;
-        for (TriggeredPropertyOverride override : triggeredPropertyOverrides) {
-            triggerId = override.trigger();
-            Map<String, JsonNode> propertyOverrides = override.overrides();
-            Map<String, DefinedGlobalAndRegionProperty> propertyNameMap = overrideableProperties.stream()
-                    .collect(Collectors.toMap(
-                            Objects::toString,
-                            Function.identity()
-                    ));
-            final Map<DefinedGlobalAndRegionProperty, Object> overrideValues = new HashMap<>();
-            PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
-            AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
-            propertyOverrides.forEach(
-                    (propertyId, valueJson) -> {
-                        DefinedGlobalAndRegionProperty property = propertyNameMap.get(propertyId);
-                        if (property == null) {
-                            throw new RuntimeException("Unrecognized property for triggered parameter override: " + propertyId);
-                        }
-                        try {
-                            Object overrideValue = CoreEpiBootstrapUtil.getPropertyValueFromJson(valueJson,
-                                    property, ageGroupPartition);
-                            overrideValues.put(property, overrideValue);
-                        } catch (IOException e) {
-                            throw new RuntimeException("Property override value cannot be parsed from: " + valueJson);
-                        }
-                    }
-            );
-            TriggerUtils.addCallback(triggerCallbacks, triggerId,
-                    (env, regionId) -> {
-                        // Override each value
-                        overrideValues.forEach(
-                                (property, overrideValue) -> env.setRegionPropertyValue(regionId, property, overrideValue)
-                        );
-                    });
-        }
     }
 
 }

@@ -134,6 +134,12 @@ public class ExponentialSeedingPlugin implements Plugin {
                 // Pick random person to infect
                 SeedingPlan seedingPlan = (SeedingPlan) plan;
                 Object indexKey = getIndexKeyForFipsCode(seedingPlan.fipsCode);
+                // Lazy index creation (only needed for ContactManager region filters)
+                if (!environment.populationIndexExists(indexKey)) {
+                    if (seedingPlan.fipsCode.scope() == FipsScope.TRACT) {
+                        environment.addPopulationIndex(Filter.region((StringRegionId) indexKey), indexKey);
+                    }
+                }
                 Optional<PersonId> personId = environment.getRandomIndexedPersonFromGenerator(indexKey, ExponentialSeedingRandomId.ID);
                 if (personId.isPresent()) {
                     Compartment compartment = environment.getPersonCompartment(personId.get());
@@ -167,12 +173,6 @@ public class ExponentialSeedingPlugin implements Plugin {
 
         @Override
         public void init(Environment environment) {
-            InfectionSpecification seedingRateSpecification = environment.getGlobalPropertyValue(
-                    ExponentialSeedingGlobalProperty.INITIAL_SEEDING_RATE_PER_DAY);
-
-            // Create indexes to get random people if needed (if tract level will rely on ContactManager region maps)
-            FipsScope scope = seedingRateSpecification.scope();
-
             // Start seeding plan
             double seedingStartTime = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.SEEDING_START_DAY);
             environment.addPlan(new StartSeedingPlan(), seedingStartTime);

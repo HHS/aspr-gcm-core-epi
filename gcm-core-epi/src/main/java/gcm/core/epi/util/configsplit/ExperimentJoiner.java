@@ -18,13 +18,10 @@ import java.util.List;
  */
 public class ExperimentJoiner {
 
-    private final Path parentDirectory;
-
-    private final Path targetDirectory;
-
-    private final List<Path> childDirectories = new ArrayList<>();
-
     private static final Logger logger = LoggerFactory.getLogger(ExperimentJoiner.class);
+    private final Path parentDirectory;
+    private final Path targetDirectory;
+    private final List<Path> childDirectories = new ArrayList<>();
 
     private ExperimentJoiner(Path parentDirectory, Path targetDirectory) {
         this.parentDirectory = parentDirectory;
