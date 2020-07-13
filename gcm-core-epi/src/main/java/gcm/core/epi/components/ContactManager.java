@@ -432,34 +432,31 @@ public class ContactManager extends AbstractComponent {
         }
 
         // TODO: Temporary move for initialization
-        if (! hasInitializedIndexes) {
-            Set<RegionId> regionIds =
-                    ((PopulationDescription) environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION))
-                            .regionIds();
-            TransmissionStructure transmissionStructure = environment.getGlobalPropertyValue(
-                    GlobalProperty.TRANSMISSION_STRUCTURE);
-            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
-                    GlobalProperty.POPULATION_DESCRIPTION);
-            Map<AgeGroup, Double> ageGroupDistribution = populationDescription.ageGroupDistribution();
-            for (RegionId regionId : regionIds) {
-                // Add to GeoLocator
-                double lat = environment.getRegionPropertyValue(regionId, RegionProperty.LAT);
-                double lon = environment.getRegionPropertyValue(regionId, RegionProperty.LON);
-                // Add index for sampling
-                Filter regionFilter = Filter.region(regionId);
-                environment.addPopulationIndex(regionFilter, regionId);
-                // Add age group and region indexes for sampling when needed
-                if (transmissionStructure.groupBiWeightingFunctions().containsKey(ContactGroupType.GLOBAL)) {
-                    for (AgeGroup ageGroup : ageGroupDistribution.keySet()) {
-                        int ageGroupIndex = populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.name());
-                        Filter regionAgeGroupFilter = regionFilter.and(Filter.property(PersonProperty.AGE_GROUP_INDEX,
-                                Equality.EQUAL, ageGroupIndex));
-                        environment.addPopulationIndex(regionAgeGroupFilter, new MultiKey(regionId, ageGroup));
-                    }
-                }
-            }
-            hasInitializedIndexes = true;
-        }
+//        if (!hasInitializedIndexes) {
+//            Set<RegionId> regionIds =
+//                    ((PopulationDescription) environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION))
+//                            .regionIds();
+//            TransmissionStructure transmissionStructure = environment.getGlobalPropertyValue(
+//                    GlobalProperty.TRANSMISSION_STRUCTURE);
+//            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+//                    GlobalProperty.POPULATION_DESCRIPTION);
+//            Map<AgeGroup, Double> ageGroupDistribution = populationDescription.ageGroupDistribution();
+//            for (RegionId regionId : regionIds) {
+//                // Add index for sampling
+//                Filter regionFilter = Filter.region(regionId);
+//                environment.addPopulationIndex(regionFilter, regionId);
+//                // Add age group and region indexes for sampling when needed
+//                if (transmissionStructure.groupBiWeightingFunctions().containsKey(ContactGroupType.GLOBAL)) {
+//                    for (AgeGroup ageGroup : ageGroupDistribution.keySet()) {
+//                        int ageGroupIndex = populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.name());
+//                        Filter regionAgeGroupFilter = regionFilter.and(Filter.property(PersonProperty.AGE_GROUP_INDEX,
+//                                Equality.EQUAL, ageGroupIndex));
+//                        environment.addPopulationIndex(regionAgeGroupFilter, new MultiKey(regionId, ageGroup));
+//                    }
+//                }
+//            }
+//            hasInitializedIndexes = true;
+//        }
 
         // Use a weighting by age if provided, otherwise choose uniformly at random
         TransmissionStructure transmissionStructure = environment.getGlobalPropertyValue(GlobalProperty.TRANSMISSION_STRUCTURE);
@@ -474,6 +471,15 @@ public class ContactManager extends AbstractComponent {
             Map<AgeGroup, Double> ageGroupSelectionWeights = biWeightingFunctionMap.get(sourceAgeGroup);
 
             Set<AgeGroup> ageGroups = populationDescription.ageGroupDistribution().keySet();
+            // Temporary index creation
+            Filter regionFilter = Filter.region(targetRegionId);
+            for (AgeGroup ageGroup : ageGroups) {
+                int ageGroupIndex = populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.name());
+                Filter regionAgeGroupFilter = regionFilter.and(Filter.property(PersonProperty.AGE_GROUP_INDEX,
+                        Equality.EQUAL, ageGroupIndex));
+                environment.addPopulationIndex(regionAgeGroupFilter, new MultiKey(targetRegionId, ageGroup));
+            }
+            // Get targets
             List<Pair<AgeGroup, Double>> ageGroupTargetWeights = ageGroups
                     .stream()
                     .map(ageGroup-> new Pair<>(ageGroup,
@@ -486,15 +492,27 @@ public class ContactManager extends AbstractComponent {
                             ageGroupTargetWeights);
             AgeGroup targetAgeGroup = ageGroupDistribution.sample();
 
-            return environment.getRandomIndexedPersonWithExclusionFromGenerator(
+            Optional<PersonId> targetPersonId = environment.getRandomIndexedPersonWithExclusionFromGenerator(
                     sourcePersonId,
                     new MultiKey(targetRegionId, targetAgeGroup),
                     RandomId.CONTACT_MANAGER);
+
+            // Remove indexes
+            for (AgeGroup ageGroup : ageGroups) {
+                environment.removePopulationIndex(new MultiKey(targetRegionId, ageGroup));
+            }
+
+            return targetPersonId;
         } else {
-            return environment.getRandomIndexedPersonWithExclusionFromGenerator(
+            // Temporary index creation
+            Filter regionFilter = Filter.region(targetRegionId);
+            environment.addPopulationIndex(regionFilter, targetRegionId);
+            Optional<PersonId> targetPersonId = environment.getRandomIndexedPersonWithExclusionFromGenerator(
                     sourcePersonId,
                     targetRegionId,
                     RandomId.CONTACT_MANAGER);
+            environment.removePopulationIndex(targetRegionId);
+            return targetPersonId;
         }
     }
 

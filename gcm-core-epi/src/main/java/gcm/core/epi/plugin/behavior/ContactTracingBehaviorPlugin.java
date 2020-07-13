@@ -11,6 +11,7 @@ import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
+import gcm.simulation.Filter;
 import gcm.simulation.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 
@@ -543,9 +544,14 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                 targetRegionId = sourceRegionId;
             }
         }
-        return environment.getRandomIndexedPersonWithExclusionFromGenerator(
+        // Temporary index creation
+        Filter regionFilter = Filter.region(targetRegionId);
+        environment.addPopulationIndex(regionFilter, targetRegionId);
+        Optional<PersonId> targetPersonId = environment.getRandomIndexedPersonWithExclusionFromGenerator(
                 sourcePersonId,
                 targetRegionId,
                 ContactTracingRandomId.ID);
+        environment.removePopulationIndex(targetRegionId);
+        return targetPersonId;
     }
 }
