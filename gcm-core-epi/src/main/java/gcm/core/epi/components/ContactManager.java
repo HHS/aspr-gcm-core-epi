@@ -330,7 +330,15 @@ public class ContactManager extends AbstractComponent {
 
                 } else {
 
-                    List<GroupId> contactGroupId = environment.getGroupsForGroupTypeAndPerson(contactGroupType, sourcePersonId);
+                    // Allow for SCHOOL_SOCIAL as a mask for SCHOOL group contact outside of school
+                    final ContactGroupType groupTypeForLookup;
+                    if (contactGroupType == ContactGroupType.SCHOOL_SOCIAL) {
+                        groupTypeForLookup = ContactGroupType.SCHOOL;
+                    } else {
+                        groupTypeForLookup = contactGroupType;
+                    }
+
+                    List<GroupId> contactGroupId = environment.getGroupsForGroupTypeAndPerson(groupTypeForLookup, sourcePersonId);
                     if (contactGroupId.size() != 1) {
                         throw new RuntimeException("ContactManager Error: random contact group selected for Person with ID: "
                                 + sourcePersonId +

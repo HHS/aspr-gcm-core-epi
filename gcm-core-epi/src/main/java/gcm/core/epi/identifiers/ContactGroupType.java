@@ -8,6 +8,8 @@ public enum ContactGroupType implements GroupTypeId {
 
     SCHOOL,
 
+    SCHOOL_SOCIAL,
+
     WORK,
 
     GLOBAL
