@@ -9,8 +9,10 @@ import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AgeWeights;
+import gcm.core.epi.propertytypes.DayOfWeekSchedule;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.propertytypes.TransmissionStructure;
+import gcm.core.epi.util.time.TimeUtils;
 import gcm.scenario.*;
 import gcm.simulation.*;
 import gcm.util.MultiKey;
@@ -141,6 +143,16 @@ public class ContactManager extends AbstractComponent {
                     transmissionRatioNormalizationFactor);
         }
         environment.setGlobalPropertyValue(GlobalProperty.TRANSMISSION_RATIOS, transmissionRatios);
+
+        // Store contact group weight adjustment due to day-of-week schedule
+        EnumMap<ContactGroupType, Double> contactGroupScheduleWeight = new EnumMap<>(ContactGroupType.class);
+        contactGroupScheduleWeight.put(ContactGroupType.GLOBAL, 1.0);
+        contactGroupScheduleWeight.put(ContactGroupType.HOME, 1.0);
+        contactGroupScheduleWeight.put(ContactGroupType.WORK,
+                1.0 / ((DayOfWeekSchedule) environment.getGlobalPropertyValue(GlobalProperty.WORK_SCHEDULE)).fractionActive());
+        contactGroupScheduleWeight.put(ContactGroupType.SCHOOL,
+                1.0 / ((DayOfWeekSchedule) environment.getGlobalPropertyValue(GlobalProperty.SCHOOL_SCHEDULE)).fractionActive());
+        environment.setGlobalPropertyValue(GlobalProperty.CONTACT_GROUP_SCHEDULE_WEIGHT, contactGroupScheduleWeight);
 
         // Build radiation model target sampling distributions for each region and add indexes for sampling
         Set<RegionId> regionIds =
@@ -449,16 +461,33 @@ public class ContactManager extends AbstractComponent {
         Integer sourceAgeGroupIndex = environment.getPersonPropertyValue(sourcePersonId, PersonProperty.AGE_GROUP_INDEX);
         AgeGroup sourceAgeGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(sourceAgeGroupIndex);
 
+        EnumMap<ContactGroupType, Double> contactGroupScheduleWeight = environment.getGlobalPropertyValue(
+                GlobalProperty.CONTACT_GROUP_SCHEDULE_WEIGHT);
+
         // Contact group sampling
         TransmissionStructure transmissionStructure = environment.getGlobalPropertyValue(
                 GlobalProperty.TRANSMISSION_STRUCTURE);
         List<Pair<ContactGroupType, Double>> sourcePersonGroupWeights = contactGroupTypes
                 .stream()
+                .filter(
+                        // Remove contact settings that are not active on the given day of the week
+                        groupType -> {
+                            if (groupType == ContactGroupType.WORK) {
+                                DayOfWeekSchedule workSchedule = environment.getGlobalPropertyValue(GlobalProperty.WORK_SCHEDULE);
+                                return workSchedule.isActiveOn(TimeUtils.getCurrentDayOfWeek(environment));
+                            } else if (groupType == ContactGroupType.SCHOOL) {
+                                DayOfWeekSchedule schoolSchedule = environment.getGlobalPropertyValue(GlobalProperty.WORK_SCHEDULE);
+                                return schoolSchedule.isActiveOn(TimeUtils.getCurrentDayOfWeek(environment));
+                            }
+                            return true;
+                        }
+                )
                 .map(groupType -> new Pair<>(groupType,
-                        transmissionStructure
+                        (transmissionStructure
                                 .contactGroupSelectionWeights()
                                 .get(sourceAgeGroup)
-                                .apply(groupType)))
+                                .apply(groupType)) * contactGroupScheduleWeight.get(groupType))
+                )
                 .collect(Collectors.toList());
 
         EnumeratedDistribution<ContactGroupType> contactGroupDistribution =

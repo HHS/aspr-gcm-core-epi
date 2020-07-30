@@ -14,6 +14,7 @@ import gcm.scenario.RegionPropertyId;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 
+import java.time.DayOfWeek;
 import java.util.*;
 
 
@@ -123,6 +124,18 @@ public enum GlobalProperty implements DefinedGlobalProperty {
 
     MAX_SIMULATION_LENGTH(PropertyDefinition.builder()
             .setType(Double.class).setDefaultValue(Double.POSITIVE_INFINITY).build()),
+
+    SIMULATION_START_DAY(PropertyDefinition.builder()
+            .setType(DayOfWeek.class).setDefaultValue(DayOfWeek.SUNDAY).build()),
+
+    WORK_SCHEDULE(PropertyDefinition.builder()
+            .setType(ImmutableDayOfWeekSchedule.class).setDefaultValue(DayOfWeekSchedule.mondayToFriday()).build()),
+
+    SCHOOL_SCHEDULE(PropertyDefinition.builder()
+            .setType(ImmutableDayOfWeekSchedule.class).setDefaultValue(DayOfWeekSchedule.mondayToFriday()).build()),
+
+    CONTACT_GROUP_SCHEDULE_WEIGHT(PropertyDefinition.builder()
+            .setType(Map.class).setDefaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class)).build(), false),
 
     IMMUNITY_WANES_TIME_MEAN(PropertyDefinition.builder()
             .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
