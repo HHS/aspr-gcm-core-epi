@@ -476,7 +476,7 @@ public class ContactManager extends AbstractComponent {
                                 DayOfWeekSchedule workSchedule = environment.getGlobalPropertyValue(GlobalProperty.WORK_SCHEDULE);
                                 return workSchedule.isActiveOn(TimeUtils.getCurrentDayOfWeek(environment));
                             } else if (groupType == ContactGroupType.SCHOOL) {
-                                DayOfWeekSchedule schoolSchedule = environment.getGlobalPropertyValue(GlobalProperty.WORK_SCHEDULE);
+                                DayOfWeekSchedule schoolSchedule = environment.getGlobalPropertyValue(GlobalProperty.SCHOOL_SCHEDULE);
                                 return schoolSchedule.isActiveOn(TimeUtils.getCurrentDayOfWeek(environment));
                             }
                             return true;
