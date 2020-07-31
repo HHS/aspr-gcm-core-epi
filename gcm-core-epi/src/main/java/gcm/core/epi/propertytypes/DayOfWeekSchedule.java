@@ -10,6 +10,13 @@ import java.util.Set;
 @JsonDeserialize(as = ImmutableDayOfWeekSchedule.class)
 public abstract class DayOfWeekSchedule {
 
+    public static DayOfWeekSchedule mondayToFriday() {
+        return ImmutableDayOfWeekSchedule.builder()
+                .addActiveDays(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY,
+                        DayOfWeek.FRIDAY)
+                .build();
+    }
+
     public abstract Set<DayOfWeek> activeDays();
 
     @Value.Default
@@ -19,13 +26,6 @@ public abstract class DayOfWeekSchedule {
 
     public boolean isActiveOn(DayOfWeek dayOfWeek) {
         return activeDays().contains(dayOfWeek);
-    }
-
-    public static DayOfWeekSchedule mondayToFriday() {
-        return ImmutableDayOfWeekSchedule.builder()
-                .addActiveDays(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY,
-                        DayOfWeek.FRIDAY)
-                .build();
     }
 
 }

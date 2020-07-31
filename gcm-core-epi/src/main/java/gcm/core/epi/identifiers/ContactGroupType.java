@@ -10,6 +10,10 @@ public enum ContactGroupType implements GroupTypeId {
 
     SCHOOL_SOCIAL,
 
+    SCHOOL_COHORT,
+
+    SCHOOL_COHORT_SOCIAL,
+
     WORK,
 
     GLOBAL

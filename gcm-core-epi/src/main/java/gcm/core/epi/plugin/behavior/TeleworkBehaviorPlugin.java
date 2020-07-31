@@ -205,13 +205,6 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
             this.propertyDefinition = propertyDefinition;
         }
 
-        private static Map<ContactGroupType, Double> getDefaultContactSubstitutionWeights() {
-            Map<ContactGroupType, Double> weights = new EnumMap<>(ContactGroupType.class);
-            weights.put(ContactGroupType.HOME, 0.95);
-            weights.put(ContactGroupType.GLOBAL, 0.05);
-            return weights;
-        }
-
         @Override
         public PropertyDefinition getPropertyDefinition() {
             return propertyDefinition;

@@ -59,6 +59,10 @@ public class PropertyDeserializerUtil {
                 new PropertyDeserializer(new TypeReference<Map<ContactGroupType, Double>>() {
                 }));
         propertyDeserializers.put(
+                SchoolClosureBehaviorPlugin.SchoolClosureGlobalProperty.COHORTING_CONTACT_SUBSTITUTION_WEIGHTS.toString(),
+                new PropertyDeserializer(new TypeReference<Map<ContactGroupType, Double>>() {
+                }));
+        propertyDeserializers.put(
                 SchoolClosureBehaviorPlugin.SchoolClosureGlobalProperty.SUMMER_CONTACT_SUBSTITUTION_WEIGHTS.toString(),
                 new PropertyDeserializer(new TypeReference<Map<ContactGroupType, Double>>() {
                 }));

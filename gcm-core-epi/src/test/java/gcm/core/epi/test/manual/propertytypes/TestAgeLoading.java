@@ -31,7 +31,7 @@ public class TestAgeLoading {
 
         ageWeights = mapper.readerFor(AgeWeights.class).readValue("{\"values\": {\"A\": 3.0}, \"defaultValue\": 1.0}");
         System.out.println(ageWeights);
-        System.out.println(ageWeights.values().keySet().contains(ageGroupPartition.getAgeGroupFromName("A")));
+        System.out.println(ageWeights.values().containsKey(ageGroupPartition.getAgeGroupFromName("A")));
         System.out.println(ageWeights.getWeight(ageGroupPartition.getAgeGroupFromName("B")));
 
         ageWeights = mapper.readerFor(AgeWeights.class).readValue("1.0");
