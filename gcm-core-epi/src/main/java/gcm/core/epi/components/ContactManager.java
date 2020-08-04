@@ -319,6 +319,10 @@ public class ContactManager extends AbstractComponent {
         InfectiousContactPlan infectiousContactPlan = (InfectiousContactPlan) plan;
         PersonId sourcePersonId = infectiousContactPlan.sourcePersonId;
 
+//        if (sourcePersonId.getValue() == 12602489) {
+//            System.out.println("Here");
+//        }
+
         double transmissionRatio = getTransmissionRatio(environment, sourcePersonId);
 
         if (transmissionRatio > infectiousContactPlan.transmissionRatio) {
@@ -335,20 +339,6 @@ public class ContactManager extends AbstractComponent {
             if (optionalContactGroupType.isPresent()) {
                 ContactGroupType contactGroupType = optionalContactGroupType.get();
 
-                // Allow for SCHOOL(_COHORT)_SOCIAL as a mask for SCHOOL(_COHORT) group contact outside of school
-                final ContactGroupType groupTypeForLookup;
-                final ContactGroupType contactSetting;
-                if (contactGroupType == ContactGroupType.SCHOOL_SOCIAL) {
-                    groupTypeForLookup = ContactGroupType.SCHOOL;
-                    contactSetting = ContactGroupType.SCHOOL;
-                } else if (contactGroupType == ContactGroupType.SCHOOL_COHORT_SOCIAL) {
-                    groupTypeForLookup = ContactGroupType.SCHOOL_COHORT;
-                    contactSetting = ContactGroupType.SCHOOL_SOCIAL;
-                } else {
-                    groupTypeForLookup = contactGroupType;
-                    contactSetting = contactGroupType;
-                }
-
                 Optional<PersonId> targetPersonId;
                 // Handle global contacts separately
                 if (contactGroupType == ContactGroupType.GLOBAL) {
@@ -357,7 +347,8 @@ public class ContactManager extends AbstractComponent {
 
                 } else {
 
-                    List<GroupId> contactGroupIds = environment.getGroupsForGroupTypeAndPerson(groupTypeForLookup, sourcePersonId);
+                    List<GroupId> contactGroupIds = environment.getGroupsForGroupTypeAndPerson(
+                            getLookupGroup(contactGroupType), sourcePersonId);
                     if (contactGroupIds.size() != 1) {
                         throw new RuntimeException("ContactManager Error: random contact group selected for Person with ID: "
                                 + sourcePersonId +
@@ -383,11 +374,10 @@ public class ContactManager extends AbstractComponent {
                         }
                     } else {
                         // Use a weighting function if provided, otherwise choose uniformly at random
-                        BiWeightingFunction biWeightingFunction = transmissionStructure.groupBiWeightingFunctions().get(groupTypeForLookup);
+                        BiWeightingFunction biWeightingFunction = transmissionStructure.groupBiWeightingFunctions().get(getLookupGroup(contactGroupType));
                         if (biWeightingFunction != null) {
                             targetPersonId = environment.getBiWeightedGroupContactFromGenerator(contactGroupId, sourcePersonId, true,
-                                    transmissionStructure.groupBiWeightingFunctions().get(groupTypeForLookup),
-                                    RandomId.CONTACT_MANAGER);
+                                    biWeightingFunction, RandomId.CONTACT_MANAGER);
                         } else {
                             targetPersonId = environment.getNonWeightedGroupContactWithExclusionFromGenerator(
                                     contactGroupId, sourcePersonId, RandomId.CONTACT_MANAGER);
@@ -400,6 +390,7 @@ public class ContactManager extends AbstractComponent {
                 ImmutableInfectionData.Builder infectionDataBuilder = ImmutableInfectionData.builder()
                         .sourcePersonId(sourcePersonId)
                         .targetPersonId(targetPersonId)
+                        // Report raw contactGroupType
                         .transmissionSetting(contactGroupType)
                         .transmissionOccurred(false);
 
@@ -421,6 +412,7 @@ public class ContactManager extends AbstractComponent {
                         // Behavior effect via module
                         Optional<BehaviorPlugin> behaviorPlugin =
                                 environment.getGlobalPropertyValue(GlobalProperty.BEHAVIOR_PLUGIN);
+                        final ContactGroupType contactSetting = getContactSetting(contactGroupType);
                         double infectionProbability = behaviorPlugin
                                 .map(plugin -> plugin.getInfectionProbability(environment, contactSetting, targetPersonId.get()))
                                 .orElse(1.0);
@@ -458,6 +450,32 @@ public class ContactManager extends AbstractComponent {
 
     }
 
+    private static ContactGroupType getContactSetting(ContactGroupType contactGroupType) {
+        switch (contactGroupType) {
+            case SCHOOL_COHORT:
+                // SCHOOL_COHORT is a subset of SCHOOL
+                return ContactGroupType.SCHOOL;
+            case SCHOOL_COHORT_SOCIAL:
+                // SCHOOL_COHORT_SOCIAL is a subset of SCHOOL_SOCIAL
+                return ContactGroupType.SCHOOL_SOCIAL;
+            default:
+                return contactGroupType;
+        }
+    }
+
+    private static ContactGroupType getLookupGroup(ContactGroupType contactGroupType) {
+        switch (contactGroupType) {
+            case SCHOOL_SOCIAL:
+                // School social contacts occur in the SCHOOL group
+                return ContactGroupType.SCHOOL;
+            case SCHOOL_COHORT_SOCIAL:
+                // School cohort social contacts occur in the SCHOOL_COHORT group
+                return ContactGroupType.SCHOOL_COHORT;
+            default:
+                return contactGroupType;
+        }
+    }
+
     private Optional<ContactGroupType> getContactGroupType(Environment environment, PersonId sourcePersonId) {
 
         List<ContactGroupType> contactGroupTypes = environment.getGroupTypesForPerson(sourcePersonId);
@@ -482,14 +500,11 @@ public class ContactManager extends AbstractComponent {
                             if (groupType == ContactGroupType.WORK) {
                                 DayOfWeekSchedule workSchedule = environment.getGlobalPropertyValue(GlobalProperty.WORK_SCHEDULE);
                                 return workSchedule.isActiveOn(TimeUtils.getCurrentDayOfWeek(environment));
-                            } else if (groupType == ContactGroupType.SCHOOL) {
+                            } else // SCHOOL_COHORT is a subset of SCHOOL
+                                if (groupType == ContactGroupType.SCHOOL) {
                                 DayOfWeekSchedule schoolSchedule = environment.getGlobalPropertyValue(GlobalProperty.SCHOOL_SCHEDULE);
                                 return schoolSchedule.isActiveOn(TimeUtils.getCurrentDayOfWeek(environment));
-                            } else if (groupType == ContactGroupType.SCHOOL_COHORT) {
-                                // SCHOOL_COHORT is a subset of SCHOOL
-                                return false;
-                            }
-                            return true;
+                            } else return groupType != ContactGroupType.SCHOOL_COHORT;
                         }
                 )
                 .map(groupType -> new Pair<>(groupType,
