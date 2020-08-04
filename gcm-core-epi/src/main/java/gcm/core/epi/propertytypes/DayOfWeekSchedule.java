@@ -17,6 +17,12 @@ public abstract class DayOfWeekSchedule {
                 .build();
     }
 
+    public static DayOfWeekSchedule everyDay() {
+        return ImmutableDayOfWeekSchedule.builder()
+                .addActiveDays(DayOfWeek.values())
+                .build();
+    }
+
     public abstract Set<DayOfWeek> activeDays();
 
     @Value.Default

@@ -129,10 +129,10 @@ public enum GlobalProperty implements DefinedGlobalProperty {
             .setType(DayOfWeek.class).setDefaultValue(DayOfWeek.SUNDAY).build()),
 
     WORK_SCHEDULE(PropertyDefinition.builder()
-            .setType(ImmutableDayOfWeekSchedule.class).setDefaultValue(DayOfWeekSchedule.mondayToFriday()).build()),
+            .setType(ImmutableDayOfWeekSchedule.class).setDefaultValue(DayOfWeekSchedule.everyDay()).build()),
 
     SCHOOL_SCHEDULE(PropertyDefinition.builder()
-            .setType(ImmutableDayOfWeekSchedule.class).setDefaultValue(DayOfWeekSchedule.mondayToFriday()).build()),
+            .setType(ImmutableDayOfWeekSchedule.class).setDefaultValue(DayOfWeekSchedule.everyDay()).build()),
 
     CONTACT_GROUP_SCHEDULE_WEIGHT(PropertyDefinition.builder()
             .setType(Map.class).setDefaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class)).build(), false),
