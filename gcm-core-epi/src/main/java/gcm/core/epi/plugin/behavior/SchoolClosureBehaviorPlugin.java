@@ -8,7 +8,6 @@ import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedGroupProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
-import gcm.core.epi.util.time.TimeUtils;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
@@ -108,7 +107,7 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
 
                 // Finally, select transmission setting
                 if (environment.getRandomGeneratorFromId(SchoolClosureRandomId.ID).nextDouble() < withinCohortTransmissionFraction) {
-                    if (cohortSchedule.isActiveOn(TimeUtils.getCurrentDayOfWeek(environment))) {
+                    if (cohortSchedule.isActiveAt(environment, environment.getTime())) {
                         // Transmission occurs within cohort
                         return Optional.of(ContactGroupType.SCHOOL_COHORT);
                     } else {

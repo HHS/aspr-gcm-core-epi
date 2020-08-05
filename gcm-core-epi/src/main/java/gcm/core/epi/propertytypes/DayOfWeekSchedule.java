@@ -1,6 +1,8 @@
 package gcm.core.epi.propertytypes;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import gcm.core.epi.identifiers.GlobalProperty;
+import gcm.simulation.Environment;
 import org.immutables.value.Value;
 
 import java.time.DayOfWeek;
@@ -26,12 +28,34 @@ public abstract class DayOfWeekSchedule {
     public abstract Set<DayOfWeek> activeDays();
 
     @Value.Default
+    public double startOffset() {
+        return 0.0;
+    }
+
+    @Value.Default
+    public double duration() {
+        return Double.POSITIVE_INFINITY;
+    }
+
+    @Value.Default
+    public double restartOffset() {
+        return 0.0;
+    }
+
+    @Value.Default
     public double fractionActive() {
         return (double) activeDays().size() / 7.0;
     }
 
     public boolean isActiveOn(DayOfWeek dayOfWeek) {
         return activeDays().contains(dayOfWeek);
+    }
+
+    public boolean isActiveAt(Environment environment, double time) {
+        DayOfWeek simulationStartDay = environment.getGlobalPropertyValue(GlobalProperty.SIMULATION_START_DAY);
+        boolean isActiveDayOfWeek = isActiveOn(simulationStartDay.plus((long) Math.floor(time)));
+        boolean isActiveTimePeriod = time >= startOffset() && (time - startOffset()) % (duration() + restartOffset()) < duration();
+        return isActiveDayOfWeek && isActiveTimePeriod;
     }
 
 }

@@ -12,7 +12,6 @@ import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.propertytypes.DayOfWeekSchedule;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.propertytypes.TransmissionStructure;
-import gcm.core.epi.util.time.TimeUtils;
 import gcm.scenario.*;
 import gcm.simulation.*;
 import gcm.util.MultiKey;
@@ -101,6 +100,32 @@ public class ContactManager extends AbstractComponent {
                     sourcePersonId,
                     targetRegionId,
                     RandomId.CONTACT_MANAGER);
+        }
+    }
+
+    private static ContactGroupType getContactSetting(ContactGroupType contactGroupType) {
+        switch (contactGroupType) {
+            case SCHOOL_COHORT:
+                // SCHOOL_COHORT is a subset of SCHOOL
+                return ContactGroupType.SCHOOL;
+            case SCHOOL_COHORT_SOCIAL:
+                // SCHOOL_COHORT_SOCIAL is a subset of SCHOOL_SOCIAL
+                return ContactGroupType.SCHOOL_SOCIAL;
+            default:
+                return contactGroupType;
+        }
+    }
+
+    private static ContactGroupType getLookupGroup(ContactGroupType contactGroupType) {
+        switch (contactGroupType) {
+            case SCHOOL_SOCIAL:
+                // School social contacts occur in the SCHOOL group
+                return ContactGroupType.SCHOOL;
+            case SCHOOL_COHORT_SOCIAL:
+                // School cohort social contacts occur in the SCHOOL_COHORT group
+                return ContactGroupType.SCHOOL_COHORT;
+            default:
+                return contactGroupType;
         }
     }
 
@@ -450,32 +475,6 @@ public class ContactManager extends AbstractComponent {
 
     }
 
-    private static ContactGroupType getContactSetting(ContactGroupType contactGroupType) {
-        switch (contactGroupType) {
-            case SCHOOL_COHORT:
-                // SCHOOL_COHORT is a subset of SCHOOL
-                return ContactGroupType.SCHOOL;
-            case SCHOOL_COHORT_SOCIAL:
-                // SCHOOL_COHORT_SOCIAL is a subset of SCHOOL_SOCIAL
-                return ContactGroupType.SCHOOL_SOCIAL;
-            default:
-                return contactGroupType;
-        }
-    }
-
-    private static ContactGroupType getLookupGroup(ContactGroupType contactGroupType) {
-        switch (contactGroupType) {
-            case SCHOOL_SOCIAL:
-                // School social contacts occur in the SCHOOL group
-                return ContactGroupType.SCHOOL;
-            case SCHOOL_COHORT_SOCIAL:
-                // School cohort social contacts occur in the SCHOOL_COHORT group
-                return ContactGroupType.SCHOOL_COHORT;
-            default:
-                return contactGroupType;
-        }
-    }
-
     private Optional<ContactGroupType> getContactGroupType(Environment environment, PersonId sourcePersonId) {
 
         List<ContactGroupType> contactGroupTypes = environment.getGroupTypesForPerson(sourcePersonId);
@@ -499,12 +498,12 @@ public class ContactManager extends AbstractComponent {
                         groupType -> {
                             if (groupType == ContactGroupType.WORK) {
                                 DayOfWeekSchedule workSchedule = environment.getGlobalPropertyValue(GlobalProperty.WORK_SCHEDULE);
-                                return workSchedule.isActiveOn(TimeUtils.getCurrentDayOfWeek(environment));
+                                return workSchedule.isActiveAt(environment, environment.getTime());
                             } else // SCHOOL_COHORT is a subset of SCHOOL
                                 if (groupType == ContactGroupType.SCHOOL) {
-                                DayOfWeekSchedule schoolSchedule = environment.getGlobalPropertyValue(GlobalProperty.SCHOOL_SCHEDULE);
-                                return schoolSchedule.isActiveOn(TimeUtils.getCurrentDayOfWeek(environment));
-                            } else return groupType != ContactGroupType.SCHOOL_COHORT;
+                                    DayOfWeekSchedule schoolSchedule = environment.getGlobalPropertyValue(GlobalProperty.SCHOOL_SCHEDULE);
+                                    return schoolSchedule.isActiveAt(environment, environment.getTime());
+                                } else return groupType != ContactGroupType.SCHOOL_COHORT;
                         }
                 )
                 .map(groupType -> new Pair<>(groupType,
