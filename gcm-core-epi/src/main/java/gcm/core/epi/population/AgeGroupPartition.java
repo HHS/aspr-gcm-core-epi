@@ -13,7 +13,7 @@ import java.util.Map;
 public abstract class AgeGroupPartition {
 
     @Value.Parameter
-    abstract List<AgeGroup> ageGroupList();
+    public abstract List<AgeGroup> ageGroupList();
 
     @Derived
     protected Map<String, Integer> ageGroupMap() {

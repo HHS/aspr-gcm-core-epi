@@ -116,6 +116,9 @@ public enum GlobalProperty implements DefinedGlobalProperty {
     TRANSMISSION_PLUGIN(PropertyDefinition.builder()
             .setType(Optional.class).setDefaultValue(Optional.empty()).build(), false),
 
+    VACCINE_PLUGIN(PropertyDefinition.builder()
+            .setType(Optional.class).setDefaultValue(Optional.empty()).build(), false),
+
     TRIGGER_CONTAINER(PropertyDefinition.builder()
             .setType(TriggerContainer.class).setPropertyValueMutability(false).build(), false),
 

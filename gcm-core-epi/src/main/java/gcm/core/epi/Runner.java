@@ -114,6 +114,9 @@ public class Runner {
         if (configuration.seedingPlugin().isPresent()) {
             pluginList.add(configuration.seedingPlugin().get().getPluginClass().getDeclaredConstructor().newInstance());
         }
+        if (configuration.vaccinePlugin().isPresent()) {
+            pluginList.add(configuration.vaccinePlugin().get().getPluginClass().getDeclaredConstructor().newInstance());
+        }
 
         for (Plugin plugin : pluginList) {
             plugin.load(experimentBuilder);

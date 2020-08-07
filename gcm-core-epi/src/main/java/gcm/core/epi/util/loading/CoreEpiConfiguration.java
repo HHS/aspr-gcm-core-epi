@@ -6,6 +6,7 @@ import gcm.core.epi.plugin.behavior.BehaviorPluginType;
 import gcm.core.epi.plugin.infection.InfectionPluginType;
 import gcm.core.epi.plugin.seeding.SeedingPluginType;
 import gcm.core.epi.plugin.transmission.TransmissionPluginType;
+import gcm.core.epi.plugin.vaccine.VaccinePluginType;
 import gcm.core.epi.trigger.TriggerDescription;
 import gcm.core.epi.util.property.PropertyGroupSpecification;
 import org.immutables.value.Value;
@@ -31,6 +32,8 @@ public abstract class CoreEpiConfiguration {
     public abstract Optional<TransmissionPluginType> transmissionPlugin();
 
     public abstract Optional<SeedingPluginType> seedingPlugin();
+
+    public abstract Optional<VaccinePluginType> vaccinePlugin();
 
     public abstract List<TriggerDescription> triggers();
 
