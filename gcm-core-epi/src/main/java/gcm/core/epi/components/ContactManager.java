@@ -5,6 +5,7 @@ import gcm.core.epi.identifiers.*;
 import gcm.core.epi.plugin.behavior.BehaviorPlugin;
 import gcm.core.epi.plugin.infection.InfectionPlugin;
 import gcm.core.epi.plugin.transmission.TransmissionPlugin;
+import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.PopulationDescription;
@@ -426,15 +427,24 @@ public class ContactManager extends AbstractComponent {
 
                     if (contactCompartment == Compartment.SUSCEPTIBLE) {
 
-                        // TODO: Re-incorporate vaccine, antiviral, and potentially other plugins
-                        double probabilityVaccineFails = 1.0;
+                        // TODO: Re-incorporate antiviral and potentially other plugins
                         double probabilityAntiviralsFail = 1.0;
+
                         // What is their residual immunity (if any)?
                         double residualImmunity = (boolean) environment.getPersonPropertyValue(targetPersonId.get(), PersonProperty.IMMUNITY_WANED) ?
                                 environment.getGlobalPropertyValue(GlobalProperty.IMMUNITY_WANES_RESIDUAL_IMMUNITY) :
                                 0.0;
 
-                        // Behavior effect via module
+                        // Vaccine effect via plugin
+                        Optional<VaccinePlugin> vaccinePlugin =
+                                environment.getGlobalPropertyValue(GlobalProperty.VACCINE_PLUGIN);
+                        double probabilityVaccineFails = vaccinePlugin.map(
+                                plugin -> plugin.getProbabilityVaccineFailsToPreventTransmission(environment,
+                                        sourcePersonId, targetPersonId.get())
+                        ).orElse(1.0);
+
+
+                        // Behavior effect via plugin
                         Optional<BehaviorPlugin> behaviorPlugin =
                                 environment.getGlobalPropertyValue(GlobalProperty.BEHAVIOR_PLUGIN);
                         final ContactGroupType contactSetting = getContactSetting(contactGroupType);
@@ -442,7 +452,7 @@ public class ContactManager extends AbstractComponent {
                                 .map(plugin -> plugin.getInfectionProbability(environment, contactSetting, targetPersonId.get()))
                                 .orElse(1.0);
 
-                        // Transmission reduction effect via module
+                        // Transmission reduction effect via plugin
                         Optional<TransmissionPlugin> transmissionPlugin =
                                 environment.getGlobalPropertyValue(GlobalProperty.TRANSMISSION_PLUGIN);
                         double infectionProbabilityFromTransmissionPlugin = transmissionPlugin
