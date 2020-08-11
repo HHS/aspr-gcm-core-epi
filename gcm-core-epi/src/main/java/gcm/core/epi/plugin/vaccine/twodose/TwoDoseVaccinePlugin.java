@@ -12,6 +12,7 @@ import gcm.core.epi.propertytypes.ImmutableAgeWeights;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.scenario.ExperimentBuilder;
+import gcm.scenario.MapOption;
 import gcm.scenario.PersonId;
 import gcm.scenario.PropertyDefinition;
 import gcm.simulation.Environment;
@@ -90,7 +91,9 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
     public enum VaccinePersonProperty implements DefinedPersonProperty {
 
         VACCINE_STATUS(PropertyDefinition.builder()
-                .setType(TwoDoseVaccineStatus.class).setDefaultValue(TwoDoseVaccineStatus.NOT_VACCINATED).build());
+                .setType(TwoDoseVaccineStatus.class)
+                .setDefaultValue(TwoDoseVaccineStatus.NOT_VACCINATED)
+                .setMapOption(MapOption.ARRAY).build());
 
         private final PropertyDefinition propertyDefinition;
 

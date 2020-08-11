@@ -12,6 +12,7 @@ import gcm.core.epi.propertytypes.ImmutableAgeWeights;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.scenario.ExperimentBuilder;
+import gcm.scenario.MapOption;
 import gcm.scenario.PersonId;
 import gcm.scenario.PropertyDefinition;
 import gcm.simulation.Environment;
@@ -76,7 +77,9 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
     public enum VaccinePersonProperty implements DefinedPersonProperty {
 
         VACCINE_STATUS(PropertyDefinition.builder()
-                        .setType(OneDoseVaccineStatus.class).setDefaultValue(OneDoseVaccineStatus.NOT_VACCINATED).build());
+                .setType(OneDoseVaccineStatus.class)
+                .setDefaultValue(OneDoseVaccineStatus.NOT_VACCINATED)
+                .setMapOption(MapOption.ARRAY).build());
 
         private final PropertyDefinition propertyDefinition;
 
@@ -97,7 +100,7 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
     public enum VaccineGlobalProperty implements DefinedGlobalProperty {
 
         VE_S(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                        .setPropertyValueMutability(false).build()),
+                .setPropertyValueMutability(false).build()),
 
         VE_I(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
                 .setPropertyValueMutability(false).build()),
@@ -250,7 +253,39 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
                 ageGroupIndex++;
             }
 
-            // Randomly select age group using the cumulative weights
+            // Randomly select age group using the cumulative weights            // Get a random person to vaccinate, if possible, taking into account vaccine uptake weights
+            //            AgeWeights vaccineUptakeWeights = environment.getGlobalPropertyValue(
+            //                    VaccineGlobalProperty.VACCINE_UPTAKE_WEIGHTS);
+            //            int ageGroupIndex = 0;
+            //            double cumulativeWeight = 0;
+            //            // Calculate cumulative weights for each age group
+            //            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+            //                    GlobalProperty.POPULATION_DESCRIPTION);
+            //            AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
+            //            for (AgeGroup ageGroup : ageGroupPartition.ageGroupList()) {
+            //                double weight = vaccineUptakeWeights.getWeight(ageGroup) *
+            //                        environment.getIndexSize(vaccineIndexKeys.get(ageGroup));
+            //                cumulativeWeight += weight;
+            //                if (vaccineCumulativeWeights.size() <= ageGroupIndex) {
+            //                    vaccineCumulativeWeights.add(cumulativeWeight);
+            //                } else {
+            //                    vaccineCumulativeWeights.set(ageGroupIndex, cumulativeWeight);
+            //                }
+            //                ageGroupIndex++;
+            //            }
+            //
+            //            // Randomly select age group using the cumulative weights
+            //            final Optional<PersonId> personId;
+            //            if (cumulativeWeight == 0) {
+            //                personId = Optional.empty();
+            //            } else {
+            //                double targetWeight = environment.getRandomGenerator().nextDouble() * cumulativeWeight;
+            //                ageGroupIndex = 0;
+            //                while (vaccineCumulativeWeights.get(ageGroupIndex) < targetWeight) {
+            //                    ageGroupIndex++;
+            //                }
+            //                personId = environment.getRandomIndexedPerson(vaccineIndexKeys.get(ageGroupPartition.getAgeGroupFromIndex(ageGroupIndex)));
+            //            }
             final Optional<PersonId> personId;
             if (cumulativeWeight == 0) {
                 personId = Optional.empty();

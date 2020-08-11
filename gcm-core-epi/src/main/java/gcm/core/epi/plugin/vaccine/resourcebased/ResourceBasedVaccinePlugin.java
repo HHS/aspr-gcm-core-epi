@@ -25,6 +25,68 @@ import java.util.*;
 
 public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
+    @Override
+    public Set<DefinedGlobalProperty> getGlobalProperties() {
+        return new HashSet<>(EnumSet.allOf(VaccineGlobalProperty.class));
+    }
+
+    @Override
+    public void load(ExperimentBuilder experimentBuilder) {
+        VaccinePlugin.super.load(experimentBuilder);
+        // Track when last dose of vaccine was received
+        experimentBuilder.setResourceTimeTracking(VaccineId.VACCINE_ONE, TimeTrackingPolicy.TRACK_TIME);
+        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, VaccineManager.class);
+    }
+
+    @Override
+    public Map<ResourceId, Set<DefinedResourceProperty>> getResourceProperties() {
+        Map<ResourceId, Set<DefinedResourceProperty>> resourcePropertyMap =
+                new HashMap<>();
+        // Vaccine properties
+        resourcePropertyMap.put(VaccineId.VACCINE_ONE, new HashSet<>(EnumSet.allOf(VaccineProperty.class)));
+        return resourcePropertyMap;
+    }
+
+    private double getEffectivenessFunctionValue(Environment environment, PersonId personId) {
+        if (environment.getPersonResourceLevel(personId, VaccineId.VACCINE_ONE) > 0) {
+            double vaccinationTime = environment.getPersonResourceTime(personId, VaccineId.VACCINE_ONE);
+            double relativeTime = environment.getTime() - vaccinationTime;
+            EffectivenessFunction effectivenessFunction = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE,
+                    VaccineProperty.EFFECTIVENESS_FUNCTION);
+            if (relativeTime < effectivenessFunction.initialDelay()) {
+                return 0.0;
+            } else if (relativeTime < effectivenessFunction.peakTime()) {
+                return (relativeTime - effectivenessFunction.initialDelay()) /
+                        (effectivenessFunction.peakTime() - effectivenessFunction.initialDelay());
+            } else if (relativeTime < effectivenessFunction.peakTime() + effectivenessFunction.peakDuration()) {
+                return 1.0;
+            } else {
+                return Math.exp(-effectivenessFunction.afterPeakDecay() *
+                        (relativeTime - effectivenessFunction.peakTime() - effectivenessFunction.peakDuration()));
+            }
+        } else {
+            return 0.0;
+        }
+    }
+
+    @Override
+    public double getVES(Environment environment, PersonId personId) {
+        double vES = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_S);
+        return vES * getEffectivenessFunctionValue(environment, personId);
+    }
+
+    @Override
+    public double getVEI(Environment environment, PersonId personId) {
+        double vEI = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_I);
+        return vEI * getEffectivenessFunctionValue(environment, personId);
+    }
+
+    @Override
+    public double getVEP(Environment environment, PersonId personId) {
+        double vEP = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_P);
+        return vEP * getEffectivenessFunctionValue(environment, personId);
+    }
+
     /*
         The global properties added to the simulation by this module
      */
@@ -60,19 +122,6 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         }
     }
 
-    @Override
-    public Set<DefinedGlobalProperty> getGlobalProperties() {
-        return new HashSet<>(EnumSet.allOf(VaccineGlobalProperty.class));
-    }
-
-    @Override
-    public void load(ExperimentBuilder experimentBuilder) {
-        VaccinePlugin.super.load(experimentBuilder);
-        // Track when last dose of vaccine was received
-        experimentBuilder.setResourceTimeTracking(VaccineId.VACCINE_ONE, TimeTrackingPolicy.TRACK_TIME);
-        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, VaccineManager.class);
-    }
-
     enum VaccineId implements ResourceId {
 
         VACCINE_ONE
@@ -91,7 +140,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 .setPropertyValueMutability(false).build()),
 
         EFFECTIVENESS_FUNCTION(PropertyDefinition.builder().setType(EffectivenessFunction.class)
-                        .setDefaultValue(ImmutableEffectivenessFunction.builder().build()).build());
+                .setDefaultValue(ImmutableEffectivenessFunction.builder().build()).build());
 
         final PropertyDefinition propertyDefinition;
 
@@ -106,57 +155,6 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
     }
 
-
-
-    @Override
-    public Map<ResourceId, Set<DefinedResourceProperty>> getResourceProperties() {
-        Map<ResourceId, Set<DefinedResourceProperty>> resourcePropertyMap =
-                new HashMap<>();
-        // Vaccine properties
-        resourcePropertyMap.put(VaccineId.VACCINE_ONE, new HashSet<>(EnumSet.allOf(VaccineProperty.class)));
-        return resourcePropertyMap;
-    }
-
-    private double getEffectivenessFunctionValue(Environment environment, PersonId personId) {
-        if (environment.getPersonResourceLevel(personId, VaccineId.VACCINE_ONE) > 0) {
-            double vaccinationTime = environment.getPersonResourceTime(personId, VaccineId.VACCINE_ONE);
-            double relativeTime = environment.getTime() - vaccinationTime;
-            EffectivenessFunction effectivenessFunction = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE,
-                    VaccineProperty.EFFECTIVENESS_FUNCTION);
-            if (relativeTime < effectivenessFunction.initialDelay()) {
-                return 0.0;
-            } else if (relativeTime < effectivenessFunction.peakTime()) {
-                return (relativeTime - effectivenessFunction.initialDelay()) /
-                        (effectivenessFunction.peakTime() - effectivenessFunction.initialDelay());
-            } else if (relativeTime < effectivenessFunction.peakTime() + effectivenessFunction.peakDuration()) {
-                return 1.0;
-            } else {
-                return Math.exp(- effectivenessFunction.afterPeakDecay() *
-                        (relativeTime - effectivenessFunction.peakTime() - effectivenessFunction.peakDuration()));
-            }
-        } else {
-            return 0.0;
-        }
-    }
-
-    @Override
-    public double getVES(Environment environment, PersonId personId) {
-        double vES =  environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_S);
-        return vES  * getEffectivenessFunctionValue(environment, personId);
-    }
-
-    @Override
-    public double getVEI(Environment environment, PersonId personId) {
-        double vEI =  environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_I);
-        return vEI  * getEffectivenessFunctionValue(environment, personId);
-    }
-
-    @Override
-    public double getVEP(Environment environment, PersonId personId) {
-        double vEP =  environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_P);
-        return vEP  * getEffectivenessFunctionValue(environment, personId);
-    }
-
     public static class VaccineManager extends AbstractComponent {
 
         // Keys for vaccine indexes
@@ -164,9 +162,9 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         private final Map<AgeGroup, Object> vaccineIndexKeys = new HashMap<>();
         // Re-used array for selecting age group to vaccinate next
         private final List<Double> vaccineCumulativeWeights = new ArrayList<>();
-        private RealDistribution interVaccinationDelayDistribution;
         // Track whether currently vaccinating
         boolean currentlyVaccinating = false;
+        private RealDistribution interVaccinationDelayDistribution;
 
         @Override
         public void init(final Environment environment) {
