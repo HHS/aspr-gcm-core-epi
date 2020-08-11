@@ -173,7 +173,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                     VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
             if (vaccinationRatePerDay > 0) {
                 // Make distribution for inter-vaccination time delays
-                final RandomGenerator randomGenerator = environment.getRandomGenerator();
+                final RandomGenerator randomGenerator = environment.getRandomGeneratorFromId(VaccineRandomId.ID);
                 interVaccinationDelayDistribution = new ExponentialDistribution(randomGenerator,
                         1 / vaccinationRatePerDay);
 
@@ -271,12 +271,13 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 if (cumulativeWeight == 0) {
                     personId = Optional.empty();
                 } else {
-                    double targetWeight = environment.getRandomGenerator().nextDouble() * cumulativeWeight;
+                    double targetWeight = environment.getRandomGeneratorFromId(VaccineRandomId.ID).nextDouble() * cumulativeWeight;
                     ageGroupIndex = 0;
                     while (vaccineCumulativeWeights.get(ageGroupIndex) < targetWeight) {
                         ageGroupIndex++;
                     }
-                    personId = environment.getRandomIndexedPerson(vaccineIndexKeys.get(ageGroupPartition.getAgeGroupFromIndex(ageGroupIndex)));
+                    personId = environment.getRandomIndexedPersonFromGenerator(vaccineIndexKeys.get(ageGroupPartition.getAgeGroupFromIndex(ageGroupIndex)),
+                            VaccineRandomId.ID);
                 }
 
                 if (personId.isPresent()) {

@@ -5,6 +5,7 @@ import gcm.core.epi.plugin.Plugin;
 import gcm.scenario.ExperimentBuilder;
 import gcm.scenario.GlobalComponentId;
 import gcm.scenario.PersonId;
+import gcm.scenario.RandomNumberGeneratorId;
 import gcm.simulation.Environment;
 
 import java.util.Optional;
@@ -16,6 +17,13 @@ public interface VaccinePlugin extends Plugin {
      */
     GlobalComponentId VACCINE_MANAGER_IDENTIFIER = new GlobalComponentId() {
     };
+
+    /*
+
+     */
+    enum VaccineRandomId implements RandomNumberGeneratorId {
+        ID
+    }
 
     /*
         Get the reduction in probability that a vaccinated susceptible person will be infected by an exposure
