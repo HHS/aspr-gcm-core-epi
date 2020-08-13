@@ -1,4 +1,4 @@
-package gcm.core.epi.trigger;
+package gcm.core.epi.propertytypes;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.immutables.value.Value;

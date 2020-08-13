@@ -47,6 +47,13 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
+    public List<RandomNumberGeneratorId> getRandomIds() {
+        List<RandomNumberGeneratorId> randomIds = new ArrayList<>();
+        randomIds.add(VaccineRandomId.ID);
+        return randomIds;
+    }
+
+    @Override
     public double getVES(Environment environment, PersonId personId) {
         int i = 0;
         double vaccineFailureProbability = 1.0;

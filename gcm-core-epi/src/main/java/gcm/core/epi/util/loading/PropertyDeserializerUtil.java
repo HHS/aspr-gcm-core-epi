@@ -4,7 +4,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.plugin.behavior.*;
+import gcm.core.epi.plugin.vaccine.resourcebased.ResourceBasedVaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
+import gcm.core.epi.propertytypes.FipsCodeValues;
 
 import java.util.HashMap;
 import java.util.List;
@@ -93,6 +95,11 @@ public class PropertyDeserializerUtil {
         propertyDeserializers.put(
                 RandomTestingBehaviorPlugin.RandomTestingGlobalProperty.TEST_ISOLATION_TRANSMISSION_REDUCTION.toString(),
                 new PropertyDeserializer(new TypeReference<Map<ContactGroupType, Double>>() {
+                }));
+        // Resource-Based Vaccine
+        propertyDeserializers.put(
+                ResourceBasedVaccinePlugin.VaccineGlobalProperty.VACCINE_DELIVERIES.toString(),
+                new PropertyDeserializer(new TypeReference<Map<Double, FipsCodeValues>>() {
                 }));
     }
 

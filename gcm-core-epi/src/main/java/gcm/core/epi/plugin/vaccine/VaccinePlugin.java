@@ -19,13 +19,6 @@ public interface VaccinePlugin extends Plugin {
     };
 
     /*
-
-     */
-    enum VaccineRandomId implements RandomNumberGeneratorId {
-        ID
-    }
-
-    /*
         Get the reduction in probability that a vaccinated susceptible person will be infected by an exposure
      */
     double getVES(Environment environment, PersonId personId);
@@ -56,6 +49,13 @@ public interface VaccinePlugin extends Plugin {
     default void load(ExperimentBuilder experimentBuilder) {
         Plugin.super.load(experimentBuilder);
         experimentBuilder.addGlobalPropertyValue(GlobalProperty.VACCINE_PLUGIN, Optional.of(this));
+    }
+
+    /*
+
+     */
+    enum VaccineRandomId implements RandomNumberGeneratorId {
+        ID
     }
 
 }

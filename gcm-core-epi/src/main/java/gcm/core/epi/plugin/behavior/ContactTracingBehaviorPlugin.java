@@ -5,8 +5,9 @@ import gcm.core.epi.components.ContactManager;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
-import gcm.core.epi.propertytypes.InfectionData;
-import gcm.core.epi.trigger.*;
+import gcm.core.epi.propertytypes.*;
+import gcm.core.epi.trigger.TriggerCallback;
+import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
@@ -278,7 +279,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                     ContactTracingRegionProperty.CONTACT_TRACING_TRIGGER_START,
                     ContactTracingRegionProperty.CONTACT_TRACING_TRIGGER_END);
             if (triggerIsInEffect) {
-                FipsCode fipsCode = scope.getFipsCode(regionId);
+                FipsCode fipsCode = scope.getFipsSubCode(regionId);
                 Map<FipsCode, Counter> currentInfectionsBeingTracedMap = environment.getGlobalPropertyValue(
                         ContactTracingGlobalProperty.CURRENT_INFECTIONS_BEING_TRACED);
                 Counter currentInfectionsBeingTraced = currentInfectionsBeingTracedMap.get(fipsCode);
@@ -427,7 +428,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                 }
             } else if (plan.getClass().equals(ContractTracingCompletePlan.class)) {
                 // Decrement counter
-                FipsCode fipsCode = scope.getFipsCode(((ContractTracingCompletePlan) plan).regionId);
+                FipsCode fipsCode = scope.getFipsSubCode(((ContractTracingCompletePlan) plan).regionId);
                 Map<FipsCode, Counter> currentInfectionsBeingTracedMap = environment.getGlobalPropertyValue(
                         ContactTracingGlobalProperty.CURRENT_INFECTIONS_BEING_TRACED);
                 Counter currentInfectionsBeingTraced = currentInfectionsBeingTracedMap.get(fipsCode);

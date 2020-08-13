@@ -1,6 +1,6 @@
 package gcm.core.epi.reports;
 
-import gcm.core.epi.trigger.FipsScope;
+import gcm.core.epi.propertytypes.FipsScope;
 import gcm.output.reports.commonreports.PeriodicReport;
 import gcm.scenario.RegionId;
 import gcm.simulation.ObservableEnvironment;
@@ -12,7 +12,7 @@ public abstract class RegionAggregationPeriodicReport extends PeriodicReport {
     private FipsScope fipsScope = FipsScope.TRACT;
 
     protected String getFipsString(RegionId regionId) {
-        return fipsScope.getFipsCode(regionId).code();
+        return fipsScope.getFipsSubCode(regionId).code();
     }
 
     @Override

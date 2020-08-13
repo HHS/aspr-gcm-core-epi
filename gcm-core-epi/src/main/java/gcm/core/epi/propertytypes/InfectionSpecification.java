@@ -1,9 +1,6 @@
 package gcm.core.epi.propertytypes;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import gcm.core.epi.trigger.AbstractFipsCodeValues;
-import gcm.core.epi.trigger.FipsCode;
-import gcm.core.epi.trigger.FipsScope;
 import gcm.scenario.RegionId;
 import gcm.simulation.Environment;
 import gcm.simulation.Filter;
@@ -31,7 +28,7 @@ public abstract class InfectionSpecification extends AbstractFipsCodeValues {
             Set<RegionId> regionIds = environment.getRegionIds();
             Map<FipsCode, Set<RegionId>> fipsCodes = regionIds.stream()
                     .filter(regionId -> environment.getRegionPopulationCount(regionId) > 0)
-                    .collect(Collectors.groupingBy(scope()::getFipsCode, Collectors.toSet()));
+                    .collect(Collectors.groupingBy(scope()::getFipsSubCode, Collectors.toSet()));
             return fipsCodes.entrySet().stream()
                     .collect(Collectors.toMap(Map.Entry::getKey, entry -> Filter.region(entry.getValue())));
         }

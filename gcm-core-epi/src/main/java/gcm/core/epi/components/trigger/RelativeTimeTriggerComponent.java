@@ -1,6 +1,7 @@
 package gcm.core.epi.components.trigger;
 
 import gcm.core.epi.identifiers.GlobalProperty;
+import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.trigger.*;
 import gcm.scenario.RegionId;
 import gcm.scenario.RegionPropertyId;
@@ -30,7 +31,7 @@ public class RelativeTimeTriggerComponent extends AbsoluteTimeTriggerComponent {
 
     @Override
     public void observeRegionPropertyChange(Environment environment, RegionId regionId, RegionPropertyId regionPropertyId) {
-        FipsCode regionScopedFipsCode = trigger.scope().getFipsCode(regionId);
+        FipsCode regionScopedFipsCode = trigger.scope().getFipsSubCode(regionId);
         double startTime = environment.getTime() + trigger.times().getOrDefault(regionScopedFipsCode, trigger.defaultTime());
         Plan startPlan = new ToggleRegionPropertyPlan(regionId);
         environment.addPlan(startPlan, startTime);

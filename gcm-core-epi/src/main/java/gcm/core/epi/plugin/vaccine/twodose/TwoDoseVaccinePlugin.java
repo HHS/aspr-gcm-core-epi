@@ -11,10 +11,7 @@ import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.propertytypes.ImmutableAgeWeights;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
-import gcm.scenario.ExperimentBuilder;
-import gcm.scenario.MapOption;
-import gcm.scenario.PersonId;
-import gcm.scenario.PropertyDefinition;
+import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Equality;
 import gcm.simulation.Filter;
@@ -43,6 +40,13 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
     private boolean isVaccineDose2Protected(Environment environment, PersonId personId) {
         return environment.getPersonPropertyValue(personId, VaccinePersonProperty.VACCINE_STATUS) ==
                 TwoDoseVaccineStatus.VACCINATED_TWO_DOSES_PROTECTED;
+    }
+
+    @Override
+    public List<RandomNumberGeneratorId> getRandomIds() {
+        List<RandomNumberGeneratorId> randomIds = new ArrayList<>();
+        randomIds.add(VaccineRandomId.ID);
+        return randomIds;
     }
 
     @Override

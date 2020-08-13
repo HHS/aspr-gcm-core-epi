@@ -5,10 +5,8 @@ import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
-import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.PopulationDescription;
-import gcm.core.epi.propertytypes.AgeWeights;
-import gcm.core.epi.propertytypes.ImmutableAgeWeights;
+import gcm.core.epi.propertytypes.*;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedResourceProperty;
 import gcm.scenario.*;
@@ -17,17 +15,27 @@ import gcm.simulation.Equality;
 import gcm.simulation.Filter;
 import gcm.simulation.Plan;
 import gcm.util.MultiKey;
+import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
+import org.apache.commons.math3.util.Pair;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
     @Override
     public Set<DefinedGlobalProperty> getGlobalProperties() {
         return new HashSet<>(EnumSet.allOf(VaccineGlobalProperty.class));
+    }
+
+    @Override
+    public List<RandomNumberGeneratorId> getRandomIds() {
+        List<RandomNumberGeneratorId> randomIds = new ArrayList<>();
+        randomIds.add(VaccineRandomId.ID);
+        return randomIds;
     }
 
     @Override
@@ -71,19 +79,22 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
     @Override
     public double getVES(Environment environment, PersonId personId) {
-        double vES = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_S);
+        //double vES = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_S);
+        double vES = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_S);
         return vES * getEffectivenessFunctionValue(environment, personId);
     }
 
     @Override
     public double getVEI(Environment environment, PersonId personId) {
-        double vEI = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_I);
+        //double vEI = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_I);
+        double vEI = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_I);
         return vEI * getEffectivenessFunctionValue(environment, personId);
     }
 
     @Override
     public double getVEP(Environment environment, PersonId personId) {
-        double vEP = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_P);
+        //double vEP = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_P);
+        double vEP = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_P);
         return vEP * getEffectivenessFunctionValue(environment, personId);
     }
 
@@ -92,14 +103,24 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
      */
     public enum VaccineGlobalProperty implements DefinedGlobalProperty {
 
+        VE_S(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
+                .setPropertyValueMutability(false).build()),
+
+        VE_I(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
+                .setPropertyValueMutability(false).build()),
+
+        VE_P(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
+                .setPropertyValueMutability(false).build()),
+
         VACCINE_DELIVERIES(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(new HashMap<Double, Long>()).build()),
+                .setType(Map.class).setDefaultValue(new HashMap<Double, FipsCodeValues>()).build()),
 
         VACCINATION_START_DAY(PropertyDefinition.builder()
                 .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
 
         VACCINATION_RATE_PER_DAY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+                .setType(FipsCodeValues.class).setDefaultValue(ImmutableFipsCodeValues.builder().build())
+                .setPropertyValueMutability(false).build()),
 
         VACCINE_UPTAKE_WEIGHTS(PropertyDefinition.builder()
                 .setType(AgeWeights.class)
@@ -129,15 +150,15 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
     }
 
     enum VaccineProperty implements DefinedResourceProperty {
-
-        VE_S(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
-
-        VE_I(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
-
-        VE_P(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        // TODO: Determine how to use Global vs Resource properties
+//        VE_S(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
+//                .setPropertyValueMutability(false).build()),
+//
+//        VE_I(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
+//                .setPropertyValueMutability(false).build()),
+//
+//        VE_P(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
+//                .setPropertyValueMutability(false).build()),
 
         EFFECTIVENESS_FUNCTION(PropertyDefinition.builder().setType(EffectivenessFunction.class)
                 .setDefaultValue(ImmutableEffectivenessFunction.builder().build()).build());
@@ -157,55 +178,52 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
     public static class VaccineManager extends AbstractComponent {
 
-        // Keys for vaccine indexes
+        // Key for vaccine indexes
         private static final Object TO_VACCINATE_INDEX_KEY = new Object();
-        private final Map<AgeGroup, Object> vaccineIndexKeys = new HashMap<>();
-        // Re-used array for selecting age group to vaccinate next
-        private final List<Double> vaccineCumulativeWeights = new ArrayList<>();
+        // Vaccines ready to be distributed
+        private final Map<FipsCode, Long> vaccineDeliveries = new HashMap<>();
         // Track whether currently vaccinating
-        boolean currentlyVaccinating = false;
-        private RealDistribution interVaccinationDelayDistribution;
+        private final Map<FipsCode, Boolean> currentlyVaccinating = new HashMap<>();
+        // Random distributions for vaccine delays
+        private final Map<FipsCode, RealDistribution> interVaccinationDelayDistribution = new HashMap<>();
+        // Map giving regions in a given FipsCode
+        private Map<FipsCode, Set<RegionId>> fipsCodeRegionMap = new HashMap<>();
 
         @Override
         public void init(final Environment environment) {
 
-            final double vaccinationRatePerDay = environment.getGlobalPropertyValue(
+            // Determine if we are vaccinating and if so set up plans and distributions
+            final FipsCodeValues vaccinationRatePerDayFipsCodeValues = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
-            if (vaccinationRatePerDay > 0) {
-                // Make distribution for inter-vaccination time delays
-                final RandomGenerator randomGenerator = environment.getRandomGeneratorFromId(VaccineRandomId.ID);
-                interVaccinationDelayDistribution = new ExponentialDistribution(randomGenerator,
-                        1 / vaccinationRatePerDay);
+            Map<FipsCode, Double> vaccinationRatePerDayByFipsCode = vaccinationRatePerDayFipsCodeValues.getFipsCodeValues(environment);
+            fipsCodeRegionMap = vaccinationRatePerDayFipsCodeValues.scope().getFipsCodeRegionMap(environment);
+            boolean usingVaccine = false;
+            for (Map.Entry<FipsCode, Double> entry : vaccinationRatePerDayByFipsCode.entrySet()) {
+                FipsCode fipsCode = entry.getKey();
+                currentlyVaccinating.put(fipsCode, false);
+                double vaccinationRatePerDay = entry.getValue();
+                if (vaccinationRatePerDay > 0) {
+                    usingVaccine = true;
+                    // Make distribution for inter-vaccination time delays
+                    final RandomGenerator randomGenerator = environment.getRandomGeneratorFromId(VaccineRandomId.ID);
+                    interVaccinationDelayDistribution.put(fipsCode, new ExponentialDistribution(randomGenerator,
+                            1 / vaccinationRatePerDay));
 
-                // Random vaccination target indexes
-                PopulationDescription populationDescription = environment.getGlobalPropertyValue(
-                        GlobalProperty.POPULATION_DESCRIPTION);
-                for (AgeGroup ageGroup : populationDescription.ageGroupPartition().ageGroupList()) {
-                    Filter filter = Filter.resource(
-                            VaccineId.VACCINE_ONE,
-                            Equality.EQUAL,
-                            0)
-                            .and(Filter.property(
-                                    PersonProperty.AGE_GROUP_INDEX,
-                                    Equality.EQUAL,
-                                    populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.toString())
-                            ));
-                    Object indexKey = new MultiKey(TO_VACCINATE_INDEX_KEY, ageGroup);
-                    vaccineIndexKeys.put(ageGroup, indexKey);
-                    environment.addPopulationIndex(filter, indexKey);
+                    // Schedule first vaccination event
+                    final double vaccinationStartDay = environment.getGlobalPropertyValue(
+                            VaccineGlobalProperty.VACCINATION_START_DAY);
+                    environment.addPlan(new VaccinationPlan(fipsCode), vaccinationStartDay);
                 }
+            }
+
+            if (usingVaccine) {
 
                 // Schedule vaccine deliveries
-                Map<Double, Long> vaccineDeliveries = environment.getGlobalPropertyValue(
+                Map<Double, FipsCodeValues> vaccineDeliveries = environment.getGlobalPropertyValue(
                         VaccineGlobalProperty.VACCINE_DELIVERIES);
-                for (Map.Entry<Double, Long> entry : vaccineDeliveries.entrySet()) {
+                for (Map.Entry<Double, FipsCodeValues> entry : vaccineDeliveries.entrySet()) {
                     environment.addPlan(new VaccineDeliveryPlan(entry.getValue()), entry.getKey());
                 }
-
-                // Schedule first vaccination event
-                final double vaccinationStartDay = environment.getGlobalPropertyValue(
-                        VaccineGlobalProperty.VACCINATION_START_DAY);
-                environment.addPlan(new VaccinationPlan(), vaccinationStartDay);
 
             }
         }
@@ -217,83 +235,143 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
              * already started vaccinating because we only start observing arrivals
              * after vaccination has begun
              */
-            environment.observeGlobalPersonArrival(false);
-            vaccinateAndScheduleNext(environment);
+            FipsCodeValues vaccinationRatePerDay = environment.getGlobalPropertyValue(
+                    VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
+            RegionId regionId = environment.getPersonRegion(personId);
+            FipsCode fipsCode = vaccinationRatePerDay.scope().getFipsSubCode(regionId);
+            final double vaccinationStartDay = environment.getGlobalPropertyValue(
+                    VaccineGlobalProperty.VACCINATION_START_DAY);
+            if (interVaccinationDelayDistribution.containsKey(fipsCode) &&
+                    !currentlyVaccinating.getOrDefault(fipsCode, false) &&
+                    environment.getTime() >= vaccinationStartDay) {
+                vaccinateAndScheduleNext(environment, fipsCode);
+            }
         }
 
         @Override
         public void executePlan(Environment environment, Plan plan) {
             if (plan.getClass() == VaccinationPlan.class) {
                 // VaccinationPlan means we should vaccinate a random person and schedule the next vaccination
-                vaccinateAndScheduleNext(environment);
+                vaccinateAndScheduleNext(environment, ((VaccinationPlan) plan).fipsCode);
             } else if (plan.getClass() == VaccineDeliveryPlan.class) {
-                // TODO: Add resources to region
+                FipsCodeValues dosesFipsCodeValues = ((VaccineDeliveryPlan) plan).doses;
+                Map<FipsCode, Double> dosesByFipsCode = dosesFipsCodeValues.getFipsCodeValues(environment);
+                FipsCodeValues vaccinationRatePerDay = environment.getGlobalPropertyValue(
+                        VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
+                final Set<FipsCode> fipsCodesToRestartVaccination = new HashSet<>();
+                dosesByFipsCode.forEach(
+                        (fipsCode, doubleNewDoses) -> {
+                            long newDoses = Math.round(doubleNewDoses);
+                            if (newDoses > 0) {
+                                // Ignore finer scope for vaccine deliveries than the vaccination administration scope
+                                if (!fipsCode.scope().hasBroaderScopeThan(vaccinationRatePerDay.scope())) {
+                                    fipsCode = vaccinationRatePerDay.scope().getFipsSubCode(fipsCode);
+                                }
+                                long currentDoses = vaccineDeliveries.getOrDefault(fipsCode, 0L);
+                                vaccineDeliveries.put(fipsCode, currentDoses + newDoses);
+                                if (currentDoses == 0) {
+                                    fipsCodesToRestartVaccination.add(fipsCode);
+                                }
+                            }
+                        }
+                );
 
-                /*                environment.addResourceToRegion(VaccineId.VACCINE_ONE, -----,
-                        ((VaccineDeliveryPlan) plan).doses);*/
-                if (!currentlyVaccinating) {
-                    vaccinateAndScheduleNext(environment);
+                // Restart vaccination if needed
+                final double vaccinationStartDay = environment.getGlobalPropertyValue(
+                        VaccineGlobalProperty.VACCINATION_START_DAY);
+                if (environment.getTime() >= vaccinationStartDay) {
+                    FipsScope deliveryScope = dosesFipsCodeValues.scope().hasBroaderScopeThan(vaccinationRatePerDay.scope()) ?
+                            dosesFipsCodeValues.scope() : vaccinationRatePerDay.scope();
+                    currentlyVaccinating.forEach(
+                            (fipsCode, currentlyVaccinating) -> {
+                                if (!currentlyVaccinating) {
+                                    if (fipsCodesToRestartVaccination.contains(deliveryScope.getFipsSubCode(fipsCode))) {
+                                        vaccinateAndScheduleNext(environment, fipsCode);
+                                    }
+                                }
+                            }
+                    );
                 }
             } else {
                 throw new RuntimeException("Unhandled Vaccine Plan");
             }
         }
 
-        private void vaccinateAndScheduleNext(Environment environment) {
-            // TODO: add Region logic
-            // environment.getRegionResourceLevel(REGION-ID, VaccineId.VACCINE_ONE) > 0
-            boolean hasResource = true;
+        private void vaccinateAndScheduleNext(Environment environment, FipsCode fipsCode) {
+            // First check that vaccine is available in the FIPS hierarchy
+            boolean hasResource = false;
+            Optional<FipsCode> fipsCodeWithResource = Optional.of(fipsCode);
+            while (fipsCodeWithResource.isPresent()) {
+                long dosesInFipsCode = vaccineDeliveries.getOrDefault(fipsCodeWithResource.get(), 0L);
+                if (dosesInFipsCode > 0) {
+                    hasResource = true;
+                    break;
+                } else {
+                    fipsCodeWithResource = fipsCodeWithResource.flatMap(x -> x.getNextFipsCodeInHierarchy());
+                }
+            }
+
             if (hasResource) {
-                currentlyVaccinating = true;
+                currentlyVaccinating.put(fipsCode, true);
                 // Get a random person to vaccinate, if possible, taking into account vaccine uptake weights
                 AgeWeights vaccineUptakeWeights = environment.getGlobalPropertyValue(
                         VaccineGlobalProperty.VACCINE_UPTAKE_WEIGHTS);
-                int ageGroupIndex = 0;
-                double cumulativeWeight = 0;
-                // Calculate cumulative weights for each age group
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
-                AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
-                for (AgeGroup ageGroup : ageGroupPartition.ageGroupList()) {
-                    double weight = vaccineUptakeWeights.getWeight(ageGroup) *
-                            environment.getIndexSize(vaccineIndexKeys.get(ageGroup));
-                    cumulativeWeight += weight;
-                    if (vaccineCumulativeWeights.size() <= ageGroupIndex) {
-                        vaccineCumulativeWeights.add(cumulativeWeight);
-                    } else {
-                        vaccineCumulativeWeights.set(ageGroupIndex, cumulativeWeight);
+                List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
+
+                // Lazy index creation
+                if (!environment.populationIndexExists(new MultiKey(TO_VACCINATE_INDEX_KEY, fipsCode, ageGroups.get(0)))) {
+                    Filter regionFilter = Filter.region(fipsCodeRegionMap.get(fipsCode));
+                    for (AgeGroup ageGroup : populationDescription.ageGroupPartition().ageGroupList()) {
+                        Filter filter = regionFilter
+                                .and(Filter.property(
+                                        PersonProperty.AGE_GROUP_INDEX,
+                                        Equality.EQUAL,
+                                        populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.toString())
+                                ))
+                                .and(
+                                        Filter.resource(
+                                                VaccineId.VACCINE_ONE,
+                                                Equality.EQUAL,
+                                                0));
+                        Object indexKey = new MultiKey(TO_VACCINATE_INDEX_KEY, fipsCode, ageGroup);
+                        environment.addPopulationIndex(filter, indexKey);
                     }
-                    ageGroupIndex++;
                 }
 
                 // Randomly select age group using the cumulative weights
-                final Optional<PersonId> personId;
-                if (cumulativeWeight == 0) {
-                    personId = Optional.empty();
-                } else {
-                    double targetWeight = environment.getRandomGeneratorFromId(VaccineRandomId.ID).nextDouble() * cumulativeWeight;
-                    ageGroupIndex = 0;
-                    while (vaccineCumulativeWeights.get(ageGroupIndex) < targetWeight) {
-                        ageGroupIndex++;
-                    }
-                    personId = environment.getRandomIndexedPersonFromGenerator(vaccineIndexKeys.get(ageGroupPartition.getAgeGroupFromIndex(ageGroupIndex)),
-                            VaccineRandomId.ID);
-                }
+                List<Pair<AgeGroup, Double>> ageGroupTargetWeights = ageGroups
+                        .stream()
+                        .map(ageGroup -> new Pair<>(ageGroup,
+                                (double) environment.getIndexSize(new MultiKey(TO_VACCINATE_INDEX_KEY, fipsCode, ageGroup)) *
+                                        vaccineUptakeWeights.getWeight(ageGroup)))
+                        .collect(Collectors.toList());
+                AgeGroup targetAgeGroup = new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(VaccineRandomId.ID),
+                        ageGroupTargetWeights).sample();
+
+                // Randomly select age group using the cumulative weights
+                final Optional<PersonId> personId = environment.getRandomIndexedPersonFromGenerator(
+                        new MultiKey(TO_VACCINATE_INDEX_KEY, fipsCode, targetAgeGroup), VaccineRandomId.ID);
 
                 if (personId.isPresent()) {
-                    // Vaccinate the person
+                    // Vaccinate the person, delivering vaccine to the appropriate region just in time
+                    RegionId regionId = environment.getPersonRegion(personId.get());
+                    long currentDoses = vaccineDeliveries.get(fipsCodeWithResource.get());
+                    vaccineDeliveries.put(fipsCodeWithResource.get(), currentDoses - 1);
+                    environment.addResourceToRegion(VaccineId.VACCINE_ONE, regionId, 1);
                     environment.transferResourceToPerson(VaccineId.VACCINE_ONE, personId.get(), 1);
 
                     // Schedule next vaccination
-                    final double vaccinationTime = environment.getTime() + interVaccinationDelayDistribution.sample();
-                    environment.addPlan(new VaccinationPlan(), vaccinationTime);
+                    final double vaccinationTime = environment.getTime() + interVaccinationDelayDistribution.get(fipsCode).sample();
+                    environment.addPlan(new VaccinationPlan(fipsCode), vaccinationTime);
                 } else {
                     // Nobody left to vaccinate for now, so register to observe new arrivals
                     environment.observeGlobalPersonArrival(true);
                 }
             } else {
                 // No vaccine available, so pause vaccinating for now and wait for vaccine delivery
-                currentlyVaccinating = false;
+                currentlyVaccinating.put(fipsCode, false);
             }
         }
 
@@ -301,28 +379,26 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
             A plan to add vaccine to the simulation
          */
         private class VaccineDeliveryPlan implements Plan {
-            final Long doses;
 
-            private VaccineDeliveryPlan(Long doses) {
+            final FipsCodeValues doses;
+
+            private VaccineDeliveryPlan(FipsCodeValues doses) {
                 this.doses = doses;
             }
+
         }
 
         /*
             A plan to vaccinate a random person from the population
          */
         private class VaccinationPlan implements Plan {
-        }
 
-        /*
-            A plan to toggle vaccine protection on or off
-         */
-        private class VaccineProtectionTogglePlan implements Plan {
-            final PersonId personId;
+            private final FipsCode fipsCode;
 
-            private VaccineProtectionTogglePlan(PersonId personId) {
-                this.personId = personId;
+            public VaccinationPlan(FipsCode fipsCode) {
+                this.fipsCode = fipsCode;
             }
+
         }
 
     }

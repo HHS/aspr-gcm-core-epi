@@ -1,7 +1,9 @@
-package gcm.core.epi.trigger;
+package gcm.core.epi.propertytypes;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.immutables.value.Value;
+
+import java.util.Optional;
 
 @Value.Immutable(builder = false)
 @JsonDeserialize(as = ImmutableFipsCode.class)
@@ -26,6 +28,21 @@ public abstract class FipsCode {
             return FipsScope.TRACT;
         } else {
             throw new RuntimeException("Invalid FIPS code length.");
+        }
+    }
+
+    public Optional<FipsCode> getNextFipsCodeInHierarchy() {
+        switch (scope()) {
+            case NATION:
+                return Optional.empty();
+            case STATE:
+                return Optional.of(FipsCode.of(""));
+            case COUNTY:
+                return Optional.of(FipsCode.of(this.toString().substring(0, 2)));
+            case TRACT:
+                return Optional.of(FipsCode.of(this.toString().substring(0, 5)));
+            default:
+                throw new RuntimeException("Invalid FIPS code type");
         }
     }
 

@@ -1,4 +1,4 @@
-package gcm.core.epi.trigger;
+package gcm.core.epi.propertytypes;
 
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.population.PopulationDescription;
@@ -36,7 +36,7 @@ public abstract class AbstractFipsCodeValues {
         Map<FipsCode, Double> thresholdsByFipsCode;
         if (type() == ValueType.NUMBER) {
             Set<FipsCode> fipsCodes = environment.getRegionIds().stream()
-                    .map(scope()::getFipsCode)
+                    .map(scope()::getFipsSubCode)
                     .collect(Collectors.toSet());
             thresholdsByFipsCode = fipsCodes.stream()
                     .collect(toMap(fipsCode -> fipsCode, fipsCode -> values().getOrDefault(fipsCode, defaultValue())));
@@ -44,7 +44,7 @@ public abstract class AbstractFipsCodeValues {
             PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
             Map<RegionId, Long> regionPopulations = populationDescription.populationByRegion();
             Map<FipsCode, Long> fipsCodePopulations = environment.getRegionIds().stream()
-                    .collect(Collectors.groupingBy(scope()::getFipsCode,
+                    .collect(Collectors.groupingBy(scope()::getFipsSubCode,
                             summingLong(regionId -> regionPopulations.getOrDefault(regionId, 0L))));
             thresholdsByFipsCode = fipsCodePopulations.entrySet().stream()
                     .collect(toMap(Map.Entry::getKey,

@@ -5,6 +5,8 @@ import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.identifiers.Resource;
+import gcm.core.epi.propertytypes.FipsCode;
+import gcm.core.epi.propertytypes.FipsScope;
 import gcm.core.epi.trigger.*;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
@@ -42,7 +44,7 @@ public class CumulativeTriggerComponent extends AbstractComponent {
         FipsScope scope = cumulativeTrigger.scope();
         // Initialize counters
         Set<FipsCode> fipsCodes = environment.getRegionIds().stream()
-                .map(scope::getFipsCode)
+                .map(scope::getFipsSubCode)
                 .collect(Collectors.toSet());
         for (FipsCode fipsCode : fipsCodes) {
             counterMap.put(fipsCode, new Counter());
@@ -112,7 +114,7 @@ public class CumulativeTriggerComponent extends AbstractComponent {
     }
 
     private void handleIncrement(Environment environment, RegionId personRegionId) {
-        FipsCode fipsCode = cumulativeTrigger.scope().getFipsCode(personRegionId);
+        FipsCode fipsCode = cumulativeTrigger.scope().getFipsSubCode(personRegionId);
         Counter counter = counterMap.get(fipsCode);
         if (counter != null) {
             counter.count++;
@@ -132,9 +134,9 @@ public class CumulativeTriggerComponent extends AbstractComponent {
 
     private Set<RegionId> getRegionIdsInScope(Environment environment, RegionId regionId) {
         FipsScope scope = cumulativeTrigger.scope();
-        FipsCode regionIdFipsCode = scope.getFipsCode(regionId);
+        FipsCode regionIdFipsCode = scope.getFipsSubCode(regionId);
         return environment.getRegionIds().stream()
-                .filter(x -> scope.getFipsCode(x).equals(regionIdFipsCode))
+                .filter(x -> scope.getFipsSubCode(x).equals(regionIdFipsCode))
                 .collect(Collectors.toSet());
     }
 

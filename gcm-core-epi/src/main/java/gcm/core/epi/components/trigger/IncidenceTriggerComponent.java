@@ -5,6 +5,8 @@ import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.identifiers.Resource;
+import gcm.core.epi.propertytypes.FipsCode;
+import gcm.core.epi.propertytypes.FipsScope;
 import gcm.core.epi.trigger.*;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
@@ -48,7 +50,7 @@ public class IncidenceTriggerComponent extends AbstractComponent {
         FipsScope scope = incidenceTrigger.scope();
         // Initialize counters
         Set<FipsCode> fipsCodes = environment.getRegionIds().stream()
-                .map(scope::getFipsCode)
+                .map(scope::getFipsSubCode)
                 .collect(Collectors.toSet());
         for (FipsCode fipsCode : fipsCodes) {
             counterMap.put(fipsCode, new Counter());
@@ -132,7 +134,7 @@ public class IncidenceTriggerComponent extends AbstractComponent {
         if (!flushPlanExists) {
             addFlushPlan(environment);
         }
-        FipsCode fipsCode = incidenceTrigger.scope().getFipsCode(personRegionId);
+        FipsCode fipsCode = incidenceTrigger.scope().getFipsSubCode(personRegionId);
         Counter counter = counterMap.get(fipsCode);
         if (counter != null) {
             counter.count++;

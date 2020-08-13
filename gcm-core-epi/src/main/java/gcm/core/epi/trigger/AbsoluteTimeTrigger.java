@@ -3,6 +3,8 @@ package gcm.core.epi.trigger;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import gcm.components.Component;
 import gcm.core.epi.components.trigger.AbsoluteTimeTriggerComponent;
+import gcm.core.epi.propertytypes.FipsCode;
+import gcm.core.epi.propertytypes.FipsScope;
 import org.immutables.value.Value;
 
 import java.util.Map;

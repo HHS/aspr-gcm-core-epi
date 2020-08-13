@@ -2,7 +2,7 @@ package gcm.core.epi.util.loading;
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.KeyDeserializer;
-import gcm.core.epi.trigger.FipsCode;
+import gcm.core.epi.propertytypes.FipsCode;
 
 public class FipsCodeStringMapDeserializer extends KeyDeserializer {
 
