@@ -71,7 +71,8 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
             } else if (relativeTime < effectivenessFunction.peakTime() + effectivenessFunction.peakDuration()) {
                 return 1.0;
             } else {
-                return Math.exp(-effectivenessFunction.afterPeakDecay() *
+                double decayRate = Math.log(2) / effectivenessFunction.afterPeakHalfLife();
+                return Math.exp(-decayRate *
                         (relativeTime - effectivenessFunction.peakTime() - effectivenessFunction.peakDuration()));
             }
         } else {
@@ -101,7 +102,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
     }
 
     /*
-        The global properties added to the simulation by this module
+        The global properties added to the simulation by this plugin
      */
     public enum VaccineGlobalProperty implements DefinedGlobalProperty {
 

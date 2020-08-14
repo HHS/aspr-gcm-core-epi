@@ -29,7 +29,7 @@ public class InfectedCompartment extends DiseaseCompartment {
     @Override
     public void observeCompartmentPersonArrival(final Environment environment, final PersonId personId) {
 
-        // Get disease course data from infection module
+        // Get disease course data from infection plugin
         InfectionPlugin infectionPlugin = environment.getGlobalPropertyValue(GlobalProperty.INFECTION_PLUGIN);
         DiseaseCourseData diseaseCourseData = infectionPlugin.getDiseaseCourseData(environment, personId);
 

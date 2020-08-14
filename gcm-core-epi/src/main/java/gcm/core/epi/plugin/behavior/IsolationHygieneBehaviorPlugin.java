@@ -246,7 +246,7 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
         @Override
         public void observePersonPropertyChange(Environment environment, PersonId personId, PersonPropertyId personPropertyId) {
             Optional<BehaviorPlugin> behaviorPluginContainer = environment.getGlobalPropertyValue(GlobalProperty.BEHAVIOR_PLUGIN);
-            //noinspection OptionalGetWithoutIsPresent - We know that the behavior module should have been loaded
+            //noinspection OptionalGetWithoutIsPresent - We know that the behavior plugin should have been loaded
             BehaviorPlugin behaviorPlugin = behaviorPluginContainer.get();
 
             double delayToStartIsolationAndHygiene = environment.getGlobalPropertyValue(
@@ -268,7 +268,7 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
 
         private void makePeopleInHomeAware(Environment environment, final PersonId personId) {
             Optional<BehaviorPlugin> behaviorPluginContainer = environment.getGlobalPropertyValue(GlobalProperty.BEHAVIOR_PLUGIN);
-            //noinspection OptionalGetWithoutIsPresent - We know that the behavior module should have been loaded
+            //noinspection OptionalGetWithoutIsPresent - We know that the behavior plugin should have been loaded
             BehaviorPlugin behaviorPlugin = behaviorPluginContainer.get();
 
             GroupId homeId = environment.getGroupsForGroupTypeAndPerson(ContactGroupType.HOME, personId).get(0);
@@ -281,7 +281,7 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
         @Override
         public void executePlan(Environment environment, Plan plan) {
             Optional<BehaviorPlugin> behaviorPluginContainer = environment.getGlobalPropertyValue(GlobalProperty.BEHAVIOR_PLUGIN);
-            //noinspection OptionalGetWithoutIsPresent - We know that the behavior module should have been loaded
+            //noinspection OptionalGetWithoutIsPresent - We know that the behavior plugin should have been loaded
             BehaviorPlugin behaviorPlugin = behaviorPluginContainer.get();
 
             if (plan.getClass().equals(SuspectedInfectionPlan.class)) {

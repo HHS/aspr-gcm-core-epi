@@ -304,10 +304,10 @@ public class ContactManager extends AbstractComponent {
     }
 
     private void scheduleRandomInfectiousContact(Environment environment, PersonId personId) {
-        InfectionPlugin infectionModule = environment.getGlobalPropertyValue(GlobalProperty.INFECTION_PLUGIN);
+        InfectionPlugin infectionPlugin = environment.getGlobalPropertyValue(GlobalProperty.INFECTION_PLUGIN);
         double transmissionRatio = getTransmissionRatio(environment, personId);
         double nextContactTime = environment.getTime() +
-                infectionModule.getNextTransmissionTime(environment, personId, transmissionRatio);
+                infectionPlugin.getNextTransmissionTime(environment, personId, transmissionRatio);
         environment.addPlan(new InfectiousContactPlan(personId, transmissionRatio), nextContactTime, personId);
     }
 
@@ -315,7 +315,7 @@ public class ContactManager extends AbstractComponent {
         // Behavior
         Optional<BehaviorPlugin> behaviorPlugin = environment.getGlobalPropertyValue(GlobalProperty.BEHAVIOR_PLUGIN);
         double relativeActivityLevelFromBehavior = behaviorPlugin.map(
-                module -> module.getRelativeActivityLevel(environment, personId)
+                plugin -> plugin.getRelativeActivityLevel(environment, personId)
         ).orElse(1.0);
         // Age
         PopulationDescription populationDescription = environment.getGlobalPropertyValue(

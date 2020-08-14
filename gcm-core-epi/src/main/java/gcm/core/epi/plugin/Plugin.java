@@ -53,7 +53,7 @@ public interface Plugin {
     }
 
     /*
-        Load all of the identifiers, components, and property definitions that will be used by the module
+        Load all of the identifiers, components, and property definitions that will be used by the plugin
      */
     default void load(ExperimentBuilder experimentBuilder) {
 

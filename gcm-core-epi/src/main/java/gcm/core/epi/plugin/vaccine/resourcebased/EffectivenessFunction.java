@@ -23,8 +23,8 @@ public abstract class EffectivenessFunction {
     }
 
     @Value.Default
-    double afterPeakDecay() {
-        return 0.0;
+    double afterPeakHalfLife() {
+        return Double.POSITIVE_INFINITY;
     }
 
 }
