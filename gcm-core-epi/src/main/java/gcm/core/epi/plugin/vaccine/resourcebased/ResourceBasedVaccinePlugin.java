@@ -59,8 +59,10 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         if (environment.getPersonResourceLevel(personId, VaccineId.VACCINE_ONE) > 0) {
             double vaccinationTime = environment.getPersonResourceTime(personId, VaccineId.VACCINE_ONE);
             double relativeTime = environment.getTime() - vaccinationTime;
-            EffectivenessFunction effectivenessFunction = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE,
-                    VaccineProperty.EFFECTIVENESS_FUNCTION);
+//            EffectivenessFunction effectivenessFunction = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE,
+//                    VaccineProperty.EFFECTIVENESS_FUNCTION);
+            EffectivenessFunction effectivenessFunction = environment.getGlobalPropertyValue(
+                    VaccineGlobalProperty.EFFECTIVENESS_FUNCTION);
             if (relativeTime < effectivenessFunction.initialDelay()) {
                 return 0.0;
             } else if (relativeTime < effectivenessFunction.peakTime()) {
@@ -79,21 +81,21 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
     @Override
     public double getVES(Environment environment, PersonId personId) {
-        //double vES = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_S);
+//        double vES = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_S);
         double vES = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_S);
         return vES * getEffectivenessFunctionValue(environment, personId);
     }
 
     @Override
     public double getVEI(Environment environment, PersonId personId) {
-        //double vEI = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_I);
+//        double vEI = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_I);
         double vEI = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_I);
         return vEI * getEffectivenessFunctionValue(environment, personId);
     }
 
     @Override
     public double getVEP(Environment environment, PersonId personId) {
-        //double vEP = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_P);
+//        double vEP = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_P);
         double vEP = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_P);
         return vEP * getEffectivenessFunctionValue(environment, personId);
     }
@@ -111,6 +113,9 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
         VE_P(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
                 .setPropertyValueMutability(false).build()),
+
+        EFFECTIVENESS_FUNCTION(PropertyDefinition.builder().setType(EffectivenessFunction.class)
+                .setDefaultValue(ImmutableEffectivenessFunction.builder().build()).build()),
 
         VACCINE_DELIVERIES(PropertyDefinition.builder()
                 .setType(Map.class).setDefaultValue(new HashMap<Double, FipsCodeValues>()).build()),
@@ -151,14 +156,14 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
     enum VaccineProperty implements DefinedResourceProperty {
         // TODO: Determine how to use Global vs Resource properties
-//        VE_S(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-//                .setPropertyValueMutability(false).build()),
-//
-//        VE_I(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-//                .setPropertyValueMutability(false).build()),
-//
-//        VE_P(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-//                .setPropertyValueMutability(false).build()),
+        VE_S(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
+                .setPropertyValueMutability(false).build()),
+
+        VE_I(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
+                .setPropertyValueMutability(false).build()),
+
+        VE_P(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
+                .setPropertyValueMutability(false).build()),
 
         EFFECTIVENESS_FUNCTION(PropertyDefinition.builder().setType(EffectivenessFunction.class)
                 .setDefaultValue(ImmutableEffectivenessFunction.builder().build()).build());
@@ -182,8 +187,6 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         private static final Object TO_VACCINATE_INDEX_KEY = new Object();
         // Vaccines ready to be distributed
         private final Map<FipsCode, Long> vaccineDeliveries = new HashMap<>();
-        // Track whether currently vaccinating
-        private final Map<FipsCode, Boolean> currentlyVaccinating = new HashMap<>();
         // Random distributions for vaccine delays
         private final Map<FipsCode, RealDistribution> interVaccinationDelayDistribution = new HashMap<>();
         // Map giving regions in a given FipsCode
@@ -200,7 +203,6 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
             boolean usingVaccine = false;
             for (Map.Entry<FipsCode, Double> entry : vaccinationRatePerDayByFipsCode.entrySet()) {
                 FipsCode fipsCode = entry.getKey();
-                currentlyVaccinating.put(fipsCode, false);
                 double vaccinationRatePerDay = entry.getValue();
                 if (vaccinationRatePerDay > 0) {
                     usingVaccine = true;
@@ -229,7 +231,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         }
 
         @Override
-        public void observeGlobalPersonArrival(Environment environment, PersonId personId) {
+        public void observeRegionPersonArrival(Environment environment, PersonId personId) {
             /*
              * A new person has been added to the simulation and we must have
              * already started vaccinating because we only start observing arrivals
@@ -242,8 +244,9 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
             final double vaccinationStartDay = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINATION_START_DAY);
             if (interVaccinationDelayDistribution.containsKey(fipsCode) &&
-                    !currentlyVaccinating.getOrDefault(fipsCode, false) &&
+                    !environment.getPlan(fipsCode).isPresent() &&
                     environment.getTime() >= vaccinationStartDay) {
+                toggleFipsCodePersonArrivalObservation(environment, fipsCode, false);
                 vaccinateAndScheduleNext(environment, fipsCode);
             }
         }
@@ -282,9 +285,9 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 if (environment.getTime() >= vaccinationStartDay) {
                     FipsScope deliveryScope = dosesFipsCodeValues.scope().hasBroaderScopeThan(vaccinationRatePerDay.scope()) ?
                             dosesFipsCodeValues.scope() : vaccinationRatePerDay.scope();
-                    currentlyVaccinating.forEach(
-                            (fipsCode, currentlyVaccinating) -> {
-                                if (!currentlyVaccinating) {
+                    interVaccinationDelayDistribution.keySet().forEach(
+                            (fipsCode) -> {
+                                if (!environment.getPlan(fipsCode).isPresent()) {
                                     if (fipsCodesToRestartVaccination.contains(deliveryScope.getFipsSubCode(fipsCode))) {
                                         vaccinateAndScheduleNext(environment, fipsCode);
                                     }
@@ -312,7 +315,6 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
             }
 
             if (hasResource) {
-                currentlyVaccinating.put(fipsCode, true);
                 // Get a random person to vaccinate, if possible, taking into account vaccine uptake weights
                 AgeWeights vaccineUptakeWeights = environment.getGlobalPropertyValue(
                         VaccineGlobalProperty.VACCINE_UPTAKE_WEIGHTS);
@@ -370,11 +372,15 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                     environment.addPlan(new VaccinationPlan(fipsCode), vaccinationTime, fipsCode);
                 } else {
                     // Nobody left to vaccinate for now, so register to observe new arrivals
-                    environment.observeGlobalPersonArrival(true);
+                    toggleFipsCodePersonArrivalObservation(environment, fipsCode, true);
                 }
-            } else {
-                // No vaccine available, so pause vaccinating for now and wait for vaccine delivery
-                currentlyVaccinating.put(fipsCode, false);
+            }
+            // No vaccine available, so pause vaccinating for now and wait for vaccine delivery
+        }
+
+        private void toggleFipsCodePersonArrivalObservation(Environment environment, FipsCode fipsCode, boolean observe) {
+            for (RegionId regionId : fipsCodeRegionMap.get(fipsCode)) {
+                environment.observeRegionPersonArrival(observe, regionId);
             }
         }
 
