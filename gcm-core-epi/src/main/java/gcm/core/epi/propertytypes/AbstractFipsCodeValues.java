@@ -34,26 +34,23 @@ public abstract class AbstractFipsCodeValues {
 
     @Value.Check
     protected void check() {
-        if (values().keySet().stream()
-                .filter(x -> x.scope() != scope())
-                .findFirst()
-                .isPresent()) {
+        if (values().keySet().stream().anyMatch(x -> x.scope() != scope())) {
             throw new IllegalStateException("FipsCodeValues has values that are of the incorrect scope");
         }
     }
 
     public Map<FipsCode, Double> getFipsCodeValues(Environment environment) {
         Map<FipsCode, Double> thresholdsByFipsCode;
+        PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
         if (type() == ValueType.NUMBER) {
-            Set<FipsCode> fipsCodes = environment.getRegionIds().stream()
+            Set<FipsCode> fipsCodes = populationDescription.regionIds().stream()
                     .map(scope()::getFipsSubCode)
                     .collect(Collectors.toSet());
             thresholdsByFipsCode = fipsCodes.stream()
                     .collect(toMap(fipsCode -> fipsCode, fipsCode -> values().getOrDefault(fipsCode, defaultValue())));
         } else {
-            PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
             Map<RegionId, Long> regionPopulations = populationDescription.populationByRegion();
-            Map<FipsCode, Long> fipsCodePopulations = environment.getRegionIds().stream()
+            Map<FipsCode, Long> fipsCodePopulations = populationDescription.regionIds().stream()
                     .collect(Collectors.groupingBy(scope()::getFipsSubCode,
                             summingLong(regionId -> regionPopulations.getOrDefault(regionId, 0L))));
             thresholdsByFipsCode = fipsCodePopulations.entrySet().stream()

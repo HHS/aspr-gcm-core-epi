@@ -212,7 +212,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                     // Schedule first vaccination event
                     final double vaccinationStartDay = environment.getGlobalPropertyValue(
                             VaccineGlobalProperty.VACCINATION_START_DAY);
-                    environment.addPlan(new VaccinationPlan(fipsCode), vaccinationStartDay);
+                    environment.addPlan(new VaccinationPlan(fipsCode), vaccinationStartDay, fipsCode);
                 }
             }
 
@@ -307,7 +307,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                     hasResource = true;
                     break;
                 } else {
-                    fipsCodeWithResource = fipsCodeWithResource.flatMap(x -> x.getNextFipsCodeInHierarchy());
+                    fipsCodeWithResource = fipsCodeWithResource.flatMap(FipsCode::getNextFipsCodeInHierarchy);
                 }
             }
 
@@ -348,8 +348,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                                         vaccineUptakeWeights.getWeight(ageGroup)))
                         .collect(Collectors.toList());
                 // Check weights are not all zero and indexes are not all empty
-                if (ageGroupTargetWeights.stream().filter(x -> x.getSecond() > 0).
-                        findFirst().isPresent()) {
+                if (ageGroupTargetWeights.stream().anyMatch(x -> x.getSecond() > 0)) {
                     AgeGroup targetAgeGroup = new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(VaccineRandomId.ID),
                             ageGroupTargetWeights).sample();
 
@@ -382,7 +381,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         /*
             A plan to add vaccine to the simulation
          */
-        private class VaccineDeliveryPlan implements Plan {
+        private static class VaccineDeliveryPlan implements Plan {
 
             final FipsCodeValues doses;
 
@@ -395,7 +394,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         /*
             A plan to vaccinate a random person from the population
          */
-        private class VaccinationPlan implements Plan {
+        private static class VaccinationPlan implements Plan {
 
             private final FipsCode fipsCode;
 

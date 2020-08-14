@@ -338,13 +338,13 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
         /*
             A plan to vaccinate a random person from the population
          */
-        private class VaccinationPlan implements Plan {
+        private static class VaccinationPlan implements Plan {
         }
 
         /*
             A plan to toggle vaccine protection on or off
          */
-        private class VaccineProtectionTogglePlan implements Plan {
+        private static class VaccineProtectionTogglePlan implements Plan {
             final PersonId personId;
 
             private VaccineProtectionTogglePlan(PersonId personId) {

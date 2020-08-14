@@ -401,13 +401,13 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
         /*
             A plan to vaccinate a random person from the population with the first dose
          */
-        private class FirstDoseVaccinationPlan implements Plan {
+        private static class FirstDoseVaccinationPlan implements Plan {
         }
 
         /*
             A plan to vaccinate a specific person from the population with a second dose
          */
-        private class SecondDoseVaccinationPlan implements Plan {
+        private static class SecondDoseVaccinationPlan implements Plan {
             final PersonId personId;
 
             private SecondDoseVaccinationPlan(PersonId personId) {
@@ -418,7 +418,7 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
         /*
             A plan to toggle vaccine protection on or off
          */
-        private class VaccineProtectionTogglePlan implements Plan {
+        private static class VaccineProtectionTogglePlan implements Plan {
             final PersonId personId;
 
             private VaccineProtectionTogglePlan(PersonId personId) {

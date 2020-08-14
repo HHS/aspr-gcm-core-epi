@@ -53,16 +53,16 @@ public abstract class IncidenceTrigger extends AbstractFipsCodeValues implements
 
     public Map<FipsCode, Double> getFipsCodeCutoffs(Environment environment) {
         Map<FipsCode, Double> thresholdsByFipsCode;
+        PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
         if (type() == ValueType.NUMBER) {
-            Set<FipsCode> fipsCodes = environment.getRegionIds().stream()
+            Set<FipsCode> fipsCodes = populationDescription.regionIds().stream()
                     .map(scope()::getFipsSubCode)
                     .collect(Collectors.toSet());
             thresholdsByFipsCode = fipsCodes.stream()
                     .collect(toMap(fipsCode -> fipsCode, fipsCode -> cutoffs().getOrDefault(fipsCode, defaultCutoff())));
         } else {
-            PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
             Map<RegionId, Long> regionPopulations = populationDescription.populationByRegion();
-            Map<FipsCode, Long> fipsCodePopulations = environment.getRegionIds().stream()
+            Map<FipsCode, Long> fipsCodePopulations = populationDescription.regionIds().stream()
                     .collect(Collectors.groupingBy(scope()::getFipsSubCode,
                             summingLong(regionId -> regionPopulations.getOrDefault(regionId, 0L))));
             thresholdsByFipsCode = fipsCodePopulations.entrySet().stream()
