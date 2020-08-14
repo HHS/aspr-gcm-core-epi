@@ -38,9 +38,9 @@ public abstract class FipsCode {
             case STATE:
                 return Optional.of(FipsCode.of(""));
             case COUNTY:
-                return Optional.of(FipsCode.of(this.toString().substring(0, 2)));
+                return Optional.of(FipsCode.of(this.code().substring(0, 2)));
             case TRACT:
-                return Optional.of(FipsCode.of(this.toString().substring(0, 5)));
+                return Optional.of(FipsCode.of(this.code().substring(0, 5)));
             default:
                 throw new RuntimeException("Invalid FIPS code type");
         }

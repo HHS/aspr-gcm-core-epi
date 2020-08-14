@@ -347,24 +347,28 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                                 (double) environment.getIndexSize(new MultiKey(TO_VACCINATE_INDEX_KEY, fipsCode, ageGroup)) *
                                         vaccineUptakeWeights.getWeight(ageGroup)))
                         .collect(Collectors.toList());
-                AgeGroup targetAgeGroup = new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(VaccineRandomId.ID),
-                        ageGroupTargetWeights).sample();
+                // Check weights are not all zero and indexes are not all empty
+                if (ageGroupTargetWeights.stream().filter(x -> x.getSecond() > 0).
+                        findFirst().isPresent()) {
+                    AgeGroup targetAgeGroup = new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(VaccineRandomId.ID),
+                            ageGroupTargetWeights).sample();
 
-                // Randomly select age group using the cumulative weights
-                final Optional<PersonId> personId = environment.getRandomIndexedPersonFromGenerator(
-                        new MultiKey(TO_VACCINATE_INDEX_KEY, fipsCode, targetAgeGroup), VaccineRandomId.ID);
+                    // Randomly select age group using the cumulative weights
+                    // We already know this index is nonempty
+                    // noinspection OptionalGetWithoutIsPresent
+                    final PersonId personId = environment.getRandomIndexedPersonFromGenerator(
+                            new MultiKey(TO_VACCINATE_INDEX_KEY, fipsCode, targetAgeGroup), VaccineRandomId.ID).get();
 
-                if (personId.isPresent()) {
                     // Vaccinate the person, delivering vaccine to the appropriate region just in time
-                    RegionId regionId = environment.getPersonRegion(personId.get());
+                    RegionId regionId = environment.getPersonRegion(personId);
                     long currentDoses = vaccineDeliveries.get(fipsCodeWithResource.get());
                     vaccineDeliveries.put(fipsCodeWithResource.get(), currentDoses - 1);
                     environment.addResourceToRegion(VaccineId.VACCINE_ONE, regionId, 1);
-                    environment.transferResourceToPerson(VaccineId.VACCINE_ONE, personId.get(), 1);
+                    environment.transferResourceToPerson(VaccineId.VACCINE_ONE, personId, 1);
 
                     // Schedule next vaccination
                     final double vaccinationTime = environment.getTime() + interVaccinationDelayDistribution.get(fipsCode).sample();
-                    environment.addPlan(new VaccinationPlan(fipsCode), vaccinationTime);
+                    environment.addPlan(new VaccinationPlan(fipsCode), vaccinationTime, fipsCode);
                 } else {
                     // Nobody left to vaccinate for now, so register to observe new arrivals
                     environment.observeGlobalPersonArrival(true);

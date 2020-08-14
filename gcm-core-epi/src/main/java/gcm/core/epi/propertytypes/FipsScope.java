@@ -20,7 +20,7 @@ public enum FipsScope {
 
     public FipsCode getFipsSubCode(FipsCode fipsCode) {
         if (this.hasBroaderScopeThan(fipsCode.scope())) {
-            return getFipsCode(fipsCode.toString());
+            return getFipsCode(fipsCode.code());
         } else {
             throw new IllegalArgumentException("FIPS code must have narrower scope than refinement");
         }

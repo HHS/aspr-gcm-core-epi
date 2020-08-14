@@ -32,6 +32,16 @@ public abstract class AbstractFipsCodeValues {
         return 0.0;
     }
 
+    @Value.Check
+    protected void check() {
+        if (values().keySet().stream()
+                .filter(x -> x.scope() != scope())
+                .findFirst()
+                .isPresent()) {
+            throw new IllegalStateException("FipsCodeValues has values that are of the incorrect scope");
+        }
+    }
+
     public Map<FipsCode, Double> getFipsCodeValues(Environment environment) {
         Map<FipsCode, Double> thresholdsByFipsCode;
         if (type() == ValueType.NUMBER) {
