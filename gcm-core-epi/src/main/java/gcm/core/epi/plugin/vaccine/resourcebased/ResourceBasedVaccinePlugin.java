@@ -11,10 +11,9 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedResourceProperty;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
-import gcm.simulation.Equality;
-import gcm.simulation.Filter;
 import gcm.simulation.Plan;
-import gcm.util.MultiKey;
+import gcm.simulation.PopulationPartitionDefinition;
+import gcm.simulation.PopulationPartitionQuery;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
@@ -184,8 +183,8 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
     public static class VaccineManager extends AbstractComponent {
 
-        // Key for vaccine indexes
-        private static final Object TO_VACCINATE_INDEX_KEY = new Object();
+        // Key for vaccine partition
+        private static final Object VACCINE_PARTITION_KEY = new Object();
         // Vaccines ready to be distributed
         private final Map<FipsCode, Long> vaccineDeliveries = new HashMap<>();
         // Random distributions for vaccine delays
@@ -220,6 +219,20 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
             }
 
             if (usingVaccine) {
+
+                // Set up population partition
+                PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+                        GlobalProperty.POPULATION_DESCRIPTION);
+                List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
+                environment.addPopulationPartition(PopulationPartitionDefinition.builder()
+                        // Partition regions by FIPS code
+                        .setRegionPartition(regionId -> vaccinationRatePerDayFipsCodeValues.scope().getFipsSubCode(regionId))
+                        // Partition by age group
+                        .setPersonPropertyPartition(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                        // Partition by number of doses
+                        .setPersonResourcePartition(VaccineId.VACCINE_ONE, numberOfDoses -> numberOfDoses)
+                        .build(),
+                        VACCINE_PARTITION_KEY);
 
                 // Schedule vaccine deliveries
                 Map<Double, FipsCodeValues> vaccineDeliveries = environment.getGlobalPropertyValue(
@@ -323,31 +336,17 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
 
-                // Lazy index creation
-                if (!environment.populationIndexExists(new MultiKey(TO_VACCINATE_INDEX_KEY, fipsCode, ageGroups.get(0)))) {
-                    Filter regionFilter = Filter.region(fipsCodeRegionMap.get(fipsCode));
-                    for (AgeGroup ageGroup : populationDescription.ageGroupPartition().ageGroupList()) {
-                        Filter filter = regionFilter
-                                .and(Filter.property(
-                                        PersonProperty.AGE_GROUP_INDEX,
-                                        Equality.EQUAL,
-                                        populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.toString())
-                                ))
-                                .and(
-                                        Filter.resource(
-                                                VaccineId.VACCINE_ONE,
-                                                Equality.EQUAL,
-                                                0));
-                        Object indexKey = new MultiKey(TO_VACCINATE_INDEX_KEY, fipsCode, ageGroup);
-                        environment.addPopulationIndex(filter, indexKey);
-                    }
-                }
-
                 // Randomly select age group using the cumulative weights
                 List<Pair<AgeGroup, Double>> ageGroupTargetWeights = ageGroups
                         .stream()
                         .map(ageGroup -> new Pair<>(ageGroup,
-                                (double) environment.getIndexSize(new MultiKey(TO_VACCINATE_INDEX_KEY, fipsCode, ageGroup)) *
+                                (double) environment.getPartitionSize(VACCINE_PARTITION_KEY,
+                                        PopulationPartitionQuery.builder()
+                                                .setRegionLabel(fipsCode)
+                                                .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                                                // Be careful to use long and not int 0
+                                                .setPersonResourceLabel(VaccineId.VACCINE_ONE, 0L)
+                                                .build()) *
                                         vaccineUptakeWeights.getWeight(ageGroup)))
                         .collect(Collectors.toList());
                 // Check weights are not all zero and indexes are not all empty
@@ -358,8 +357,13 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                     // Randomly select age group using the cumulative weights
                     // We already know this index is nonempty
                     // noinspection OptionalGetWithoutIsPresent
-                    final PersonId personId = environment.getRandomIndexedPersonFromGenerator(
-                            new MultiKey(TO_VACCINATE_INDEX_KEY, fipsCode, targetAgeGroup), VaccineRandomId.ID).get();
+                    final PersonId personId = environment.getRandomPartitionedPersonFromGenerator(VACCINE_PARTITION_KEY,
+                            PopulationPartitionQuery.builder()
+                                    .setRegionLabel(fipsCode)
+                                    .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
+                                    // Be careful to use long and not int 0
+                                    .setPersonResourceLabel(VaccineId.VACCINE_ONE, 0L)
+                                    .build(), VaccineRandomId.ID).get();
 
                     // Vaccinate the person, delivering vaccine to the appropriate region just in time
                     RegionId regionId = environment.getPersonRegion(personId);
