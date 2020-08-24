@@ -5,23 +5,21 @@ import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
-import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.propertytypes.ImmutableAgeWeights;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.scenario.*;
-import gcm.simulation.Environment;
-import gcm.simulation.Equality;
-import gcm.simulation.Filter;
-import gcm.simulation.Plan;
-import gcm.util.MultiKey;
+import gcm.simulation.*;
+import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
+import org.apache.commons.math3.util.Pair;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TwoDoseVaccinePlugin implements VaccinePlugin {
 
@@ -180,11 +178,8 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
 
     public static class VaccineManager extends AbstractComponent {
 
-        // Keys for vaccine indexes
-        private static final Object TO_VACCINATE_INDEX_KEY = new Object();
-        private final Map<AgeGroup, Object> vaccineIndexKeys = new HashMap<>();
-        // Re-used array for selecting age group to vaccinate next
-        private final List<Double> vaccineCumulativeWeights = new ArrayList<>();
+        // Key for vaccine partition
+        private static final Object VACCINE_PARTITION_KEY = new Object();
         private RealDistribution interVaccinationDelayDistribution;
 
         @Override
@@ -198,23 +193,17 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
                 interVaccinationDelayDistribution = new ExponentialDistribution(randomGenerator,
                         2.0 / vaccinationRatePerDay);
 
-                // Random vaccination target indexes
+                // Set up population partition
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
-                for (AgeGroup ageGroup : populationDescription.ageGroupPartition().ageGroupList()) {
-                    Filter filter = Filter.property(
-                            VaccinePersonProperty.VACCINE_STATUS,
-                            Equality.EQUAL,
-                            gcm.core.epi.plugin.vaccine.twodose.TwoDoseVaccineStatus.NOT_VACCINATED)
-                            .and(Filter.property(
-                                    PersonProperty.AGE_GROUP_INDEX,
-                                    Equality.EQUAL,
-                                    populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.toString())
-                            ));
-                    Object indexKey = new MultiKey(TO_VACCINATE_INDEX_KEY, ageGroup);
-                    vaccineIndexKeys.put(ageGroup, indexKey);
-                    environment.addPopulationIndex(filter, indexKey);
-                }
+                List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
+                environment.addPopulationPartition(PopulationPartitionDefinition.builder()
+                                // Partition by age group
+                                .setPersonPropertyPartition(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                                // Partition by vaccine status
+                                .setPersonPropertyPartition(VaccinePersonProperty.VACCINE_STATUS, vaccineStatus -> vaccineStatus)
+                                .build(),
+                        VACCINE_PARTITION_KEY);
 
                 // Schedule first vaccination event
                 final double vaccinationStartDay = environment.getGlobalPropertyValue(
@@ -329,39 +318,35 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
             // Get a random person to vaccinate, if possible, taking into account vaccine uptake weights
             AgeWeights vaccineUptakeWeights = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINE_UPTAKE_WEIGHTS);
-            int ageGroupIndex = 0;
-            double cumulativeWeight = 0;
-            // Calculate cumulative weights for each age group
             PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                     GlobalProperty.POPULATION_DESCRIPTION);
-            AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
-            for (AgeGroup ageGroup : ageGroupPartition.ageGroupList()) {
-                double weight = vaccineUptakeWeights.getWeight(ageGroup) *
-                        environment.getIndexSize(vaccineIndexKeys.get(ageGroup));
-                cumulativeWeight += weight;
-                if (vaccineCumulativeWeights.size() <= ageGroupIndex) {
-                    vaccineCumulativeWeights.add(cumulativeWeight);
-                } else {
-                    vaccineCumulativeWeights.set(ageGroupIndex, cumulativeWeight);
-                }
-                ageGroupIndex++;
-            }
+            List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
 
             // Randomly select age group using the cumulative weights
-            final Optional<PersonId> personId;
-            if (cumulativeWeight == 0) {
-                personId = Optional.empty();
-            } else {
-                double targetWeight = environment.getRandomGeneratorFromId(VaccineRandomId.ID).nextDouble() * cumulativeWeight;
-                ageGroupIndex = 0;
-                while (vaccineCumulativeWeights.get(ageGroupIndex) < targetWeight) {
-                    ageGroupIndex++;
-                }
-                personId = environment.getRandomIndexedPersonFromGenerator(vaccineIndexKeys.get(ageGroupPartition.getAgeGroupFromIndex(ageGroupIndex)),
-                        VaccineRandomId.ID);
-            }
+            List<Pair<AgeGroup, Double>> ageGroupTargetWeights = ageGroups
+                    .stream()
+                    .map(ageGroup -> new Pair<>(ageGroup,
+                            (double) environment.getPartitionSize(VACCINE_PARTITION_KEY,
+                                    PopulationPartitionQuery.builder()
+                                            .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                                            .setPersonPropertyLabel(VaccinePersonProperty.VACCINE_STATUS, TwoDoseVaccineStatus.NOT_VACCINATED)
+                                            .build()) *
+                                    vaccineUptakeWeights.getWeight(ageGroup)))
+                    .collect(Collectors.toList());
+            // Check weights are not all zero and partitions are not all empty
+            if (ageGroupTargetWeights.stream().anyMatch(x -> x.getSecond() > 0)) {
+                AgeGroup targetAgeGroup = new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(VaccineRandomId.ID),
+                        ageGroupTargetWeights).sample();
 
-            if (personId.isPresent()) {
+                // Randomly select age group using the cumulative weights
+                // We already know this index is nonempty
+                // noinspection OptionalGetWithoutIsPresent
+                final PersonId personId = environment.getRandomPartitionedPersonFromGenerator(VACCINE_PARTITION_KEY,
+                        PopulationPartitionQuery.builder()
+                                .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
+                                .setPersonPropertyLabel(VaccinePersonProperty.VACCINE_STATUS, TwoDoseVaccineStatus.NOT_VACCINATED)
+                                .build(), VaccineRandomId.ID).get();
+
                 // Vaccinate the person
                 double vaccineEffectivenessDelay = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_DELAY_DAYS);
                 double interDoseDelay = environment.getGlobalPropertyValue(VaccineGlobalProperty.INTER_DOSE_DELAY_DAYS);
@@ -369,23 +354,23 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
                 if (vaccineEffectivenessDelay > 0) {
                     // Need to schedule onset of protection
                     if (interDoseDelay > 0) {
-                        environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.VACCINE_STATUS,
+                        environment.setPersonPropertyValue(personId, VaccinePersonProperty.VACCINE_STATUS,
                                 TwoDoseVaccineStatus.VACCINATED_ONE_DOSE_NOT_YET_PROTECTED);
                         // Schedule second dose
-                        environment.addPlan(new SecondDoseVaccinationPlan(personId.get()),
+                        environment.addPlan(new SecondDoseVaccinationPlan(personId),
                                 environment.getTime() + interDoseDelay);
                     } else {
-                        environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.VACCINE_STATUS,
+                        environment.setPersonPropertyValue(personId, VaccinePersonProperty.VACCINE_STATUS,
                                 TwoDoseVaccineStatus.VACCINATED_TWO_DOSES_NOT_YET_PROTECTED);
                     }
-                    environment.addPlan(new VaccineProtectionTogglePlan(personId.get()),
+                    environment.addPlan(new VaccineProtectionTogglePlan(personId),
                             environment.getTime() + vaccineEffectivenessDelay);
                 } else {
                     // Person is immediately protected
-                    environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.VACCINE_STATUS,
+                    environment.setPersonPropertyValue(personId, VaccinePersonProperty.VACCINE_STATUS,
                             TwoDoseVaccineStatus.VACCINATED_ONE_DOSE_PROTECTED);
                     // Schedule second dose
-                    environment.addPlan(new SecondDoseVaccinationPlan(personId.get()),
+                    environment.addPlan(new SecondDoseVaccinationPlan(personId),
                             environment.getTime() + interDoseDelay);
                 }
 

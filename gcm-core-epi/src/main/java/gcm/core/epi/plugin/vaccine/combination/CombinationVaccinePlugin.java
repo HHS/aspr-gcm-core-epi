@@ -40,7 +40,7 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
     /*
         Returns the actual ID used in the simulation for the specific property (global, region, person)
             Typical behavior will be to prepend the vaccine id in a multi-key object
-            This enables the re-use of the single and two dose vaccine module logic
+            This enables the re-use of the single and two dose vaccine plugin logic
      */
     public static GeneralIndexedPropertyId getPropertyIdForVaccine(int vaccineId, Object propertyId) {
         return new GeneralIndexedPropertyId(vaccineId, propertyId);

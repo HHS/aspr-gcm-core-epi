@@ -349,7 +349,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                                                 .build()) *
                                         vaccineUptakeWeights.getWeight(ageGroup)))
                         .collect(Collectors.toList());
-                // Check weights are not all zero and indexes are not all empty
+                // Check weights are not all zero and partitions are not all empty
                 if (ageGroupTargetWeights.stream().anyMatch(x -> x.getSecond() > 0)) {
                     AgeGroup targetAgeGroup = new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(VaccineRandomId.ID),
                             ageGroupTargetWeights).sample();
