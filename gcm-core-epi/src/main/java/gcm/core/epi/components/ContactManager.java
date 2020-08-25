@@ -15,7 +15,6 @@ import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.propertytypes.TransmissionStructure;
 import gcm.scenario.*;
 import gcm.simulation.*;
-import gcm.util.MultiKey;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.util.Pair;
@@ -28,6 +27,7 @@ import java.util.stream.Collectors;
 public class ContactManager extends AbstractComponent {
 
     private static final Logger logger = LoggerFactory.getLogger(ContactManager.class);
+    private static final Object RADIATION_MODEL_PARTITION_KEY = new Object();
 
     public static Optional<PersonId> getGlobalContactFor(Environment environment, PersonId sourcePersonId,
                                                          RandomNumberGeneratorId randomId) {
@@ -62,22 +62,16 @@ public class ContactManager extends AbstractComponent {
                     environment.getPersonPropertyValue(sourcePersonId, PersonProperty.AGE_GROUP_INDEX));
             Map<AgeGroup, Double> ageGroupSelectionWeights = biWeightingFunctionMap.get(sourceAgeGroup);
 
-            Set<AgeGroup> ageGroups = populationDescription.ageGroupDistribution().keySet();
-            // Lazy index creation
-            if (!environment.populationIndexExists(new MultiKey(targetRegionId, ageGroups.iterator().next()))) {
-                Filter regionFilter = Filter.region(targetRegionId);
-                for (AgeGroup ageGroup : ageGroups) {
-                    int ageGroupIndex = populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.name());
-                    Filter regionAgeGroupFilter = regionFilter.and(Filter.property(PersonProperty.AGE_GROUP_INDEX,
-                            Equality.EQUAL, ageGroupIndex));
-                    environment.addPopulationIndex(regionAgeGroupFilter, new MultiKey(targetRegionId, ageGroup));
-                }
-            }
+            List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
             // Get targets
             List<Pair<AgeGroup, Double>> ageGroupTargetWeights = ageGroups
                     .stream()
                     .map(ageGroup -> new Pair<>(ageGroup,
-                            (double) environment.getIndexSize(new MultiKey(targetRegionId, ageGroup)) *
+                            (double) environment.getPartitionSize(RADIATION_MODEL_PARTITION_KEY,
+                                    PopulationPartitionQuery.builder()
+                                            .setRegionLabel(targetRegionId)
+                                            .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                                            .build()) *
                                     ageGroupSelectionWeights.getOrDefault(ageGroup, 0.0)))
                     .collect(Collectors.toList());
 
@@ -86,20 +80,22 @@ public class ContactManager extends AbstractComponent {
                             ageGroupTargetWeights);
             AgeGroup targetAgeGroup = ageGroupDistribution.sample();
 
-            return environment.getRandomIndexedPersonWithExclusionFromGenerator(
+            return environment.getRandomPartitionedPersonWithExclusionFromGenerator(
                     sourcePersonId,
-                    new MultiKey(targetRegionId, targetAgeGroup),
+                    RADIATION_MODEL_PARTITION_KEY,
+                    PopulationPartitionQuery.builder()
+                            .setRegionLabel(targetRegionId)
+                            .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
+                            .build(),
                     RandomId.CONTACT_MANAGER);
 
         } else {
-            // Lazy index creation
-            if (!environment.populationIndexExists(targetRegionId)) {
-                Filter regionFilter = Filter.region(targetRegionId);
-                environment.addPopulationIndex(regionFilter, targetRegionId);
-            }
-            return environment.getRandomIndexedPersonWithExclusionFromGenerator(
+            return environment.getRandomPartitionedPersonWithExclusionFromGenerator(
                     sourcePersonId,
-                    targetRegionId,
+                    RADIATION_MODEL_PARTITION_KEY,
+                    PopulationPartitionQuery.builder()
+                            .setRegionLabel(targetRegionId)
+                            .build(),
                     RandomId.CONTACT_MANAGER);
         }
     }
@@ -180,7 +176,7 @@ public class ContactManager extends AbstractComponent {
                 1.0 / ((DayOfWeekSchedule) environment.getGlobalPropertyValue(GlobalProperty.SCHOOL_SCHEDULE)).fractionActive());
         environment.setGlobalPropertyValue(GlobalProperty.CONTACT_GROUP_SCHEDULE_WEIGHT, contactGroupScheduleWeight);
 
-        // Build radiation model target sampling distributions for each region and add indexes for sampling
+        // Build radiation model target sampling distributions for each region and add partition for sampling
         Set<RegionId> regionIds =
                 ((PopulationDescription) environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION))
                         .regionIds();
@@ -212,6 +208,19 @@ public class ContactManager extends AbstractComponent {
 
         environment.setGlobalPropertyValue(GlobalProperty.RADIATION_FLOW_TARGET_DISTRIBUTIONS,
                 radiationTargetDistributions);
+
+        // Add partition for radiation flow
+        PopulationPartitionDefinition.Builder radiationModelPartitionBuilder = PopulationPartitionDefinition.builder()
+                // Partition by region
+                .setRegionPartition(regionId -> regionId);
+        if (transmissionStructure.groupBiWeightingFunctionsMap().containsKey(ContactGroupType.GLOBAL)) {
+            List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
+            radiationModelPartitionBuilder
+                    // Partition by age group
+                    .setPersonPropertyPartition(PersonProperty.AGE_GROUP_INDEX,
+                            ageGroupIndex -> ageGroups.get((int) ageGroupIndex));
+        }
+        environment.addPopulationPartition(radiationModelPartitionBuilder.build(), RADIATION_MODEL_PARTITION_KEY);
 
         // Register to observe the transmission ratio for a person changing (due to behavior)
         environment.observeGlobalPersonPropertyChange(true, PersonProperty.ACTIVITY_LEVEL_CHANGED);
