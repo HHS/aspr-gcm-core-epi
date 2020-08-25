@@ -4,14 +4,17 @@ import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.GlobalProperty;
-import gcm.core.epi.identifiers.StringRegionId;
 import gcm.core.epi.plugin.Plugin;
-import gcm.core.epi.propertytypes.*;
+import gcm.core.epi.propertytypes.FipsCode;
+import gcm.core.epi.propertytypes.FipsCodeValues;
+import gcm.core.epi.propertytypes.ImmutableFipsCodeValues;
+import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
-import gcm.simulation.Filter;
 import gcm.simulation.Plan;
+import gcm.simulation.PopulationPartitionDefinition;
+import gcm.simulation.PopulationPartitionQuery;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 
 import java.util.*;
@@ -52,8 +55,8 @@ public class ExponentialSeedingPlugin implements Plugin {
                 .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
 
         INITIAL_SEEDING_RATE_PER_DAY(PropertyDefinition.builder()
-                .setType(InfectionSpecification.class).setDefaultValue(
-                        ImmutableInfectionSpecification.builder().build())
+                .setType(FipsCodeValues.class).setDefaultValue(
+                        ImmutableFipsCodeValues.builder().build())
                 .setPropertyValueMutability(false).build()),
 
         SEEDING_GROWTH_DOUBLING_TIME(PropertyDefinition.builder()
@@ -83,6 +86,8 @@ public class ExponentialSeedingPlugin implements Plugin {
 
     public static class SeedingManager extends AbstractComponent {
 
+        private static final Object SEEDING_PARTITION_KEY = new Object();
+
         private void planNextSeeding(Environment environment, FipsCode fipsCode, double currentSeedingRate) {
             double seedingEndDay = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.SEEDING_END_DAY);
             double seedingGrowthDoublingTime = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.SEEDING_GROWTH_DOUBLING_TIME);
@@ -98,16 +103,16 @@ public class ExponentialSeedingPlugin implements Plugin {
         @Override
         public void executePlan(Environment environment, Plan plan) {
             if (plan.getClass() == StartSeedingPlan.class) {
-                InfectionSpecification seedingRateSpecification = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.INITIAL_SEEDING_RATE_PER_DAY);
+                FipsCodeValues seedingRateSpecification = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.INITIAL_SEEDING_RATE_PER_DAY);
 
-                // Create indexes if needed
-                if (seedingRateSpecification.scope() != FipsScope.TRACT) {
-                    Map<FipsCode, Filter> fipsCodeFilters = getFipsCodeFilters(environment, seedingRateSpecification);
-                    fipsCodeFilters.forEach((key, value) -> environment.addPopulationIndex(value, key));
-                }
+                // Create partition TODO: Could be redundant with ContactManager
+                environment.addPopulationPartition(PopulationPartitionDefinition.builder()
+                                .setRegionPartition(regionId -> seedingRateSpecification.scope().getFipsSubCode(regionId))
+                                .build(),
+                        SEEDING_PARTITION_KEY);
 
                 // Start Seeding
-                Map<FipsCode, Double> seedingRatesPerDay = seedingRateSpecification.getInfectionsByFipsCode(environment);
+                Map<FipsCode, Double> seedingRatesPerDay = seedingRateSpecification.getFipsCodeValues(environment);
                 seedingRatesPerDay.forEach((key, value) -> planNextSeeding(environment, key, value));
 
                 // Schedule stop seeding plan
@@ -118,25 +123,15 @@ public class ExponentialSeedingPlugin implements Plugin {
                 // End Seeding
                 // Seeding plans already time-limited so nothing to cancel
 
-                // Remove filters if they had been needed
-                InfectionSpecification seedingRateSpecification = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.INITIAL_SEEDING_RATE_PER_DAY);
-                if (seedingRateSpecification.scope() != FipsScope.TRACT) {
-                    Map<FipsCode, Filter> fipsCodeFilters = getFipsCodeFilters(environment, seedingRateSpecification);
-                    fipsCodeFilters.keySet()
-                            .forEach(environment::removePopulationIndex);
-                }
+                // Remove partition
+                environment.removePopulationPartition(SEEDING_PARTITION_KEY);
 
             } else if (plan.getClass() == SeedingPlan.class) {
                 // Pick random person to infect
                 SeedingPlan seedingPlan = (SeedingPlan) plan;
-                Object indexKey = getIndexKeyForFipsCode(seedingPlan.fipsCode);
-                // Lazy index creation (only needed for ContactManager region filters)
-                if (!environment.populationIndexExists(indexKey)) {
-                    if (seedingPlan.fipsCode.scope() == FipsScope.TRACT) {
-                        environment.addPopulationIndex(Filter.region((StringRegionId) indexKey), indexKey);
-                    }
-                }
-                Optional<PersonId> personId = environment.getRandomIndexedPersonFromGenerator(indexKey, ExponentialSeedingRandomId.ID);
+                Optional<PersonId> personId = environment.getRandomPartitionedPersonFromGenerator(SEEDING_PARTITION_KEY,
+                        PopulationPartitionQuery.builder().setRegionLabel(seedingPlan.fipsCode).build(),
+                        ExponentialSeedingRandomId.ID);
                 if (personId.isPresent()) {
                     Compartment compartment = environment.getPersonCompartment(personId.get());
                     if (compartment.equals(Compartment.SUSCEPTIBLE)) {
@@ -152,19 +147,6 @@ public class ExponentialSeedingPlugin implements Plugin {
                 // Plan next seeding event
                 planNextSeeding(environment, seedingPlan.fipsCode, seedingPlan.seedingRatePerDay);
             }
-        }
-
-        private Object getIndexKeyForFipsCode(FipsCode fipsCode) {
-            if (fipsCode.scope() == FipsScope.TRACT) {
-                // Use ContactManager region indices
-                return StringRegionId.of(fipsCode.code());
-            } else {
-                return fipsCode;
-            }
-        }
-
-        private Map<FipsCode, Filter> getFipsCodeFilters(Environment environment, InfectionSpecification seedingRateSpecification) {
-            return seedingRateSpecification.getFipsCodeFilters(environment);
         }
 
         @Override

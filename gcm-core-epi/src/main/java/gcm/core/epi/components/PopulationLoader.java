@@ -8,8 +8,8 @@ import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.*;
 import gcm.core.epi.population.*;
 import gcm.core.epi.propertytypes.FipsCode;
+import gcm.core.epi.propertytypes.FipsCodeValues;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
-import gcm.core.epi.propertytypes.InfectionSpecification;
 import gcm.core.epi.util.loading.HospitalDataFileRecord;
 import gcm.core.epi.util.loading.RegionWorkFlowFileRecord;
 import gcm.scenario.GroupId;
@@ -212,8 +212,8 @@ public class PopulationLoader extends AbstractComponent {
         }
 
         // Initial Infections
-        InfectionSpecification initialInfectionSpecification = environment.getGlobalPropertyValue(GlobalProperty.INITIAL_INFECTIONS);
-        Map<FipsCode, Double> initialInfections = initialInfectionSpecification.getInfectionsByFipsCode(environment);
+        FipsCodeValues initialInfectionSpecification = environment.getGlobalPropertyValue(GlobalProperty.INITIAL_INFECTIONS);
+        Map<FipsCode, Double> initialInfections = initialInfectionSpecification.getFipsCodeValues(environment);
         final Object initialInfectionPartitionKey = new Object();
 
         // Make a partition for susceptible people

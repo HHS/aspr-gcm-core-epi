@@ -49,8 +49,8 @@ public enum GlobalProperty implements DefinedGlobalProperty {
             .setDefaultValue(new HashMap<RegionId, EnumeratedDistribution<RegionId>>()).build(), false),
 
     INITIAL_INFECTIONS(PropertyDefinition.builder()
-            .setType(InfectionSpecification.class)
-            .setDefaultValue(ImmutableInfectionSpecification.builder().build())
+            .setType(FipsCodeValues.class)
+            .setDefaultValue(ImmutableFipsCodeValues.builder().build())
             .setPropertyValueMutability(false).build()),
 
     FRACTION_SYMPTOMATIC(PropertyDefinition.builder()
