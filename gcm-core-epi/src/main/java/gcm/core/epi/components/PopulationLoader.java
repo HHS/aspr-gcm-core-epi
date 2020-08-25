@@ -17,8 +17,9 @@ import gcm.scenario.PersonId;
 import gcm.scenario.PersonPropertyId;
 import gcm.scenario.RegionId;
 import gcm.simulation.Environment;
-import gcm.simulation.Filter;
 import gcm.simulation.Plan;
+import gcm.simulation.PopulationPartitionDefinition;
+import gcm.simulation.PopulationPartitionQuery;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.BinomialDistribution;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
@@ -130,7 +131,7 @@ public class PopulationLoader extends AbstractComponent {
                         ));
 
                 // Build indices to choose random workers
-                int totalWorkers = 0;
+//                int totalWorkers = 0;
 //                for (RegionId regionId : regionIds) {
 //                    FilterBuilder filterBuilder = new FilterBuilder();
 //                    filterBuilder.openAnd();
@@ -213,24 +214,26 @@ public class PopulationLoader extends AbstractComponent {
         // Initial Infections
         InfectionSpecification initialInfectionSpecification = environment.getGlobalPropertyValue(GlobalProperty.INITIAL_INFECTIONS);
         Map<FipsCode, Double> initialInfections = initialInfectionSpecification.getInfectionsByFipsCode(environment);
+        final Object initialInfectionPartitionKey = new Object();
 
-        // Make a filter for susceptible people
-        final Filter susceptibleFilter = Filter.compartment(Compartment.SUSCEPTIBLE);
-
-        // Make a filter for each collection of regions in a FIPS code
-        Map<FipsCode, Filter> fipsCodeFilters = initialInfectionSpecification.getFipsCodeFilters(environment);
-
-        // Add indexes for initial infections (susceptible and in the specified FIPS code)
-        fipsCodeFilters.forEach((key, value) -> environment.addPopulationIndex(value.and(susceptibleFilter),
-                new SusceptibleKey(key)));
+        // Make a partition for susceptible people
+        environment.addPopulationPartition(PopulationPartitionDefinition.builder()
+                        .setRegionPartition(regionId -> initialInfectionSpecification.scope().getFipsSubCode(regionId))
+                        .setCompartmentPartition(compartmentId -> compartmentId == Compartment.SUSCEPTIBLE)
+                        .build(),
+                initialInfectionPartitionKey);
 
         // Infect random susceptible people from the selected regions
         initialInfections.forEach(
                 (key, value) -> IntStream.range(0, (int) Math.round(value))
                         .forEach(
                                 i -> {
-                                    Optional<PersonId> targetPersonId = environment.getRandomIndexedPersonFromGenerator(
-                                            new SusceptibleKey(key), RandomId.INITIAL_INFECTIONS);
+                                    Optional<PersonId> targetPersonId = environment.getRandomPartitionedPersonFromGenerator(
+                                            initialInfectionPartitionKey, PopulationPartitionQuery.builder()
+                                                    .setRegionLabel(key)
+                                                    // Only use those in the susceptible compartment
+                                                    .setCompartmentLabel(true)
+                                                    .build(), RandomId.INITIAL_INFECTIONS);
                                     // Will only infect if there are susceptible people that remain
                                     targetPersonId.ifPresent(personId -> {
                                                 environment.setPersonCompartment(personId, Compartment.INFECTED);
@@ -246,32 +249,9 @@ public class PopulationLoader extends AbstractComponent {
                                 }
                         ));
 
-        // Remove indices that are no longer needed
-        fipsCodeFilters.keySet()
-                // Assume filter is unique for each entry and use as a key
-                .forEach(key -> environment.removePopulationIndex(new SusceptibleKey(key)));
+        // Remove partition that is no longer needed
+        environment.removePopulationPartition(initialInfectionPartitionKey);
 
-    }
-
-    private static class SusceptibleKey {
-        private final FipsCode fipsCode;
-
-        private SusceptibleKey(FipsCode fipsCode) {
-            this.fipsCode = fipsCode;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            SusceptibleKey that = (SusceptibleKey) o;
-            return fipsCode.equals(that.fipsCode);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(fipsCode);
-        }
     }
 
     private static class InitializePopulationPlan implements Plan {
