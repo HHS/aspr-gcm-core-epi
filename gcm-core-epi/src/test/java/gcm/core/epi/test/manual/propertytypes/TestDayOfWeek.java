@@ -1253,6 +1253,56 @@ public class TestDayOfWeek {
         }
 
         @Override
+        public List<PersonId> getPartitionPeople(Object key, LabelSet labelSet) {
+            return null;
+        }
+
+        @Override
+        public void addPopulationPartition(PopulationPartitionDefinition populationPartitionDefinition, Object key) {
+
+        }
+
+        @Override
+        public int getPartitionSize(Object key, LabelSet labelSet) {
+            return 0;
+        }
+
+        @Override
+        public void removePopulationPartition(Object key) {
+
+        }
+
+        @Override
+        public boolean populationPartitionExists(Object key) {
+            return false;
+        }
+
+        @Override
+        public boolean personIsInPopulationPartition(PersonId personId, Object key, LabelSet labelSet) {
+            return false;
+        }
+
+        @Override
+        public Optional<PersonId> getRandomPartitionedPerson(Object key, LabelSet labelSet) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<PersonId> getRandomPartitionedPersonFromGenerator(Object key, LabelSet labelSet, RandomNumberGeneratorId randomNumberGeneratorId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<PersonId> getRandomPartitionedPersonWithExclusion(PersonId excludedPersonId, Object key, LabelSet labelSet) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<PersonId> getRandomPartitionedPersonWithExclusionFromGenerator(PersonId excludedPersonId, Object key, LabelSet labelSet, RandomNumberGeneratorId randomNumberGeneratorId) {
+            return Optional.empty();
+        }
+
+        @Override
         public void init(Context context) {
 
         }
