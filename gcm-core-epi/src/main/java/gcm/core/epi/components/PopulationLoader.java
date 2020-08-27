@@ -17,19 +17,17 @@ import gcm.scenario.PersonId;
 import gcm.scenario.PersonPropertyId;
 import gcm.scenario.RegionId;
 import gcm.simulation.Environment;
+import gcm.simulation.LabelSet;
 import gcm.simulation.Plan;
 import gcm.simulation.PopulationPartitionDefinition;
-import gcm.simulation.PopulationPartitionQuery;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.BinomialDistribution;
-import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.util.Pair;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class PopulationLoader extends AbstractComponent {
@@ -90,7 +88,7 @@ public class PopulationLoader extends AbstractComponent {
                 List<HospitalDataFileRecord> hospitalDataFileRecordList = hospitalDataFileRecordMappingIterator
                         .readAll();
 
-                double bedStaffRatio = environment.getGlobalPropertyValue(GlobalProperty.HOSPITAL_BED_STAFF_RATIO);
+//                double bedStaffRatio = environment.getGlobalPropertyValue(GlobalProperty.HOSPITAL_BED_STAFF_RATIO);
 
                 // The regionIds used in this simulation (for filtering)
                 Set<RegionId> regionIds =
@@ -122,13 +120,13 @@ public class PopulationLoader extends AbstractComponent {
                 }
 
 
-                // Finally assemble the distributions
-                Map<RegionId, EnumeratedDistribution<RegionId>> outflowDistributions = outflowData.entrySet().stream()
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                entry -> new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(
-                                        RandomId.HOSPITAL_WORKPLACE_ASSIGNMENT), entry.getValue())
-                        ));
+//                // Finally assemble the distributions
+//                Map<RegionId, EnumeratedDistribution<RegionId>> outflowDistributions = outflowData.entrySet().stream()
+//                        .collect(Collectors.toMap(
+//                                Map.Entry::getKey,
+//                                entry -> new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(
+//                                        RandomId.HOSPITAL_WORKPLACE_ASSIGNMENT), entry.getValue())
+//                        ));
 
                 // Build indices to choose random workers
 //                int totalWorkers = 0;
@@ -229,11 +227,9 @@ public class PopulationLoader extends AbstractComponent {
                         .forEach(
                                 i -> {
                                     Optional<PersonId> targetPersonId = environment.getRandomPartitionedPersonFromGenerator(
-                                            initialInfectionPartitionKey, PopulationPartitionQuery.builder()
-                                                    .setRegionLabel(key)
+                                            initialInfectionPartitionKey, LabelSet.region(key).with(
                                                     // Only use those in the susceptible compartment
-                                                    .setCompartmentLabel(true)
-                                                    .build(), RandomId.INITIAL_INFECTIONS);
+                                                    LabelSet.compartment(true)), RandomId.INITIAL_INFECTIONS);
                                     // Will only infect if there are susceptible people that remain
                                     targetPersonId.ifPresent(personId -> {
                                                 environment.setPersonCompartment(personId, Compartment.INFECTED);
@@ -258,29 +254,29 @@ public class PopulationLoader extends AbstractComponent {
         // No data associated with this plan
     }
 
-    private static class WorkerRegionIdKey {
-        private final RegionId regionId;
-
-        private WorkerRegionIdKey(RegionId regionId) {
-            this.regionId = regionId;
-        }
-
-        private static WorkerRegionIdKey of(RegionId regionId) {
-            return new WorkerRegionIdKey(regionId);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            WorkerRegionIdKey that = (WorkerRegionIdKey) o;
-            return Objects.equals(regionId, that.regionId);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(regionId);
-        }
-    }
+//    private static class WorkerRegionIdKey {
+//        private final RegionId regionId;
+//
+//        private WorkerRegionIdKey(RegionId regionId) {
+//            this.regionId = regionId;
+//        }
+//
+//        private static WorkerRegionIdKey of(RegionId regionId) {
+//            return new WorkerRegionIdKey(regionId);
+//        }
+//
+//        @Override
+//        public boolean equals(Object o) {
+//            if (this == o) return true;
+//            if (o == null || getClass() != o.getClass()) return false;
+//            WorkerRegionIdKey that = (WorkerRegionIdKey) o;
+//            return Objects.equals(regionId, that.regionId);
+//        }
+//
+//        @Override
+//        public int hashCode() {
+//            return Objects.hash(regionId);
+//        }
+//    }
 
 }

@@ -12,9 +12,9 @@ import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
+import gcm.simulation.LabelSet;
 import gcm.simulation.Plan;
 import gcm.simulation.PopulationPartitionDefinition;
-import gcm.simulation.PopulationPartitionQuery;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 
 import java.util.*;
@@ -130,7 +130,7 @@ public class ExponentialSeedingPlugin implements Plugin {
                 // Pick random person to infect
                 SeedingPlan seedingPlan = (SeedingPlan) plan;
                 Optional<PersonId> personId = environment.getRandomPartitionedPersonFromGenerator(SEEDING_PARTITION_KEY,
-                        PopulationPartitionQuery.builder().setRegionLabel(seedingPlan.fipsCode).build(),
+                        LabelSet.region(seedingPlan.fipsCode),
                         ExponentialSeedingRandomId.ID);
                 if (personId.isPresent()) {
                     Compartment compartment = environment.getPersonCompartment(personId.get());

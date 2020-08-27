@@ -12,9 +12,9 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
+import gcm.simulation.LabelSet;
 import gcm.simulation.Plan;
 import gcm.simulation.PopulationPartitionDefinition;
-import gcm.simulation.PopulationPartitionQuery;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
@@ -241,10 +241,9 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
                     .stream()
                     .map(ageGroup -> new Pair<>(ageGroup,
                             (double) environment.getPartitionSize(VACCINE_PARTITION_KEY,
-                                    PopulationPartitionQuery.builder()
-                                            .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
-                                            .setPersonPropertyLabel(VaccinePersonProperty.VACCINE_STATUS, OneDoseVaccineStatus.NOT_VACCINATED)
-                                            .build()) *
+                                    LabelSet.property(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                                            .with(LabelSet.property(VaccinePersonProperty.VACCINE_STATUS,
+                                                    OneDoseVaccineStatus.NOT_VACCINATED))) *
                                     vaccineUptakeWeights.getWeight(ageGroup)))
                     .collect(Collectors.toList());
             // Check weights are not all zero and partitions are not all empty
@@ -256,10 +255,9 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
                 // We already know this index is nonempty
                 // noinspection OptionalGetWithoutIsPresent
                 final PersonId personId = environment.getRandomPartitionedPersonFromGenerator(VACCINE_PARTITION_KEY,
-                        PopulationPartitionQuery.builder()
-                                .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
-                                .setPersonPropertyLabel(VaccinePersonProperty.VACCINE_STATUS, OneDoseVaccineStatus.NOT_VACCINATED)
-                                .build(), VaccineRandomId.ID).get();
+                        LabelSet.property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup).with(
+                                LabelSet.property(VaccinePersonProperty.VACCINE_STATUS, OneDoseVaccineStatus.NOT_VACCINATED)
+                        ), VaccineRandomId.ID).get();
 
                 // Vaccinate the person
                 double vaccineEffectivenessDelay = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_DELAY_DAYS);

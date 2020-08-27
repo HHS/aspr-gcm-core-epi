@@ -68,10 +68,8 @@ public class ContactManager extends AbstractComponent {
                     .stream()
                     .map(ageGroup -> new Pair<>(ageGroup,
                             (double) environment.getPartitionSize(RADIATION_MODEL_PARTITION_KEY,
-                                    PopulationPartitionQuery.builder()
-                                            .setRegionLabel(targetRegionId)
-                                            .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
-                                            .build()) *
+                                    LabelSet.region(targetRegionId)
+                                            .with(LabelSet.property(PersonProperty.AGE_GROUP_INDEX, ageGroup))) *
                                     ageGroupSelectionWeights.getOrDefault(ageGroup, 0.0)))
                     .collect(Collectors.toList());
 
@@ -83,19 +81,15 @@ public class ContactManager extends AbstractComponent {
             return environment.getRandomPartitionedPersonWithExclusionFromGenerator(
                     sourcePersonId,
                     RADIATION_MODEL_PARTITION_KEY,
-                    PopulationPartitionQuery.builder()
-                            .setRegionLabel(targetRegionId)
-                            .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
-                            .build(),
+                    LabelSet.region(targetRegionId)
+                            .with(LabelSet.property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)),
                     RandomId.CONTACT_MANAGER);
 
         } else {
             return environment.getRandomPartitionedPersonWithExclusionFromGenerator(
                     sourcePersonId,
                     RADIATION_MODEL_PARTITION_KEY,
-                    PopulationPartitionQuery.builder()
-                            .setRegionLabel(targetRegionId)
-                            .build(),
+                    LabelSet.region(targetRegionId),
                     RandomId.CONTACT_MANAGER);
         }
     }

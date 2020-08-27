@@ -11,9 +11,9 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedResourceProperty;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
+import gcm.simulation.LabelSet;
 import gcm.simulation.Plan;
 import gcm.simulation.PopulationPartitionDefinition;
-import gcm.simulation.PopulationPartitionQuery;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
@@ -341,12 +341,10 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                         .stream()
                         .map(ageGroup -> new Pair<>(ageGroup,
                                 (double) environment.getPartitionSize(VACCINE_PARTITION_KEY,
-                                        PopulationPartitionQuery.builder()
-                                                .setRegionLabel(fipsCode)
-                                                .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                                        LabelSet.region(fipsCode)
+                                                .with(LabelSet.property(PersonProperty.AGE_GROUP_INDEX, ageGroup))
                                                 // Be careful to use long and not int 0
-                                                .setPersonResourceLabel(VaccineId.VACCINE_ONE, 0L)
-                                                .build()) *
+                                                .with(LabelSet.resource(VaccineId.VACCINE_ONE, 0L))) *
                                         vaccineUptakeWeights.getWeight(ageGroup)))
                         .collect(Collectors.toList());
                 // Check weights are not all zero and partitions are not all empty
@@ -358,12 +356,10 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                     // We already know this index is nonempty
                     // noinspection OptionalGetWithoutIsPresent
                     final PersonId personId = environment.getRandomPartitionedPersonFromGenerator(VACCINE_PARTITION_KEY,
-                            PopulationPartitionQuery.builder()
-                                    .setRegionLabel(fipsCode)
-                                    .setPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
+                            LabelSet.region(fipsCode)
+                                    .with(LabelSet.property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup))
                                     // Be careful to use long and not int 0
-                                    .setPersonResourceLabel(VaccineId.VACCINE_ONE, 0L)
-                                    .build(), VaccineRandomId.ID).get();
+                                    .with(LabelSet.resource(VaccineId.VACCINE_ONE, 0L)), VaccineRandomId.ID).get();
 
                     // Vaccinate the person, delivering vaccine to the appropriate region just in time
                     RegionId regionId = environment.getPersonRegion(personId);
