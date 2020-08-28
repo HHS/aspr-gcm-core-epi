@@ -7,6 +7,8 @@ import gcm.core.epi.propertytypes.ImmutableDayOfWeekSchedule;
 import gcm.output.OutputItem;
 import gcm.scenario.*;
 import gcm.simulation.*;
+import gcm.simulation.partition.LabelSet;
+import gcm.simulation.partition.Partition;
 import gcm.util.MemoryPartition;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.junit.Test;
@@ -1258,7 +1260,7 @@ public class TestDayOfWeek {
         }
 
         @Override
-        public void addPopulationPartition(PopulationPartitionDefinition populationPartitionDefinition, Object key) {
+        public void addPopulationPartition(Partition partition, Object key) {
 
         }
 

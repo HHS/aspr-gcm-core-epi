@@ -12,9 +12,9 @@ import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
-import gcm.simulation.LabelSet;
 import gcm.simulation.Plan;
-import gcm.simulation.PopulationPartitionDefinition;
+import gcm.simulation.partition.LabelSet;
+import gcm.simulation.partition.Partition;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 
 import java.util.*;
@@ -106,9 +106,7 @@ public class ExponentialSeedingPlugin implements Plugin {
                 FipsCodeValues seedingRateSpecification = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.INITIAL_SEEDING_RATE_PER_DAY);
 
                 // Create partition TODO: Could be redundant with ContactManager
-                environment.addPopulationPartition(PopulationPartitionDefinition.builder()
-                                .setRegionPartition(regionId -> seedingRateSpecification.scope().getFipsSubCode(regionId))
-                                .build(),
+                environment.addPopulationPartition(Partition.region(regionId -> seedingRateSpecification.scope().getFipsSubCode(regionId)),
                         SEEDING_PARTITION_KEY);
 
                 // Start Seeding

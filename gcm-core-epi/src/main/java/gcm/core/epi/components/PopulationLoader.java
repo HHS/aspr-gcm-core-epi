@@ -17,9 +17,9 @@ import gcm.scenario.PersonId;
 import gcm.scenario.PersonPropertyId;
 import gcm.scenario.RegionId;
 import gcm.simulation.Environment;
-import gcm.simulation.LabelSet;
 import gcm.simulation.Plan;
-import gcm.simulation.PopulationPartitionDefinition;
+import gcm.simulation.partition.LabelSet;
+import gcm.simulation.partition.Partition;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.BinomialDistribution;
 import org.apache.commons.math3.util.Pair;
@@ -215,10 +215,8 @@ public class PopulationLoader extends AbstractComponent {
         final Object initialInfectionPartitionKey = new Object();
 
         // Make a partition for susceptible people
-        environment.addPopulationPartition(PopulationPartitionDefinition.builder()
-                        .setRegionPartition(regionId -> initialInfectionSpecification.scope().getFipsSubCode(regionId))
-                        .setCompartmentPartition(compartmentId -> compartmentId == Compartment.SUSCEPTIBLE)
-                        .build(),
+        environment.addPopulationPartition(Partition.region(regionId -> initialInfectionSpecification.scope().getFipsSubCode(regionId))
+                        .with(Partition.compartment(compartmentId -> compartmentId == Compartment.SUSCEPTIBLE)),
                 initialInfectionPartitionKey);
 
         // Infect random susceptible people from the selected regions

@@ -12,9 +12,9 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
-import gcm.simulation.LabelSet;
 import gcm.simulation.Plan;
-import gcm.simulation.PopulationPartitionDefinition;
+import gcm.simulation.partition.LabelSet;
+import gcm.simulation.partition.Partition;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
@@ -167,12 +167,11 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-                environment.addPopulationPartition(PopulationPartitionDefinition.builder()
-                                // Partition by age group
-                                .setPersonPropertyPartition(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                environment.addPopulationPartition(
+                        // Partition by age group
+                        Partition.property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
                                 // Partition by vaccine status
-                                .setPersonPropertyPartition(VaccinePersonProperty.VACCINE_STATUS, vaccineStatus -> vaccineStatus)
-                                .build(),
+                                .with(Partition.property(VaccinePersonProperty.VACCINE_STATUS, vaccineStatus -> vaccineStatus)),
                         VACCINE_PARTITION_KEY);
 
                 // Schedule first vaccination event

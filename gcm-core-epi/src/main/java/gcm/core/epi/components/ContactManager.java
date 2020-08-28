@@ -14,7 +14,11 @@ import gcm.core.epi.propertytypes.DayOfWeekSchedule;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.propertytypes.TransmissionStructure;
 import gcm.scenario.*;
-import gcm.simulation.*;
+import gcm.simulation.BiWeightingFunction;
+import gcm.simulation.Environment;
+import gcm.simulation.Plan;
+import gcm.simulation.partition.LabelSet;
+import gcm.simulation.partition.Partition;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.util.Pair;
@@ -204,17 +208,15 @@ public class ContactManager extends AbstractComponent {
                 radiationTargetDistributions);
 
         // Add partition for radiation flow
-        PopulationPartitionDefinition.Builder radiationModelPartitionBuilder = PopulationPartitionDefinition.builder()
-                // Partition by region
-                .setRegionPartition(regionId -> regionId);
+        Partition radiationModelPartition = Partition.region(regionId -> regionId);
         if (transmissionStructure.groupBiWeightingFunctionsMap().containsKey(ContactGroupType.GLOBAL)) {
             List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-            radiationModelPartitionBuilder
+            radiationModelPartition = radiationModelPartition
                     // Partition by age group
-                    .setPersonPropertyPartition(PersonProperty.AGE_GROUP_INDEX,
-                            ageGroupIndex -> ageGroups.get((int) ageGroupIndex));
+                    .with(Partition.property(PersonProperty.AGE_GROUP_INDEX,
+                            ageGroupIndex -> ageGroups.get((int) ageGroupIndex)));
         }
-        environment.addPopulationPartition(radiationModelPartitionBuilder.build(), RADIATION_MODEL_PARTITION_KEY);
+        environment.addPopulationPartition(radiationModelPartition, RADIATION_MODEL_PARTITION_KEY);
 
         // Register to observe the transmission ratio for a person changing (due to behavior)
         environment.observeGlobalPersonPropertyChange(true, PersonProperty.ACTIVITY_LEVEL_CHANGED);
