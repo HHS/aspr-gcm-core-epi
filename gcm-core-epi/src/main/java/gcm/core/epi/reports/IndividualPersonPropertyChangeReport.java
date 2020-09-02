@@ -8,6 +8,7 @@ import gcm.scenario.PersonId;
 import gcm.scenario.PersonPropertyId;
 import gcm.simulation.ObservableEnvironment;
 
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -60,8 +61,8 @@ public final class IndividualPersonPropertyChangeReport extends AbstractReport {
         super.init(observableEnvironment, initialData);
 
         for (Object initialDatum : initialData) {
-            if (initialDatum instanceof PersonPropertyId) {
-                personPropertyIds.add((PersonPropertyId) initialDatum);
+            if (initialDatum instanceof PersonPropertyId[]) {
+                personPropertyIds.addAll(Arrays.asList((PersonPropertyId[]) initialDatum));
             } else {
                 throw new RuntimeException("Invalid initial data passed to IndividualPersonPropertyChangeReport");
             }

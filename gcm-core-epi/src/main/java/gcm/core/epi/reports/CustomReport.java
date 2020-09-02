@@ -20,7 +20,8 @@ public enum CustomReport implements LoadableReport {
     INDIVIDUAL_PERSON_PROPERTY_CHANGE_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
         PersonPropertyId[] personPropertyIds = CoreEpiBootstrapUtil.getPersonPropertyIdsFromStringSet(
                 reportWrapperItem.items(), pluginList).toArray(new PersonPropertyId[0]);
-        experimentExecutor.addCustomReport(path, IndividualPersonPropertyChangeReport.class, personPropertyIds);
+        // Report expects a single entry for initializationData that is a PersonPropertyId[], so cast to Object
+        experimentExecutor.addCustomReport(path, IndividualPersonPropertyChangeReport.class, (Object) personPropertyIds);
     }),
 
     INCIDENCE_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
