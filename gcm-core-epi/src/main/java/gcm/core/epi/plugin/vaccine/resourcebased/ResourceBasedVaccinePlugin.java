@@ -355,7 +355,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                     // Randomly select age group using the cumulative weights
                     // We already know this index is nonempty
                     // noinspection OptionalGetWithoutIsPresent
-                    final PersonId personId = environment.getRandomPartitionedPersonFromGenerator(VACCINE_PARTITION_KEY,
+                    final PersonId personId = environment.samplePartition(VACCINE_PARTITION_KEY,
                             LabelSet.region(fipsCode)
                                     .with(LabelSet.property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup))
                                     // Be careful to use long and not int 0

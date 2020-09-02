@@ -342,7 +342,7 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
                 // Randomly select age group using the cumulative weights
                 // We already know this index is nonempty
                 // noinspection OptionalGetWithoutIsPresent
-                final PersonId personId = environment.getRandomPartitionedPersonFromGenerator(VACCINE_PARTITION_KEY,
+                final PersonId personId = environment.samplePartition(VACCINE_PARTITION_KEY,
                         LabelSet.property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
                                 .with(LabelSet.property(VaccinePersonProperty.VACCINE_STATUS,
                                         TwoDoseVaccineStatus.NOT_VACCINATED)), VaccineRandomId.ID).get();

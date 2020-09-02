@@ -82,19 +82,15 @@ public class ContactManager extends AbstractComponent {
                             ageGroupTargetWeights);
             AgeGroup targetAgeGroup = ageGroupDistribution.sample();
 
-            return environment.getRandomPartitionedPersonWithExclusionFromGenerator(
-                    sourcePersonId,
-                    RADIATION_MODEL_PARTITION_KEY,
+            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY,
                     LabelSet.region(targetRegionId)
                             .with(LabelSet.property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)),
-                    RandomId.CONTACT_MANAGER);
+                    RandomId.CONTACT_MANAGER,
+                    sourcePersonId);
 
         } else {
-            return environment.getRandomPartitionedPersonWithExclusionFromGenerator(
-                    sourcePersonId,
-                    RADIATION_MODEL_PARTITION_KEY,
-                    LabelSet.region(targetRegionId),
-                    RandomId.CONTACT_MANAGER);
+            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY, LabelSet.region(targetRegionId),
+                    RandomId.CONTACT_MANAGER, sourcePersonId);
         }
     }
 
@@ -405,13 +401,14 @@ public class ContactManager extends AbstractComponent {
                         }
                     } else {
                         // Use a weighting function if provided, otherwise choose uniformly at random
-                        BiWeightingFunction biWeightingFunction = transmissionStructure.groupBiWeightingFunctions().get(getLookupGroup(contactGroupType));
+                        BiWeightingFunction biWeightingFunction = transmissionStructure.groupBiWeightingFunctions()
+                                .get(getLookupGroup(contactGroupType));
                         if (biWeightingFunction != null) {
-                            targetPersonId = environment.getBiWeightedGroupContactFromGenerator(contactGroupId, sourcePersonId, true,
-                                    biWeightingFunction, RandomId.CONTACT_MANAGER);
+                            targetPersonId = environment.sampleGroup(contactGroupId, biWeightingFunction,
+                                    RandomId.CONTACT_MANAGER, sourcePersonId, true);
                         } else {
-                            targetPersonId = environment.getNonWeightedGroupContactWithExclusionFromGenerator(
-                                    contactGroupId, sourcePersonId, RandomId.CONTACT_MANAGER);
+                            targetPersonId = environment.sampleGroup(contactGroupId, RandomId.CONTACT_MANAGER,
+                                    sourcePersonId);
                         }
                     }
 

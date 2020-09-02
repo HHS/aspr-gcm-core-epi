@@ -127,7 +127,7 @@ public class ExponentialSeedingPlugin implements Plugin {
             } else if (plan.getClass() == SeedingPlan.class) {
                 // Pick random person to infect
                 SeedingPlan seedingPlan = (SeedingPlan) plan;
-                Optional<PersonId> personId = environment.getRandomPartitionedPersonFromGenerator(SEEDING_PARTITION_KEY,
+                Optional<PersonId> personId = environment.samplePartition(SEEDING_PARTITION_KEY,
                         LabelSet.region(seedingPlan.fipsCode),
                         ExponentialSeedingRandomId.ID);
                 if (personId.isPresent()) {

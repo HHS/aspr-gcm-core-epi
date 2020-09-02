@@ -194,7 +194,7 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
                 // Randomly select infected people to isolate.
                 IntStream.range(0, numberInfectedTestPositive).forEach(
                         x -> {
-                            Optional<PersonId> personToIsolate = environment.getRandomIndexedPersonFromGenerator(INFECTED_INDEX_KEY,
+                            Optional<PersonId> personToIsolate = environment.sampleIndex(INFECTED_INDEX_KEY,
                                     RandomTestingRandomId.ID);
                             if (personToIsolate.isPresent()) {
                                 boolean hasTestedPositive = environment.getPersonPropertyValue(personToIsolate.get(),

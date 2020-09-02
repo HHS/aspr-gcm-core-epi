@@ -320,7 +320,7 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
                 while (vaccineCumulativeWeights.get(ageGroupIndex) < targetWeight) {
                     ageGroupIndex++;
                 }
-                personId = environment.getRandomIndexedPersonFromGenerator(vaccineIndexKeys.get(ageGroupPartition.getAgeGroupFromIndex(ageGroupIndex)),
+                personId = environment.sampleIndex(vaccineIndexKeys.get(ageGroupPartition.getAgeGroupFromIndex(ageGroupIndex)),
                         VaccineRandomId.ID);
             }
 

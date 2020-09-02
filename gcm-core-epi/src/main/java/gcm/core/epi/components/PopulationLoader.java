@@ -224,7 +224,7 @@ public class PopulationLoader extends AbstractComponent {
                 (key, value) -> IntStream.range(0, (int) Math.round(value))
                         .forEach(
                                 i -> {
-                                    Optional<PersonId> targetPersonId = environment.getRandomPartitionedPersonFromGenerator(
+                                    Optional<PersonId> targetPersonId = environment.samplePartition(
                                             initialInfectionPartitionKey, LabelSet.region(key).with(
                                                     // Only use those in the susceptible compartment
                                                     LabelSet.compartment(true)), RandomId.INITIAL_INFECTIONS);
