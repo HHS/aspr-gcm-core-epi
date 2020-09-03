@@ -224,14 +224,13 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-                environment.addPopulationPartition(
+                environment.addPopulationPartition(Partition.create()
                         // Partition regions by FIPS code
-                        Partition.region(regionId -> vaccinationRatePerDayFipsCodeValues.scope().getFipsSubCode(regionId))
-                                // Partition by age group
-                                .with(Partition.property(PersonProperty.AGE_GROUP_INDEX,
-                                        ageGroupIndex -> ageGroups.get((int) ageGroupIndex)))
-                                // Partition by number of doses
-                                .with(Partition.resource(VaccineId.VACCINE_ONE, numberOfDoses -> numberOfDoses)),
+                        .region(regionId -> vaccinationRatePerDayFipsCodeValues.scope().getFipsSubCode(regionId))
+                        // Partition by age group
+                        .property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                        // Partition by number of doses
+                        .resource(VaccineId.VACCINE_ONE, numberOfDoses -> numberOfDoses),
                         VACCINE_PARTITION_KEY);
 
                 // Schedule vaccine deliveries
@@ -340,11 +339,11 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 List<Pair<AgeGroup, Double>> ageGroupTargetWeights = ageGroups
                         .stream()
                         .map(ageGroup -> new Pair<>(ageGroup,
-                                (double) environment.getPartitionSize(VACCINE_PARTITION_KEY,
-                                        LabelSet.region(fipsCode)
-                                                .with(LabelSet.property(PersonProperty.AGE_GROUP_INDEX, ageGroup))
-                                                // Be careful to use long and not int 0
-                                                .with(LabelSet.resource(VaccineId.VACCINE_ONE, 0L))) *
+                                (double) environment.getPartitionSize(VACCINE_PARTITION_KEY, LabelSet.create()
+                                        .region(fipsCode)
+                                        .property(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                                        // Be careful to use long and not int 0
+                                        .resource(VaccineId.VACCINE_ONE, 0L)) *
                                         vaccineUptakeWeights.getWeight(ageGroup)))
                         .collect(Collectors.toList());
                 // Check weights are not all zero and partitions are not all empty
@@ -355,11 +354,11 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                     // Randomly select age group using the cumulative weights
                     // We already know this index is nonempty
                     // noinspection OptionalGetWithoutIsPresent
-                    final PersonId personId = environment.samplePartition(VACCINE_PARTITION_KEY,
-                            LabelSet.region(fipsCode)
-                                    .with(LabelSet.property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup))
-                                    // Be careful to use long and not int 0
-                                    .with(LabelSet.resource(VaccineId.VACCINE_ONE, 0L)), VaccineRandomId.ID).get();
+                    final PersonId personId = environment.samplePartition(VACCINE_PARTITION_KEY, LabelSet.create()
+                            .region(fipsCode)
+                            .property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
+                            // Be careful to use long and not int 0
+                            .resource(VaccineId.VACCINE_ONE, 0L), VaccineRandomId.ID).get();
 
                     // Vaccinate the person, delivering vaccine to the appropriate region just in time
                     RegionId regionId = environment.getPersonRegion(personId);

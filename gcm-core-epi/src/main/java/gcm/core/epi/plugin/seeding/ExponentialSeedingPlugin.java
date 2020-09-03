@@ -106,7 +106,8 @@ public class ExponentialSeedingPlugin implements Plugin {
                 FipsCodeValues seedingRateSpecification = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.INITIAL_SEEDING_RATE_PER_DAY);
 
                 // Create partition TODO: Could be redundant with ContactManager
-                environment.addPopulationPartition(Partition.region(regionId -> seedingRateSpecification.scope().getFipsSubCode(regionId)),
+                environment.addPopulationPartition(Partition.create()
+                                .region(regionId -> seedingRateSpecification.scope().getFipsSubCode(regionId)),
                         SEEDING_PARTITION_KEY);
 
                 // Start Seeding
@@ -128,7 +129,7 @@ public class ExponentialSeedingPlugin implements Plugin {
                 // Pick random person to infect
                 SeedingPlan seedingPlan = (SeedingPlan) plan;
                 Optional<PersonId> personId = environment.samplePartition(SEEDING_PARTITION_KEY,
-                        LabelSet.region(seedingPlan.fipsCode),
+                        LabelSet.create().region(seedingPlan.fipsCode),
                         ExponentialSeedingRandomId.ID);
                 if (personId.isPresent()) {
                     Compartment compartment = environment.getPersonCompartment(personId.get());

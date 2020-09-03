@@ -71,9 +71,9 @@ public class ContactManager extends AbstractComponent {
             List<Pair<AgeGroup, Double>> ageGroupTargetWeights = ageGroups
                     .stream()
                     .map(ageGroup -> new Pair<>(ageGroup,
-                            (double) environment.getPartitionSize(RADIATION_MODEL_PARTITION_KEY,
-                                    LabelSet.region(targetRegionId)
-                                            .with(LabelSet.property(PersonProperty.AGE_GROUP_INDEX, ageGroup))) *
+                            (double) environment.getPartitionSize(RADIATION_MODEL_PARTITION_KEY, LabelSet.create()
+                                    .region(targetRegionId)
+                                    .property(PersonProperty.AGE_GROUP_INDEX, ageGroup)) *
                                     ageGroupSelectionWeights.getOrDefault(ageGroup, 0.0)))
                     .collect(Collectors.toList());
 
@@ -82,14 +82,14 @@ public class ContactManager extends AbstractComponent {
                             ageGroupTargetWeights);
             AgeGroup targetAgeGroup = ageGroupDistribution.sample();
 
-            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY,
-                    LabelSet.region(targetRegionId)
-                            .with(LabelSet.property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)),
+            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY, LabelSet.create()
+                            .region(targetRegionId)
+                            .property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup),
                     RandomId.CONTACT_MANAGER,
                     sourcePersonId);
 
         } else {
-            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY, LabelSet.region(targetRegionId),
+            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY, LabelSet.create().region(targetRegionId),
                     RandomId.CONTACT_MANAGER, sourcePersonId);
         }
     }
@@ -204,12 +204,12 @@ public class ContactManager extends AbstractComponent {
                 radiationTargetDistributions);
 
         // Add partition for radiation flow
-        Partition radiationModelPartition = Partition.region(regionId -> regionId);
+        Partition radiationModelPartition = Partition.create().region(regionId -> regionId);
         if (transmissionStructure.groupBiWeightingFunctionsMap().containsKey(ContactGroupType.GLOBAL)) {
             List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
             radiationModelPartition = radiationModelPartition
                     // Partition by age group
-                    .with(Partition.property(PersonProperty.AGE_GROUP_INDEX,
+                    .with(Partition.create().property(PersonProperty.AGE_GROUP_INDEX,
                             ageGroupIndex -> ageGroups.get((int) ageGroupIndex)));
         }
         environment.addPopulationPartition(radiationModelPartition, RADIATION_MODEL_PARTITION_KEY);

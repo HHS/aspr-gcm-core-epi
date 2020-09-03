@@ -200,11 +200,11 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-                environment.addPopulationPartition(
+                environment.addPopulationPartition(Partition.create()
                         // Partition by age group
-                        Partition.property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
-                                // Partition by vaccine status
-                                .with(Partition.property(VaccinePersonProperty.VACCINE_STATUS, vaccineStatus -> vaccineStatus)),
+                        .property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                        // Partition by vaccine status
+                        .property(VaccinePersonProperty.VACCINE_STATUS, vaccineStatus -> vaccineStatus),
                         VACCINE_PARTITION_KEY);
 
                 // Schedule first vaccination event
@@ -328,10 +328,9 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
             List<Pair<AgeGroup, Double>> ageGroupTargetWeights = ageGroups
                     .stream()
                     .map(ageGroup -> new Pair<>(ageGroup,
-                            (double) environment.getPartitionSize(VACCINE_PARTITION_KEY,
-                                    LabelSet.property(PersonProperty.AGE_GROUP_INDEX, ageGroup)
-                                            .with(LabelSet.property(VaccinePersonProperty.VACCINE_STATUS,
-                                                    TwoDoseVaccineStatus.NOT_VACCINATED))) *
+                            (double) environment.getPartitionSize(VACCINE_PARTITION_KEY, LabelSet.create()
+                                    .property(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                                    .property(VaccinePersonProperty.VACCINE_STATUS, TwoDoseVaccineStatus.NOT_VACCINATED)) *
                                     vaccineUptakeWeights.getWeight(ageGroup)))
                     .collect(Collectors.toList());
             // Check weights are not all zero and partitions are not all empty
@@ -342,10 +341,10 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
                 // Randomly select age group using the cumulative weights
                 // We already know this index is nonempty
                 // noinspection OptionalGetWithoutIsPresent
-                final PersonId personId = environment.samplePartition(VACCINE_PARTITION_KEY,
-                        LabelSet.property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
-                                .with(LabelSet.property(VaccinePersonProperty.VACCINE_STATUS,
-                                        TwoDoseVaccineStatus.NOT_VACCINATED)), VaccineRandomId.ID).get();
+                final PersonId personId = environment.samplePartition(VACCINE_PARTITION_KEY, LabelSet.create()
+                        .property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
+                        .property(VaccinePersonProperty.VACCINE_STATUS, TwoDoseVaccineStatus.NOT_VACCINATED),
+                        VaccineRandomId.ID).get();
 
                 // Vaccinate the person
                 double vaccineEffectivenessDelay = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_DELAY_DAYS);

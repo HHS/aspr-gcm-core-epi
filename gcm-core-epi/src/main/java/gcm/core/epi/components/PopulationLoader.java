@@ -215,8 +215,9 @@ public class PopulationLoader extends AbstractComponent {
         final Object initialInfectionPartitionKey = new Object();
 
         // Make a partition for susceptible people
-        environment.addPopulationPartition(Partition.region(regionId -> initialInfectionSpecification.scope().getFipsSubCode(regionId))
-                        .with(Partition.compartment(compartmentId -> compartmentId == Compartment.SUSCEPTIBLE)),
+        environment.addPopulationPartition(Partition.create()
+                        .region(regionId -> initialInfectionSpecification.scope().getFipsSubCode(regionId))
+                        .compartment(compartmentId -> compartmentId == Compartment.SUSCEPTIBLE),
                 initialInfectionPartitionKey);
 
         // Infect random susceptible people from the selected regions
@@ -225,9 +226,10 @@ public class PopulationLoader extends AbstractComponent {
                         .forEach(
                                 i -> {
                                     Optional<PersonId> targetPersonId = environment.samplePartition(
-                                            initialInfectionPartitionKey, LabelSet.region(key).with(
+                                            initialInfectionPartitionKey, LabelSet.create()
+                                                    .region(key)
                                                     // Only use those in the susceptible compartment
-                                                    LabelSet.compartment(true)), RandomId.INITIAL_INFECTIONS);
+                                                    .compartment(true), RandomId.INITIAL_INFECTIONS);
                                     // Will only infect if there are susceptible people that remain
                                     targetPersonId.ifPresent(personId -> {
                                                 environment.setPersonCompartment(personId, Compartment.INFECTED);
