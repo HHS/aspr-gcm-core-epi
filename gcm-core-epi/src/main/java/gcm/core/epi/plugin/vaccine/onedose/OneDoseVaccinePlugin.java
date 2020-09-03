@@ -168,10 +168,10 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
                 environment.addPopulationPartition(Partition.create()
-                        // Partition by age group
-                        .property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
-                        // Partition by vaccine status
-                        .property(VaccinePersonProperty.VACCINE_STATUS, vaccineStatus -> vaccineStatus),
+                                // Partition by age group
+                                .property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                                // Partition by vaccine status
+                                .property(VaccinePersonProperty.VACCINE_STATUS, vaccineStatus -> vaccineStatus),
                         VACCINE_PARTITION_KEY);
 
                 // Schedule first vaccination event
@@ -253,8 +253,8 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
                 // We already know this index is nonempty
                 // noinspection OptionalGetWithoutIsPresent
                 final PersonId personId = environment.samplePartition(VACCINE_PARTITION_KEY, LabelSet.create()
-                        .property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
-                        .property(VaccinePersonProperty.VACCINE_STATUS, OneDoseVaccineStatus.NOT_VACCINATED),
+                                .property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
+                                .property(VaccinePersonProperty.VACCINE_STATUS, OneDoseVaccineStatus.NOT_VACCINATED),
                         VaccineRandomId.ID).get();
 
                 // Vaccinate the person
