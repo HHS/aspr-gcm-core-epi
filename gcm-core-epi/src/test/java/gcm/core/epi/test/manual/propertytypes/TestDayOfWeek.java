@@ -10,6 +10,7 @@ import gcm.simulation.*;
 import gcm.simulation.partition.LabelSet;
 import gcm.simulation.partition.LabelSetWeightingFunction;
 import gcm.simulation.partition.Partition;
+import gcm.simulation.partition.PartitionSampler;
 import gcm.util.MemoryPartition;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.junit.Test;
@@ -1283,6 +1284,11 @@ public class TestDayOfWeek {
         @Override
         public boolean personIsInPopulationPartition(PersonId personId, Object key, LabelSet labelSet) {
             return false;
+        }
+
+        @Override
+        public Optional<PersonId> samplePartition(Object key, PartitionSampler partitionSampler) {
+            return Optional.empty();
         }
 
         @Override
