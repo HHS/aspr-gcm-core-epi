@@ -15,14 +15,12 @@ import gcm.simulation.Environment;
 import gcm.simulation.Plan;
 import gcm.simulation.partition.LabelSet;
 import gcm.simulation.partition.Partition;
-import org.apache.commons.math3.distribution.EnumeratedDistribution;
+import gcm.simulation.partition.PartitionSampler;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
-import org.apache.commons.math3.util.Pair;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class OneDoseVaccinePlugin implements VaccinePlugin {
 
@@ -233,48 +231,36 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
                     VaccineGlobalProperty.VACCINE_UPTAKE_WEIGHTS);
             PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                     GlobalProperty.POPULATION_DESCRIPTION);
-            List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
 
-            // Randomly select age group using the cumulative weights
-            List<Pair<AgeGroup, Double>> ageGroupTargetWeights = ageGroups
-                    .stream()
-                    .map(ageGroup -> new Pair<>(ageGroup,
-                            (double) environment.getPartitionSize(VACCINE_PARTITION_KEY, LabelSet.create()
-                                    .property(PersonProperty.AGE_GROUP_INDEX, ageGroup)
-                                    .property(VaccinePersonProperty.VACCINE_STATUS, OneDoseVaccineStatus.NOT_VACCINATED)) *
-                                    vaccineUptakeWeights.getWeight(ageGroup)))
-                    .collect(Collectors.toList());
-            // Check weights are not all zero and partitions are not all empty
-            if (ageGroupTargetWeights.stream().anyMatch(x -> x.getSecond() > 0)) {
-                AgeGroup targetAgeGroup = new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(VaccineRandomId.ID),
-                        ageGroupTargetWeights).sample();
+            final Optional<PersonId> personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.create()
+                    .labelSet(LabelSet.create().property(VaccinePersonProperty.VACCINE_STATUS, OneDoseVaccineStatus.NOT_VACCINATED))
+                    .labelWeight((observableEnvironment, labelSetInfo) -> {
+                        // We know this labelSetInfo will have a label for this person property
+                        //noinspection OptionalGetWithoutIsPresent
+                        AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
+                        return vaccineUptakeWeights.getWeight(ageGroup);
+                    })
+                    .generator(VaccineRandomId.ID));
 
-                // Randomly select age group using the cumulative weights
-                // We already know this index is nonempty
-                // noinspection OptionalGetWithoutIsPresent
-                final PersonId personId = environment.samplePartition(VACCINE_PARTITION_KEY, LabelSet.create()
-                                .property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup)
-                                .property(VaccinePersonProperty.VACCINE_STATUS, OneDoseVaccineStatus.NOT_VACCINATED),
-                        VaccineRandomId.ID).get();
-
+            if (personId.isPresent()) {
                 // Vaccinate the person
                 double vaccineEffectivenessDelay = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_DELAY_DAYS);
                 double vaccineEffectivenessDuration =
                         environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_DURATION_DAYS);
                 if (vaccineEffectivenessDelay > 0) {
                     // Need to schedule onset of protection
-                    environment.setPersonPropertyValue(personId, VaccinePersonProperty.VACCINE_STATUS,
+                    environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.VACCINE_STATUS,
                             OneDoseVaccineStatus.VACCINATED_NOT_YET_PROTECTED);
-                    environment.addPlan(new VaccineProtectionTogglePlan(personId),
+                    environment.addPlan(new VaccineProtectionTogglePlan(personId.get()),
                             environment.getTime() + vaccineEffectivenessDelay);
                 } else {
                     // Person is immediately protected
-                    environment.setPersonPropertyValue(personId, VaccinePersonProperty.VACCINE_STATUS,
+                    environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.VACCINE_STATUS,
                             OneDoseVaccineStatus.VACCINE_PROTECTED);
 
                     if (vaccineEffectivenessDuration < Double.POSITIVE_INFINITY) {
                         // Need to schedule onset of loss of protection
-                        environment.addPlan(new VaccineProtectionTogglePlan(personId),
+                        environment.addPlan(new VaccineProtectionTogglePlan(personId.get()),
                                 environment.getTime() + vaccineEffectivenessDuration);
                     }
                 }

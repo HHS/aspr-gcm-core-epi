@@ -20,6 +20,7 @@ import gcm.simulation.Environment;
 import gcm.simulation.Plan;
 import gcm.simulation.partition.LabelSet;
 import gcm.simulation.partition.Partition;
+import gcm.simulation.partition.PartitionSampler;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.BinomialDistribution;
 import org.apache.commons.math3.util.Pair;
@@ -226,10 +227,12 @@ public class PopulationLoader extends AbstractComponent {
                         .forEach(
                                 i -> {
                                     Optional<PersonId> targetPersonId = environment.samplePartition(
-                                            initialInfectionPartitionKey, LabelSet.create()
-                                                    .region(key)
-                                                    // Only use those in the susceptible compartment
-                                                    .compartment(true), RandomId.INITIAL_INFECTIONS);
+                                            initialInfectionPartitionKey, PartitionSampler.create()
+                                                    .labelSet(LabelSet.create()
+                                                            .region(key)
+                                                            // Only use those in the susceptible compartment
+                                                            .compartment(true))
+                                                    .generator(RandomId.INITIAL_INFECTIONS));
                                     // Will only infect if there are susceptible people that remain
                                     targetPersonId.ifPresent(personId -> {
                                                 environment.setPersonCompartment(personId, Compartment.INFECTED);

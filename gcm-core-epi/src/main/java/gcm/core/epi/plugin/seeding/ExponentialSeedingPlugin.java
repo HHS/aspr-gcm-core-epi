@@ -15,6 +15,7 @@ import gcm.simulation.Environment;
 import gcm.simulation.Plan;
 import gcm.simulation.partition.LabelSet;
 import gcm.simulation.partition.Partition;
+import gcm.simulation.partition.PartitionSampler;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 
 import java.util.*;
@@ -128,9 +129,9 @@ public class ExponentialSeedingPlugin implements Plugin {
             } else if (plan.getClass() == SeedingPlan.class) {
                 // Pick random person to infect
                 SeedingPlan seedingPlan = (SeedingPlan) plan;
-                Optional<PersonId> personId = environment.samplePartition(SEEDING_PARTITION_KEY,
-                        LabelSet.create().region(seedingPlan.fipsCode),
-                        ExponentialSeedingRandomId.ID);
+                Optional<PersonId> personId = environment.samplePartition(SEEDING_PARTITION_KEY, PartitionSampler.create()
+                        .labelSet(LabelSet.create().region(seedingPlan.fipsCode))
+                        .generator(ExponentialSeedingRandomId.ID));
                 if (personId.isPresent()) {
                     Compartment compartment = environment.getPersonCompartment(personId.get());
                     if (compartment.equals(Compartment.SUSCEPTIBLE)) {

@@ -19,6 +19,7 @@ import gcm.simulation.Environment;
 import gcm.simulation.Plan;
 import gcm.simulation.partition.LabelSet;
 import gcm.simulation.partition.Partition;
+import gcm.simulation.partition.PartitionSampler;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.util.Pair;
@@ -66,31 +67,23 @@ public class ContactManager extends AbstractComponent {
                     environment.getPersonPropertyValue(sourcePersonId, PersonProperty.AGE_GROUP_INDEX));
             Map<AgeGroup, Double> ageGroupSelectionWeights = biWeightingFunctionMap.get(sourceAgeGroup);
 
-            List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-            // Get targets
-            List<Pair<AgeGroup, Double>> ageGroupTargetWeights = ageGroups
-                    .stream()
-                    .map(ageGroup -> new Pair<>(ageGroup,
-                            (double) environment.getPartitionSize(RADIATION_MODEL_PARTITION_KEY, LabelSet.create()
-                                    .region(targetRegionId)
-                                    .property(PersonProperty.AGE_GROUP_INDEX, ageGroup)) *
-                                    ageGroupSelectionWeights.getOrDefault(ageGroup, 0.0)))
-                    .collect(Collectors.toList());
-
-            EnumeratedDistribution<AgeGroup> ageGroupDistribution =
-                    new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(randomId),
-                            ageGroupTargetWeights);
-            AgeGroup targetAgeGroup = ageGroupDistribution.sample();
-
-            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY, LabelSet.create()
-                            .region(targetRegionId)
-                            .property(PersonProperty.AGE_GROUP_INDEX, targetAgeGroup),
-                    RandomId.CONTACT_MANAGER,
-                    sourcePersonId);
+            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY,
+                    PartitionSampler.create()
+                            .labelSet(LabelSet.create().region(targetRegionId))
+                            .labelWeight((observableEnvironment, labelSetInfo) -> {
+                                // We know this labelSetInfo will have a label for this person property
+                                //noinspection OptionalGetWithoutIsPresent
+                                AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
+                                return ageGroupSelectionWeights.get(ageGroup);
+                            })
+                            .generator(RandomId.CONTACT_MANAGER)
+                            .excludePerson(sourcePersonId));
 
         } else {
-            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY, LabelSet.create().region(targetRegionId),
-                    RandomId.CONTACT_MANAGER, sourcePersonId);
+            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY, PartitionSampler.create()
+                    .labelSet(LabelSet.create().region(targetRegionId))
+                    .generator(RandomId.CONTACT_MANAGER)
+                    .excludePerson(sourcePersonId));
         }
     }
 
@@ -345,10 +338,6 @@ public class ContactManager extends AbstractComponent {
          */
         InfectiousContactPlan infectiousContactPlan = (InfectiousContactPlan) plan;
         PersonId sourcePersonId = infectiousContactPlan.sourcePersonId;
-
-//        if (sourcePersonId.getValue() == 12602489) {
-//            System.out.println("Here");
-//        }
 
         double transmissionRatio = getTransmissionRatio(environment, sourcePersonId);
 
