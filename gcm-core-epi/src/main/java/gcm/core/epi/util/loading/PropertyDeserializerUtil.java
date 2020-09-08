@@ -7,6 +7,7 @@ import gcm.core.epi.plugin.behavior.*;
 import gcm.core.epi.plugin.vaccine.resourcebased.ResourceBasedVaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.propertytypes.FipsCodeDouble;
+import gcm.core.epi.propertytypes.FipsCodeValue;
 import gcm.core.epi.util.property.DefinedProperty;
 
 import java.util.HashMap;
@@ -50,7 +51,7 @@ public class PropertyDeserializerUtil {
         // Telework
         propertyDeserializers.put(
                 TeleworkBehaviorPlugin.TeleworkGlobalAndRegionProperty.WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS,
-                new PropertyDeserializer(new TypeReference<Map<ContactGroupType, Double>>() {
+                new PropertyDeserializer(new TypeReference<FipsCodeValue<Map<ContactGroupType, Double>>>() {
                 }));
         propertyDeserializers.put(
                 TeleworkBehaviorPlugin.TeleworkGlobalProperty.TELEWORK_TRIGGER_OVERRIDES,
@@ -77,7 +78,7 @@ public class PropertyDeserializerUtil {
         // Location Infection Reduction
         propertyDeserializers.put(
                 LocationInfectionReductionPlugin.LocationInfectionReductionGlobalAndRegionProperty.LOCATION_INFECTION_REDUCTION,
-                new PropertyDeserializer(new TypeReference<Map<AgeGroup, Map<ContactGroupType, Double>>>() {
+                new PropertyDeserializer(new TypeReference<FipsCodeValue<Map<AgeGroup, Map<ContactGroupType, Double>>>>() {
                 }));
         propertyDeserializers.put(
                 LocationInfectionReductionPlugin.LocationInfectionReductionGlobalProperty.LOCATION_INFECTION_REDUCTION_TRIGGER_OVERRIDES,
