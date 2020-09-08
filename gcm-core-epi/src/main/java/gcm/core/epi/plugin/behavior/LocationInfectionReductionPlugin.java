@@ -3,6 +3,8 @@ package gcm.core.epi.plugin.behavior;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.Util;
+import gcm.core.epi.propertytypes.FipsCodeValue;
+import gcm.core.epi.propertytypes.ImmutableFipsCodeValue;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.DefinedGlobalAndRegionProperty;
@@ -119,16 +121,21 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
 
     }
 
-    public enum LocationInfectionReductionGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
+    public enum LocationInfectionReductionGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty, DefinedRegionProperty {
 
         LOCATION_INFECTION_REDUCTION(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(new HashMap<AgeGroup, Map<ContactGroupType, Double>>())
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build());
+                .setType(FipsCodeValue.class)
+                .setDefaultValue(ImmutableFipsCodeValue.builder()
+                        .defaultValue(new HashMap<AgeGroup, Map<ContactGroupType, Double>>()).build())
+                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build(),
+                LocationInfectionReductionRegionProperty.LOCATION_INFECTION_REDUCTION);
 
         private final PropertyDefinition propertyDefinition;
+        private final DefinedRegionProperty regionProperty;
 
-        LocationInfectionReductionGlobalAndRegionProperty(PropertyDefinition propertyDefinition) {
+        LocationInfectionReductionGlobalAndRegionProperty(PropertyDefinition propertyDefinition, DefinedRegionProperty regionProperty) {
             this.propertyDefinition = propertyDefinition;
+            this.regionProperty = regionProperty;
         }
 
         @Override
@@ -141,9 +148,18 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
             return true;
         }
 
+        @Override
+        public DefinedRegionProperty getRegionProperty() {
+            // TODO
+            return null;
+        }
     }
 
     public enum LocationInfectionReductionRegionProperty implements DefinedRegionProperty {
+
+        LOCATION_INFECTION_REDUCTION(PropertyDefinition.builder()
+                .setType(Map.class).setDefaultValue(new HashMap<AgeGroup, Map<ContactGroupType, Double>>())
+                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
         LOCATION_INFECTION_REDUCTION_TRIGGER_START(PropertyDefinition.builder()
                 .setType(Boolean.class).setDefaultValue(false)

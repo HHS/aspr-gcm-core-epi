@@ -142,7 +142,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
     public enum ContactTracingGlobalProperty implements DefinedGlobalProperty {
 
         MAXIMUM_INFECTIONS_TO_TRACE(PropertyDefinition.builder()
-                .setType(FipsCodeValues.class).setDefaultValue(ImmutableFipsCodeValues.builder().build())
+                .setType(FipsCodeDouble.class).setDefaultValue(ImmutableFipsCodeDouble.builder().build())
                 .setPropertyValueMutability(false).build()),
 
         CURRENT_INFECTIONS_BEING_TRACED(PropertyDefinition.builder()
@@ -222,7 +222,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
         @Override
         public void init(Environment environment) {
             // Get maximum number of infections that can be traced
-            FipsCodeValues maximumInfectionsToTraceFromProperty = environment.getGlobalPropertyValue(
+            FipsCodeDouble maximumInfectionsToTraceFromProperty = environment.getGlobalPropertyValue(
                     ContactTracingGlobalProperty.MAXIMUM_INFECTIONS_TO_TRACE);
             maximumInfectionsToTrace.putAll(maximumInfectionsToTraceFromProperty.getFipsCodeValues(environment));
             scope = maximumInfectionsToTraceFromProperty.scope();

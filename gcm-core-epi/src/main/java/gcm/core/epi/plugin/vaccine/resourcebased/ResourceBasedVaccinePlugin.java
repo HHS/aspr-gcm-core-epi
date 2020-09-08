@@ -116,13 +116,13 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 .setDefaultValue(ImmutableEffectivenessFunction.builder().build()).build()),
 
         VACCINE_DELIVERIES(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(new HashMap<Double, FipsCodeValues>()).build()),
+                .setType(Map.class).setDefaultValue(new HashMap<Double, FipsCodeDouble>()).build()),
 
         VACCINATION_START_DAY(PropertyDefinition.builder()
                 .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
 
         VACCINATION_RATE_PER_DAY(PropertyDefinition.builder()
-                .setType(FipsCodeValues.class).setDefaultValue(ImmutableFipsCodeValues.builder().build())
+                .setType(FipsCodeDouble.class).setDefaultValue(ImmutableFipsCodeDouble.builder().build())
                 .setPropertyValueMutability(false).build()),
 
         VACCINE_UPTAKE_WEIGHTS(PropertyDefinition.builder()
@@ -194,7 +194,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         public void init(final Environment environment) {
 
             // Determine if we are vaccinating and if so set up plans and distributions
-            final FipsCodeValues vaccinationRatePerDayFipsCodeValues = environment.getGlobalPropertyValue(
+            final FipsCodeDouble vaccinationRatePerDayFipsCodeValues = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
             Map<FipsCode, Double> vaccinationRatePerDayByFipsCode = vaccinationRatePerDayFipsCodeValues.getFipsCodeValues(environment);
             fipsCodeRegionMap = vaccinationRatePerDayFipsCodeValues.scope().getFipsCodeRegionMap(environment);
@@ -232,9 +232,9 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                         VACCINE_PARTITION_KEY);
 
                 // Schedule vaccine deliveries
-                Map<Double, FipsCodeValues> vaccineDeliveries = environment.getGlobalPropertyValue(
+                Map<Double, FipsCodeDouble> vaccineDeliveries = environment.getGlobalPropertyValue(
                         VaccineGlobalProperty.VACCINE_DELIVERIES);
-                for (Map.Entry<Double, FipsCodeValues> entry : vaccineDeliveries.entrySet()) {
+                for (Map.Entry<Double, FipsCodeDouble> entry : vaccineDeliveries.entrySet()) {
                     environment.addPlan(new VaccineDeliveryPlan(entry.getValue()), entry.getKey());
                 }
 
@@ -248,7 +248,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
              * already started vaccinating because we only start observing arrivals
              * after vaccination has begun
              */
-            FipsCodeValues vaccinationRatePerDay = environment.getGlobalPropertyValue(
+            FipsCodeDouble vaccinationRatePerDay = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
             RegionId regionId = environment.getPersonRegion(personId);
             FipsCode fipsCode = vaccinationRatePerDay.scope().getFipsSubCode(regionId);
@@ -268,9 +268,9 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 // VaccinationPlan means we should vaccinate a random person and schedule the next vaccination
                 vaccinateAndScheduleNext(environment, ((VaccinationPlan) plan).fipsCode);
             } else if (plan.getClass() == VaccineDeliveryPlan.class) {
-                FipsCodeValues dosesFipsCodeValues = ((VaccineDeliveryPlan) plan).doses;
+                FipsCodeDouble dosesFipsCodeValues = ((VaccineDeliveryPlan) plan).doses;
                 Map<FipsCode, Double> dosesByFipsCode = dosesFipsCodeValues.getFipsCodeValues(environment);
-                FipsCodeValues vaccinationRatePerDay = environment.getGlobalPropertyValue(
+                FipsCodeDouble vaccinationRatePerDay = environment.getGlobalPropertyValue(
                         VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
                 final Set<FipsCode> fipsCodesToRestartVaccination = new HashSet<>();
                 dosesByFipsCode.forEach(
@@ -375,9 +375,9 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
          */
         private static class VaccineDeliveryPlan implements Plan {
 
-            final FipsCodeValues doses;
+            final FipsCodeDouble doses;
 
-            private VaccineDeliveryPlan(FipsCodeValues doses) {
+            private VaccineDeliveryPlan(FipsCodeDouble doses) {
                 this.doses = doses;
             }
 

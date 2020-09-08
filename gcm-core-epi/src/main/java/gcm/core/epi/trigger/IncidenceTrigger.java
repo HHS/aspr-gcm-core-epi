@@ -5,7 +5,7 @@ import gcm.components.Component;
 import gcm.core.epi.components.trigger.IncidenceTriggerComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.population.PopulationDescription;
-import gcm.core.epi.propertytypes.AbstractFipsCodeValues;
+import gcm.core.epi.propertytypes.AbstractFipsCodeDouble;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsScope;
 import gcm.scenario.RegionId;
@@ -21,7 +21,7 @@ import static java.util.stream.Collectors.toMap;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableIncidenceTrigger.class)
-public abstract class IncidenceTrigger extends AbstractFipsCodeValues implements Trigger {
+public abstract class IncidenceTrigger extends AbstractFipsCodeDouble implements Trigger {
 
     @Value.Default
     public FipsScope scope() {

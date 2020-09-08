@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonDeserialize(as = ImmutableFipsCodeValues.class)
-public abstract class FipsCodeValues extends AbstractFipsCodeValues {
+@JsonDeserialize(as = ImmutableFipsCodeDouble.class)
+public abstract class FipsCodeDouble extends AbstractFipsCodeDouble {
     // Body is in AbstractFipsCodeValues
 }

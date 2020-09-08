@@ -6,6 +6,7 @@ import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.PopulationDescription;
+import gcm.core.epi.propertytypes.FipsCodeValue;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.loading.CoreEpiBootstrapUtil;
@@ -26,12 +27,11 @@ public abstract class BehaviorPlugin implements Plugin {
         Get the regional value of a global property with a potential regional triggered override
      */
     static <T> T getRegionalPropertyValue(Environment environment, RegionId regionId, DefinedGlobalAndRegionProperty propertyId) {
-        T regionPropertyValue = environment.getRegionPropertyValue(regionId, propertyId);
-        //noinspection OptionalGetWithoutIsPresent
-        if (regionPropertyValue.equals(environment.getRegionPropertyDefinition(propertyId).getDefaultValue().get())) {
-            return environment.getGlobalPropertyValue(propertyId);
+        if (environment.getRegionPropertyTime(regionId, propertyId.getRegionProperty()) > 0) {
+            return environment.getRegionPropertyValue(regionId, propertyId.getRegionProperty());
         } else {
-            return regionPropertyValue;
+            FipsCodeValue<T> globalPropertyValue = environment.getGlobalPropertyValue(propertyId);
+            return globalPropertyValue.getValue(regionId);
         }
     }
 
@@ -51,7 +51,7 @@ public abstract class BehaviorPlugin implements Plugin {
                             Objects::toString,
                             Function.identity()
                     ));
-            final Map<DefinedGlobalAndRegionProperty, Object> overrideValues = new HashMap<>();
+            final Map<DefinedGlobalAndRegionProperty, FipsCodeValue<Object>> overrideValues = new HashMap<>();
             PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
             AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
             propertyOverrides.forEach(
@@ -61,7 +61,8 @@ public abstract class BehaviorPlugin implements Plugin {
                             throw new RuntimeException("Unrecognized property for triggered parameter override: " + propertyId);
                         }
                         try {
-                            Object overrideValue = CoreEpiBootstrapUtil.getPropertyValueFromJson(valueJson,
+                            // We know the property has type FipsCodeValue<T>
+                            FipsCodeValue<Object> overrideValue = (FipsCodeValue<Object>) CoreEpiBootstrapUtil.getPropertyValueFromJson(valueJson,
                                     property, ageGroupPartition);
                             overrideValues.put(property, overrideValue);
                         } catch (IOException e) {
@@ -73,7 +74,7 @@ public abstract class BehaviorPlugin implements Plugin {
                     (env, regionId) -> {
                         // Override each value
                         overrideValues.forEach(
-                                (property, overrideValue) -> env.setRegionPropertyValue(regionId, property, overrideValue)
+                                (property, overrideValue) -> env.setRegionPropertyValue(regionId, property.getRegionProperty(), overrideValue.getValue(regionId))
                         );
                     });
         }

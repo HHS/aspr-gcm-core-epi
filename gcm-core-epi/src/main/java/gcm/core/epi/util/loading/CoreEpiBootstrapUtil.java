@@ -1,6 +1,5 @@
 package gcm.core.epi.util.loading;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -15,11 +14,10 @@ import gcm.core.epi.Runner;
 import gcm.core.epi.identifiers.*;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.population.*;
+import gcm.core.epi.propertytypes.FipsCode;
+import gcm.core.epi.propertytypes.FipsCodeDouble;
 import gcm.core.epi.reports.CustomReport;
-import gcm.core.epi.util.property.DefinedGlobalProperty;
-import gcm.core.epi.util.property.DefinedProperty;
-import gcm.core.epi.util.property.PropertyGroup;
-import gcm.core.epi.util.property.PropertyGroupSpecification;
+import gcm.core.epi.util.property.*;
 import gcm.experiment.ExperimentExecutor;
 import gcm.scenario.*;
 import org.apache.commons.math3.util.Pair;
@@ -348,10 +346,15 @@ public class CoreEpiBootstrapUtil {
             List<JsonNode> externalPropertyNodeList = configuration.scenarios().get(propertyName);
             if (externalPropertyNodeList != null) {
                 for (JsonNode jsonNode : externalPropertyNodeList) {
-                    final Object propertyValue = parseJsonInput(objectMapper, jsonNode, inputPath, propertyName,
-                            externalGlobalProperties.get(propertyName).getPropertyDefinition().getType(),
+                    final GlobalPropertyParsingResult result = parseJsonInput(objectMapper, jsonNode, inputPath, definedGlobalProperty,
                             ageGroupPartition);
-                    experimentBuilder.addGlobalPropertyValue(definedGlobalProperty, propertyValue);
+                    if (result.getType() == GlobalPropertyParsingResult.Type.GLOBAL) {
+                        experimentBuilder.addGlobalPropertyValue(definedGlobalProperty, result.getValue());
+                    } else {
+                        // GLOBAL_AND_REGIONAL
+                        FipsCodeDouble fipsCodeDouble = (FipsCodeDouble) result.getValue();
+                    }
+
 //                    if (definedGlobalProperty.equals(GlobalProperty.POPULATION_DESCRIPTION)) {
 //                        experimentBuilder.addSuggestedPopulationSize(
 //                                ((PopulationDescription) propertyValue).dataByPersonId().size());
@@ -410,54 +413,83 @@ public class CoreEpiBootstrapUtil {
      * @param objectMapper      The ObjectMapper used to perform the parsing
      * @param jsonNode          The JSON node of the input file representing the input parameter value
      * @param basePath          The path used for resolving file locations in input parameter strings
-     * @param propertyName      The string name of the parameter used for exception messages
-     * @param classType         The parameter value type
+     * @param property          The DefinedProperty that is to be parsed from the input string
      * @param ageGroupPartition The AgeGroupPartition that is being used for all simulations in this experiment
      * @return The parsed value of the parameter
      * @throws IOException When there is an exception reading from any input file
      */
-    private static Object parseJsonInput(ObjectMapper objectMapper, JsonNode jsonNode,
-                                         Path basePath, String propertyName,
-                                         Class<?> classType, AgeGroupPartition ageGroupPartition) throws IOException {
+    private static GlobalPropertyParsingResult parseJsonInput(ObjectMapper objectMapper, JsonNode jsonNode,
+                                                              Path basePath, DefinedProperty property,
+                                                              AgeGroupPartition ageGroupPartition) throws IOException {
         /*
             First try to convert the jsonNode to the parameter value in question.
             Next, see if it can be interpreted as a string YAML file, and then load from Immutables
             If that fails, try a specialty loader (generally presuming the input is a file/directory)
             Otherwise, throw an exception
          */
-        try {
-            // First try to convert the propertyValue to the object in question
-            Optional<PropertyDeserializer> propertyDeserializer = PropertyDeserializerUtil.getPropertyDeserializer(propertyName);
-            if (propertyDeserializer.isPresent()) {
-                return objectMapper.readValue(objectMapper.treeAsTokens(jsonNode),
-                        propertyDeserializer.get().getTypeReference());
-            } else {
-                return objectMapper.treeToValue(jsonNode, classType);
-            }
+        List<CheckedSupplier<GlobalPropertyParsingResult>> parsingMethods = new ArrayList<>();
 
-        } catch (JsonProcessingException e) {
-            final Object basePropertyValue = objectMapper.treeToValue(jsonNode, Object.class);
-            if (String.class.isAssignableFrom(basePropertyValue.getClass())) {
-                String stringPathForLoading = (String) basePropertyValue;
-                if (stringPathForLoading.endsWith(".yaml")) {
-                    // Load from YAML file via Immutables
-                    logger.info(propertyName + ": loading from file " + stringPathForLoading);
-                    return objectMapper.readValue(
-                            basePath.resolve(stringPathForLoading).toFile(), classType);
-                } else {
-                    // Look for specialty loader
-                    if (propertyName.equals(GlobalProperty.POPULATION_DESCRIPTION.toString())) {
-                        logger.info(propertyName + ": loading from file " + stringPathForLoading);
-                        Path pathForLoading = basePath.resolve(stringPathForLoading);
-                        if (pathForLoading.toFile().isFile()) {
-                            return loadPopulationDescriptionFromFile(pathForLoading, ageGroupPartition);
-                        } else {
-                            return loadPopulationDescriptionFromDirectory(pathForLoading, ageGroupPartition);
-                        }
+        parsingMethods.add(() -> new GlobalPropertyParsingResult(
+                getPropertyValueFromJson(objectMapper, jsonNode, property),
+                GlobalPropertyParsingResult.Type.GLOBAL
+        ));
+
+        // Handle Global/Regional properties with Double values that can be specified by FipsCodeValues
+        if (property instanceof DefinedGlobalAndRegionProperty &
+                property.getPropertyDefinition().getType().equals(Double.class)) {
+            parsingMethods.add(() -> new GlobalPropertyParsingResult(
+                    objectMapper.readerFor(FipsCodeDouble.class).readValue(jsonNode),
+                    GlobalPropertyParsingResult.Type.GLOBAL_AND_REGIONAL
+            ));
+        }
+
+        final Object basePropertyValue = objectMapper.treeToValue(jsonNode, Object.class);
+        if (String.class.isAssignableFrom(basePropertyValue.getClass())) {
+            String stringPathForLoading = (String) basePropertyValue;
+            if (stringPathForLoading.endsWith(".yaml")) {
+                // Load from YAML file via Immutables
+                logger.info(property + ": loading from file " + stringPathForLoading);
+                parsingMethods.add(() -> new GlobalPropertyParsingResult(
+                        objectMapper.readValue(basePath.resolve(stringPathForLoading).toFile(),
+                                property.getPropertyDefinition().getType()),
+                        GlobalPropertyParsingResult.Type.GLOBAL));
+            } else {
+                // Look for specialty loader
+                if (property.equals(GlobalProperty.POPULATION_DESCRIPTION)) {
+                    logger.info(property + ": loading from file " + stringPathForLoading);
+                    Path pathForLoading = basePath.resolve(stringPathForLoading);
+                    if (pathForLoading.toFile().isFile()) {
+                        parsingMethods.add(() -> new GlobalPropertyParsingResult(
+                                loadPopulationDescriptionFromFile(pathForLoading, ageGroupPartition),
+                                GlobalPropertyParsingResult.Type.GLOBAL));
+                    } else {
+                        parsingMethods.add(() -> new GlobalPropertyParsingResult(
+                                loadPopulationDescriptionFromDirectory(pathForLoading, ageGroupPartition),
+                                GlobalPropertyParsingResult.Type.GLOBAL));
                     }
                 }
             }
-            throw new RuntimeException("Cannot parse " + propertyName + " from input " + basePropertyValue);
+        }
+
+        for (CheckedSupplier<GlobalPropertyParsingResult> checkedSupplier : parsingMethods) {
+            try {
+                return checkedSupplier.get();
+            } catch (IOException e) {
+                // Try next parsing method
+            }
+        }
+        throw new RuntimeException("Cannot parse " + property + " from input " + basePropertyValue);
+    }
+
+    private static Object getPropertyValueFromJson(ObjectMapper objectMapper, JsonNode jsonNode,
+                                                   DefinedProperty property) throws IOException {
+        Class<?> propertyType = property.getPropertyDefinition().getType();
+        Optional<PropertyDeserializer> propertyDeserializer = PropertyDeserializerUtil.getPropertyDeserializer(property);
+        if (propertyDeserializer.isPresent()) {
+            return objectMapper.readValue(objectMapper.treeAsTokens(jsonNode),
+                    propertyDeserializer.get().getTypeReference());
+        } else {
+            return objectMapper.treeToValue(jsonNode, propertyType);
         }
     }
 
@@ -465,20 +497,12 @@ public class CoreEpiBootstrapUtil {
                                                   AgeGroupPartition ageGroupPartition) throws IOException {
         SimpleModule deserializationModule = new SimpleModule();
         deserializationModule.addKeyDeserializer(AgeGroup.class, new AgeGroupStringMapDeserializer(ageGroupPartition));
+        deserializationModule.addKeyDeserializer(FipsCode.class, new FipsCodeStringMapDeserializer());
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory())
                 .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
                 .registerModule(new Jdk8Module())
                 .registerModule(deserializationModule);
-
-        String propertyName = property.toString();
-        Class<?> propertyType = property.getPropertyDefinition().getType();
-        Optional<PropertyDeserializer> propertyDeserializer = PropertyDeserializerUtil.getPropertyDeserializer(propertyName);
-        if (propertyDeserializer.isPresent()) {
-            return objectMapper.readValue(objectMapper.treeAsTokens(jsonNode),
-                    propertyDeserializer.get().getTypeReference());
-        } else {
-            return objectMapper.treeToValue(jsonNode, propertyType);
-        }
+        return getPropertyValueFromJson(objectMapper, jsonNode, property);
     }
 
     public static List<RegionFileRecord> loadRegionsFromFile(Path file) {
@@ -529,5 +553,40 @@ public class CoreEpiBootstrapUtil {
                 throw new IllegalArgumentException("Unknown report type in configuration: " + report);
             }
         }
+    }
+
+    @FunctionalInterface
+    public interface CheckedSupplier<T> {
+        T get() throws IOException;
+    }
+
+    /*
+        Represents the result of an attempt to parse a global property
+            GLOBAL type connotes that the property value can be used as-is
+            GLOBAL_AND_REGIONAL type indicates that the property must be loaded for both global and regional property values
+     */
+    private static class GlobalPropertyParsingResult {
+
+        private final Object value;
+        private final Type type;
+
+        private GlobalPropertyParsingResult(Object value, Type type) {
+            this.value = value;
+            this.type = type;
+        }
+
+        public Object getValue() {
+            return value;
+        }
+
+        public Type getType() {
+            return type;
+        }
+
+        enum Type {
+            GLOBAL,
+            GLOBAL_AND_REGIONAL
+        }
+
     }
 }

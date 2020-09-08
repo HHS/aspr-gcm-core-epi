@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 import static java.util.stream.Collectors.summingLong;
 import static java.util.stream.Collectors.toMap;
 
-public abstract class AbstractFipsCodeValues {
+public abstract class AbstractFipsCodeDouble {
 
     @Value.Default
     public FipsScope scope() {

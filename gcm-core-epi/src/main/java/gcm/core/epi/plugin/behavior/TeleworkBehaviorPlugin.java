@@ -2,6 +2,8 @@ package gcm.core.epi.plugin.behavior;
 
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.ContactGroupType;
+import gcm.core.epi.propertytypes.FipsCodeValue;
+import gcm.core.epi.propertytypes.ImmutableFipsCodeValue;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.*;
@@ -97,9 +99,10 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
 
     @Override
     public Set<DefinedRegionProperty> getRegionProperties() {
-        Set<DefinedRegionProperty> regionProperties = new HashSet<>();
-        regionProperties.addAll(EnumSet.allOf(TeleworkRegionProperty.class));
-        regionProperties.addAll(EnumSet.allOf(TeleworkGlobalAndRegionProperty.class));
+        Set<DefinedRegionProperty> regionProperties = new HashSet<>(EnumSet.allOf(TeleworkRegionProperty.class));
+        for (DefinedGlobalAndRegionProperty property : TeleworkGlobalAndRegionProperty.values()) {
+            regionProperties.add(property.getRegionProperty());
+        }
         return regionProperties;
     }
 
@@ -220,22 +223,33 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
     public enum TeleworkGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
 
         FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).build()),
+                .setType(FipsCodeValue.class)
+                .setDefaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
+                TeleworkRegionProperty.FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES),
 
         FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).build()),
+                .setType(FipsCodeValue.class)
+                .setDefaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
+                TeleworkRegionProperty.FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE),
 
         TELEWORK_TIME_FRACTION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).build()),
+                .setType(FipsCodeValue.class)
+                .setDefaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
+                TeleworkRegionProperty.TELEWORK_TIME_FRACTION),
 
         WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(getDefaultContactSubstitutionWeights())
-                .setPropertyValueMutability(false).build());
+                .setType(FipsCodeValue.class)
+                .setDefaultValue(ImmutableFipsCodeValue.builder()
+                        .defaultValue(getDefaultContactSubstitutionWeights()).build())
+                .setPropertyValueMutability(false).build(),
+                TeleworkRegionProperty.WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS);
 
         private final PropertyDefinition propertyDefinition;
+        private final DefinedRegionProperty regionProperty;
 
-        TeleworkGlobalAndRegionProperty(PropertyDefinition propertyDefinition) {
+        TeleworkGlobalAndRegionProperty(PropertyDefinition propertyDefinition, DefinedRegionProperty regionProperty) {
             this.propertyDefinition = propertyDefinition;
+            this.regionProperty = regionProperty;
         }
 
         private static Map<ContactGroupType, Double> getDefaultContactSubstitutionWeights() {
@@ -255,6 +269,11 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
             return true;
         }
 
+        @Override
+        public DefinedRegionProperty getRegionProperty() {
+            return regionProperty;
+        }
+
     }
 
     public enum TeleworkRegionProperty implements DefinedRegionProperty {
@@ -265,12 +284,32 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
 
         TELEWORK_TRIGGER_END(PropertyDefinition.builder()
                 .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build());
+                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+
+        FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES(PropertyDefinition.builder()
+                .setType(Double.class).setDefaultValue(0.0).build()),
+
+        FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE(PropertyDefinition.builder()
+                .setType(Double.class).setDefaultValue(0.0).build()),
+
+        TELEWORK_TIME_FRACTION(PropertyDefinition.builder()
+                .setType(Double.class).setDefaultValue(0.0).build()),
+
+        WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS(PropertyDefinition.builder()
+                .setType(Map.class).setDefaultValue(getDefaultContactSubstitutionWeights())
+                .setPropertyValueMutability(false).build());
 
         private final PropertyDefinition propertyDefinition;
 
         TeleworkRegionProperty(PropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
+        }
+
+        private static Map<ContactGroupType, Double> getDefaultContactSubstitutionWeights() {
+            Map<ContactGroupType, Double> weights = new EnumMap<>(ContactGroupType.class);
+            weights.put(ContactGroupType.HOME, 0.95);
+            weights.put(ContactGroupType.GLOBAL, 0.05);
+            return weights;
         }
 
         @Override

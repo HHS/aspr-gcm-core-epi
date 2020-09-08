@@ -6,8 +6,8 @@ import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.propertytypes.FipsCode;
-import gcm.core.epi.propertytypes.FipsCodeValues;
-import gcm.core.epi.propertytypes.ImmutableFipsCodeValues;
+import gcm.core.epi.propertytypes.FipsCodeDouble;
+import gcm.core.epi.propertytypes.ImmutableFipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.scenario.*;
@@ -56,8 +56,8 @@ public class ExponentialSeedingPlugin implements Plugin {
                 .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
 
         INITIAL_SEEDING_RATE_PER_DAY(PropertyDefinition.builder()
-                .setType(FipsCodeValues.class).setDefaultValue(
-                        ImmutableFipsCodeValues.builder().build())
+                .setType(FipsCodeDouble.class).setDefaultValue(
+                        ImmutableFipsCodeDouble.builder().build())
                 .setPropertyValueMutability(false).build()),
 
         SEEDING_GROWTH_DOUBLING_TIME(PropertyDefinition.builder()
@@ -104,7 +104,7 @@ public class ExponentialSeedingPlugin implements Plugin {
         @Override
         public void executePlan(Environment environment, Plan plan) {
             if (plan.getClass() == StartSeedingPlan.class) {
-                FipsCodeValues seedingRateSpecification = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.INITIAL_SEEDING_RATE_PER_DAY);
+                FipsCodeDouble seedingRateSpecification = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.INITIAL_SEEDING_RATE_PER_DAY);
 
                 // Create partition TODO: Could be redundant with ContactManager
                 environment.addPopulationPartition(Partition.create()
