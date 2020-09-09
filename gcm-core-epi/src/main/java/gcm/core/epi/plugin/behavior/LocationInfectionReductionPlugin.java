@@ -57,9 +57,10 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
 
     @Override
     public Set<DefinedRegionProperty> getRegionProperties() {
-        HashSet<DefinedRegionProperty> regionProperties = new HashSet<>();
-        regionProperties.addAll(EnumSet.allOf(LocationInfectionReductionRegionProperty.class));
-        regionProperties.addAll(EnumSet.allOf(LocationInfectionReductionGlobalAndRegionProperty.class));
+        HashSet<DefinedRegionProperty> regionProperties = new HashSet<>(EnumSet.allOf(LocationInfectionReductionRegionProperty.class));
+        for (DefinedGlobalAndRegionProperty property : LocationInfectionReductionGlobalAndRegionProperty.values()) {
+            regionProperties.add(property.getRegionProperty());
+        }
         return regionProperties;
     }
 
@@ -121,7 +122,7 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
 
     }
 
-    public enum LocationInfectionReductionGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty, DefinedRegionProperty {
+    public enum LocationInfectionReductionGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
 
         LOCATION_INFECTION_REDUCTION(PropertyDefinition.builder()
                 .setType(FipsCodeValue.class)
@@ -150,8 +151,7 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
 
         @Override
         public DefinedRegionProperty getRegionProperty() {
-            // TODO
-            return null;
+            return regionProperty;
         }
     }
 
