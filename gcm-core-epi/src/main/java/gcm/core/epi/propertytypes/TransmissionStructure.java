@@ -7,10 +7,11 @@ import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.PopulationDescription;
-import gcm.simulation.BiWeightingFunction;
+import gcm.simulation.group.GroupWeightingFunction;
 import org.immutables.value.Value;
 
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -53,31 +54,32 @@ public abstract class TransmissionStructure {
     public abstract Map<AgeGroup, Map<ContactGroupType, Double>> contactGroupSelectionWeightsMap();
 
     /*
-        Provides the bi-weighting function used for biased selection of contacts from a given group type for
-            transmission events
+        Provides the weighting function used for biased selection of contacts from a given group type for
+        transmission events
      */
     @Value.Derived
-    public Map<ContactGroupType, BiWeightingFunction> groupBiWeightingFunctions() {
-        Map<ContactGroupType, BiWeightingFunction> groupBiWeightingFunctions =
+    public Map<ContactGroupType, Map<AgeGroup, GroupWeightingFunction>> groupWeightingFunctions() {
+        Map<ContactGroupType, Map<AgeGroup, GroupWeightingFunction>> groupWeightingFunctionsMap =
                 new EnumMap<>(ContactGroupType.class);
 
-        for (Map.Entry<ContactGroupType, Map<AgeGroup, Map<AgeGroup, Double>>> entry :
+        for (Map.Entry<ContactGroupType, Map<AgeGroup, Map<AgeGroup, Double>>> entryForContactGroup :
                 groupBiWeightingFunctionsMap().entrySet()) {
-            groupBiWeightingFunctions.put(entry.getKey(),
-                    (environment, sourceId, targetId, groupId) -> {
-                        PopulationDescription populationDescription = environment.getGlobalPropertyValue(
-                                GlobalProperty.POPULATION_DESCRIPTION);
-                        AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
-                        AgeGroup sourceAgeGroup = ageGroupPartition.getAgeGroupFromIndex(
-                                environment.getPersonPropertyValue(sourceId, PersonProperty.AGE_GROUP_INDEX));
-                        AgeGroup targetAgeGroup = ageGroupPartition.getAgeGroupFromIndex(
-                                environment.getPersonPropertyValue(targetId, PersonProperty.AGE_GROUP_INDEX));
-                        // TODO: Need to handle the possibility the source age group doesn't exist in the map
-                        return entry.getValue().get(sourceAgeGroup).getOrDefault(targetAgeGroup, 0.0);
-                    });
+            Map<AgeGroup, GroupWeightingFunction> groupWeightingFunctionMap = groupWeightingFunctionsMap
+                    .computeIfAbsent(entryForContactGroup.getKey(), x -> new HashMap<>());
+            for (Map.Entry<AgeGroup, Map<AgeGroup, Double>> entryForAgeGroup : entryForContactGroup.getValue().entrySet()) {
+                groupWeightingFunctionMap.put(entryForAgeGroup.getKey(),
+                        (environment, personId, groupId) -> {
+                            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+                                    GlobalProperty.POPULATION_DESCRIPTION);
+                            AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
+                            AgeGroup ageGroup = ageGroupPartition.getAgeGroupFromIndex(
+                                    environment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX));
+                            return entryForAgeGroup.getValue().getOrDefault(ageGroup, 0.0);
+                        });
+            }
         }
 
-        return groupBiWeightingFunctions;
+        return groupWeightingFunctionsMap;
     }
 
     public abstract Map<ContactGroupType, Map<AgeGroup, Map<AgeGroup, Double>>> groupBiWeightingFunctionsMap();

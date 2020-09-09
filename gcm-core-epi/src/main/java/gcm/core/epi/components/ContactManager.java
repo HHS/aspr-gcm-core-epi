@@ -14,9 +14,10 @@ import gcm.core.epi.propertytypes.DayOfWeekSchedule;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.propertytypes.TransmissionStructure;
 import gcm.scenario.*;
-import gcm.simulation.BiWeightingFunction;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
+import gcm.simulation.group.GroupSampler;
+import gcm.simulation.group.GroupWeightingFunction;
 import gcm.simulation.partition.LabelSet;
 import gcm.simulation.partition.Partition;
 import gcm.simulation.partition.PartitionSampler;
@@ -390,17 +391,21 @@ public class ContactManager extends AbstractComponent {
                         }
                     } else {
                         // Use a weighting function if provided, otherwise choose uniformly at random
-                        BiWeightingFunction biWeightingFunction = transmissionStructure.groupBiWeightingFunctions()
-                                .get(getLookupGroup(contactGroupType));
-                        if (biWeightingFunction != null) {
-                            targetPersonId = environment.sampleGroup(contactGroupId, biWeightingFunction,
-                                    RandomId.CONTACT_MANAGER, sourcePersonId, true);
+                        Map<AgeGroup, GroupWeightingFunction> groupWeightingFunctions = transmissionStructure
+                                .groupWeightingFunctions().get(getLookupGroup(contactGroupType));
+                        PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+                                GlobalProperty.POPULATION_DESCRIPTION);
+                        Integer ageGroupIndex = environment.getPersonPropertyValue(sourcePersonId, PersonProperty.AGE_GROUP_INDEX);
+                        AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
+                        GroupSampler groupSampler = GroupSampler.create().excludePerson(sourcePersonId)
+                                .generator(RandomId.CONTACT_MANAGER);
+                        if (groupWeightingFunctions != null && groupWeightingFunctions.containsKey(ageGroup)) {
+                            targetPersonId = environment.sampleGroup(contactGroupId,
+                                    groupSampler.weight(groupWeightingFunctions.get(ageGroup)));
                         } else {
-                            targetPersonId = environment.sampleGroup(contactGroupId, RandomId.CONTACT_MANAGER,
-                                    sourcePersonId);
+                            targetPersonId = environment.sampleGroup(contactGroupId, groupSampler);
                         }
                     }
-
                 }
 
                 // Track attempted infections for reporting

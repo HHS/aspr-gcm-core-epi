@@ -7,6 +7,7 @@ import gcm.core.epi.propertytypes.ImmutableDayOfWeekSchedule;
 import gcm.output.OutputItem;
 import gcm.scenario.*;
 import gcm.simulation.*;
+import gcm.simulation.group.GroupSampler;
 import gcm.simulation.partition.LabelSet;
 import gcm.simulation.partition.LabelSetWeightingFunction;
 import gcm.simulation.partition.Partition;
@@ -224,16 +225,6 @@ public class TestDayOfWeek {
         @Override
         public double getBatchTime(BatchId batchId) {
             return 0;
-        }
-
-        @Override
-        public Optional<PersonId> sampleGroup(GroupId groupId, BiWeightingFunction biWeightingFunction, PersonId sourcePersonId, boolean excludeSourcePerson) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> sampleGroup(GroupId groupId, BiWeightingFunction biWeightingFunction, RandomNumberGeneratorId randomNumberGeneratorId, PersonId sourcePersonId, boolean excludeSourcePerson) {
-            return Optional.empty();
         }
 
         @Override
@@ -462,32 +453,7 @@ public class TestDayOfWeek {
         }
 
         @Override
-        public Optional<PersonId> sampleGroup(GroupId groupId, MonoWeightingFunction monoWeightingFunction) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> sampleGroup(GroupId groupId, MonoWeightingFunction monoWeightingFunction, RandomNumberGeneratorId randomNumberGeneratorId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> sampleGroup(GroupId groupId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> sampleGroup(GroupId groupId, PersonId excludedPersonId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> sampleGroup(GroupId groupId, RandomNumberGeneratorId randomNumberGeneratorId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> sampleGroup(GroupId groupId, RandomNumberGeneratorId randomNumberGeneratorId, PersonId excludedPersonId) {
+        public Optional<PersonId> sampleGroup(GroupId groupId, GroupSampler groupSampler) {
             return Optional.empty();
         }
 
@@ -1288,46 +1254,6 @@ public class TestDayOfWeek {
 
         @Override
         public Optional<PersonId> samplePartition(Object key, PartitionSampler partitionSampler) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> samplePartition(Object key, LabelSet labelSet) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> samplePartition(Object key, LabelSet labelSet, RandomNumberGeneratorId randomNumberGeneratorId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> samplePartition(Object key, LabelSet labelSet, PersonId excludedPersonId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> samplePartition(Object key, LabelSet labelSet, RandomNumberGeneratorId randomNumberGeneratorId, PersonId excludedPersonId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> samplePartition(Object key, LabelSetWeightingFunction labelSetWeightingFunction) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> samplePartition(Object key, LabelSetWeightingFunction labelSetWeightingFunction, PersonId excludedPersonId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> samplePartition(Object key, LabelSetWeightingFunction labelSetWeightingFunction, RandomNumberGeneratorId randomNumberGeneratorId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> samplePartition(Object key, LabelSetWeightingFunction labelSetWeightingFunction, RandomNumberGeneratorId randomNumberGeneratorId, PersonId excludedPersonId) {
             return Optional.empty();
         }
 
