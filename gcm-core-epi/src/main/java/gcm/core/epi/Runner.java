@@ -127,7 +127,8 @@ public class Runner {
         }
 
         // Global property loading
-        CoreEpiBootstrapUtil.loadGlobalProperties(experimentBuilder, pluginList, configuration, objectMapper, inputPath, ageGroupPartition);
+        CoreEpiBootstrapUtil loader = new CoreEpiBootstrapUtil();
+        loader.loadGlobalProperties(experimentBuilder, pluginList, configuration, objectMapper, inputPath, ageGroupPartition);
 
         // Region property loading
         for (RegionProperty regionProperty : RegionProperty.values()) {

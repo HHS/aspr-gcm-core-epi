@@ -20,6 +20,7 @@ import gcm.core.epi.reports.CustomReport;
 import gcm.core.epi.util.property.*;
 import gcm.experiment.ExperimentExecutor;
 import gcm.scenario.*;
+import gcm.util.MultiKey;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,18 +35,27 @@ import java.util.stream.Collectors;
 public class CoreEpiBootstrapUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(Runner.class);
+    private final Map<MultiKey, PopulationDescription> populationDescriptionCache = new HashMap<>();
 
     /**
      * This will load the population description by concatenating the data in the specified input files
+     *  Results are cached. Work is performed by the loadPopulationDescriptionWithoutCache method.
      *
      * @param inputFiles        The list of files that contain the data for the population description
      * @param identifier        The string id that will be used in output reporting to name this population description
      * @param ageGroupPartition The AgeGroupPartition that will be used for all simulations in this experiment
      * @return The population description that contains the data from the listed files
      */
-    public static PopulationDescription loadPopulationDescription(List<Path> inputFiles, String identifier,
+    public PopulationDescription loadPopulationDescription(List<Path> inputFiles, String identifier,
                                                                   AgeGroupPartition ageGroupPartition) {
 
+        MultiKey callKey = new MultiKey(inputFiles, identifier, ageGroupPartition);
+        return populationDescriptionCache.computeIfAbsent(callKey,
+                (x) -> loadPopulationDescriptionWithoutCache(inputFiles, identifier, ageGroupPartition));
+    }
+
+    public static PopulationDescription loadPopulationDescriptionWithoutCache(List<Path> inputFiles, String identifier,
+                                                                  AgeGroupPartition ageGroupPartition) {
         // Builder to store population description
         ImmutablePopulationDescription.Builder populationDescriptionBuilder = ImmutablePopulationDescription.builder();
 
@@ -146,14 +156,14 @@ public class CoreEpiBootstrapUtil {
         return populationDescriptionBuilder.build();
     }
 
-    public static PopulationDescription loadPopulationDescriptionFromFile(Path inputFile,
+    public PopulationDescription loadPopulationDescriptionFromFile(Path inputFile,
                                                                           AgeGroupPartition ageGroupPartition) {
         return loadPopulationDescription(Collections.singletonList(inputFile),
                 inputFile.toString(),
                 ageGroupPartition);
     }
 
-    public static PopulationDescription loadPopulationDescriptionFromDirectory(Path inputDirectory,
+    public PopulationDescription loadPopulationDescriptionFromDirectory(Path inputDirectory,
                                                                                AgeGroupPartition ageGroupPartition) {
         // Select only CSV files from the directory
         try {
@@ -169,7 +179,7 @@ public class CoreEpiBootstrapUtil {
         }
     }
 
-    public static PopulationDescription loadPopulationDescriptionFromDirectory(Path inputDirectory, String identifier,
+    public PopulationDescription loadPopulationDescriptionFromDirectory(Path inputDirectory, String identifier,
                                                                                AgeGroupPartition ageGroupPartition) {
         // Select only CSV files from the directory
         try {
@@ -312,7 +322,7 @@ public class CoreEpiBootstrapUtil {
      * @param inputPath         The path used for resolving file locations when given as parameter values in the input
      * @throws IOException When there is an exception reading from any input file
      */
-    public static void loadGlobalProperties(ExperimentBuilder experimentBuilder,
+    public void loadGlobalProperties(ExperimentBuilder experimentBuilder,
                                             List<Plugin> pluginList,
                                             CoreEpiConfiguration configuration,
                                             ObjectMapper objectMapper,
@@ -418,7 +428,7 @@ public class CoreEpiBootstrapUtil {
      * @return The parsed value of the parameter
      * @throws IOException When there is an exception reading from any input file
      */
-    private static GlobalPropertyParsingResult parseJsonInput(ObjectMapper objectMapper, JsonNode jsonNode,
+    private GlobalPropertyParsingResult parseJsonInput(ObjectMapper objectMapper, JsonNode jsonNode,
                                                               Path basePath, DefinedProperty property,
                                                               AgeGroupPartition ageGroupPartition) throws IOException {
         /*
