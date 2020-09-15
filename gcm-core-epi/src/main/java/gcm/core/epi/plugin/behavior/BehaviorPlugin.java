@@ -62,6 +62,7 @@ public abstract class BehaviorPlugin implements Plugin {
                         }
                         try {
                             // We know the property has type FipsCodeValue<T>
+                            //noinspection unchecked
                             FipsCodeValue<Object> overrideValue = (FipsCodeValue<Object>) CoreEpiBootstrapUtil.getPropertyValueFromJson(valueJson,
                                     property, ageGroupPartition);
                             overrideValues.put(property, overrideValue);

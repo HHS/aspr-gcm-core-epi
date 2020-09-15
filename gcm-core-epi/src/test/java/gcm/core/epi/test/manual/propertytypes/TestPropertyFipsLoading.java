@@ -121,7 +121,8 @@ public class TestPropertyFipsLoading {
                 .build();
         deserializationModule.addKeyDeserializer(AgeGroup.class, new AgeGroupStringMapDeserializer(ageGroupPartition));
         // TODO
-        //deserializationModule.addDeserializer(ImmutableFipsCodeValue.class, new FipsCodeValueDeserializer());
+        //deserializationModule.addDeserializer(ImmutableFipsCodeValue.class, new FipsCodeValueDeserializer(defaultDeserializer));
+        deserializationModule.setDeserializerModifier(new FipsCodeValueDeserializerModifier());
         // Register module in objectMapper
         objectMapper.registerModule(deserializationModule);
 
@@ -170,6 +171,22 @@ public class TestPropertyFipsLoading {
             assertEquals(firstFipsCodeValue.getValue(StringRegionId.of("00001000000")).get(ageGroupPartition.getAgeGroupFromAge(15)), 2.0, 1e-16);
             assertEquals(firstFipsCodeValue.getValue(StringRegionId.of("00002000000")).get(ageGroupPartition.getAgeGroupFromAge(5)), 3.0, 1e-16);
 
+            firstFipsCodeValue = fipsMapParser.readValue(initialParsedSimpleMapInput.get(PROPERTY_B.toString()).get(0));
+            assertEquals(firstFipsCodeValue.getValue(StringRegionId.of("00001000000")).get(ageGroupPartition.getAgeGroupFromAge(5)), 1.0, 1e-16);
+            assertEquals(firstFipsCodeValue.getValue(StringRegionId.of("00001000000")).get(ageGroupPartition.getAgeGroupFromAge(15)), 2.0, 1e-16);
+            assertEquals(firstFipsCodeValue.getValue(StringRegionId.of("00002000000")).get(ageGroupPartition.getAgeGroupFromAge(5)), 1.0, 1e-16);
+            assertEquals(firstFipsCodeValue.getValue(StringRegionId.of("00002000000")).get(ageGroupPartition.getAgeGroupFromAge(15)), 2.0, 1e-16);
+
+            FipsCodeValue<Map<AgeGroup, Double>> secondFipsCodeValue = fipsMapParser.readValue(initialParsedSimpleMapInput.get(PROPERTY_B.toString()).get(1));
+            assertEquals(secondFipsCodeValue.getValue(StringRegionId.of("00001000000")).get(ageGroupPartition.getAgeGroupFromAge(5)), 3.0, 1e-16);
+            assertEquals(secondFipsCodeValue.getValue(StringRegionId.of("00001000000")).get(ageGroupPartition.getAgeGroupFromAge(15)), 4.0, 1e-16);
+            assertEquals(secondFipsCodeValue.getValue(StringRegionId.of("00002000000")).get(ageGroupPartition.getAgeGroupFromAge(5)), 3.0, 1e-16);
+            assertEquals(secondFipsCodeValue.getValue(StringRegionId.of("00002000000")).get(ageGroupPartition.getAgeGroupFromAge(15)), 4.0, 1e-16);
+
+            firstFipsCodeDouble = fipsParser.readValue(initialParsedSimpleInput.get(PROPERTY_A.toString()).get(0));
+            assertEquals(firstFipsCodeDouble.defaultValue(), 1.0, 1e-16);
+            secondFipsCodeDouble = fipsParser.readValue(initialParsedSimpleInput.get(PROPERTY_A.toString()).get(1));
+            assertEquals(secondFipsCodeDouble.defaultValue(), 2.0, 1e-16);
 
         } catch (JsonProcessingException e) {
             e.printStackTrace();

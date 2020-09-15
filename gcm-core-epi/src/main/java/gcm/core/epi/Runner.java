@@ -204,8 +204,7 @@ public class Runner {
         if (configuration.runPlanningQueueReport()) {
             experimentExecutor.setPlanningQueueReport(outputPath.resolve("planning_queue_report.tsv"), configuration.planningQueueReportThreshold());
         }
-        // experimentExecutor.setProfileReport(outputPath.resolve("profile
-        // report.xls"));
+
         experimentExecutor.execute();
 
     }

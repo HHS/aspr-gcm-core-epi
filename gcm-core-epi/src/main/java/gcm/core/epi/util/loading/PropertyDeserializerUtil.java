@@ -36,9 +36,6 @@ public class PropertyDeserializerUtil {
         propertyDeserializers.put(GlobalProperty.HOSPITALIZATION_DURATION_SD,
                 new PropertyDeserializer(new TypeReference<Map<AgeGroup, Double>>() {
                 }));
-        propertyDeserializers.put(GlobalProperty.HOSPITALIZATION_DURATION_MEAN,
-                new PropertyDeserializer(new TypeReference<Map<AgeGroup, Double>>() {
-                }));
         propertyDeserializers.put(GlobalProperty.CASE_FATALITY_RATIO,
                 new PropertyDeserializer(new TypeReference<Map<AgeGroup, Double>>() {
                 }));
