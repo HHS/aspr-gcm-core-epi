@@ -15,9 +15,11 @@ import gcm.core.epi.identifiers.*;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.population.*;
 import gcm.core.epi.propertytypes.FipsCode;
-import gcm.core.epi.propertytypes.FipsCodeDouble;
 import gcm.core.epi.reports.CustomReport;
-import gcm.core.epi.util.property.*;
+import gcm.core.epi.util.property.DefinedGlobalProperty;
+import gcm.core.epi.util.property.DefinedProperty;
+import gcm.core.epi.util.property.PropertyGroup;
+import gcm.core.epi.util.property.PropertyGroupSpecification;
 import gcm.experiment.ExperimentExecutor;
 import gcm.scenario.*;
 import gcm.util.MultiKey;
@@ -37,25 +39,8 @@ public class CoreEpiBootstrapUtil {
     private static final Logger logger = LoggerFactory.getLogger(Runner.class);
     private final Map<MultiKey, PopulationDescription> populationDescriptionCache = new HashMap<>();
 
-    /**
-     * This will load the population description by concatenating the data in the specified input files
-     *  Results are cached. Work is performed by the loadPopulationDescriptionWithoutCache method.
-     *
-     * @param inputFiles        The list of files that contain the data for the population description
-     * @param identifier        The string id that will be used in output reporting to name this population description
-     * @param ageGroupPartition The AgeGroupPartition that will be used for all simulations in this experiment
-     * @return The population description that contains the data from the listed files
-     */
-    public PopulationDescription loadPopulationDescription(List<Path> inputFiles, String identifier,
-                                                                  AgeGroupPartition ageGroupPartition) {
-
-        MultiKey callKey = new MultiKey(inputFiles, identifier, ageGroupPartition);
-        return populationDescriptionCache.computeIfAbsent(callKey,
-                (x) -> loadPopulationDescriptionWithoutCache(inputFiles, identifier, ageGroupPartition));
-    }
-
     public static PopulationDescription loadPopulationDescriptionWithoutCache(List<Path> inputFiles, String identifier,
-                                                                  AgeGroupPartition ageGroupPartition) {
+                                                                              AgeGroupPartition ageGroupPartition) {
         // Builder to store population description
         ImmutablePopulationDescription.Builder populationDescriptionBuilder = ImmutablePopulationDescription.builder();
 
@@ -154,45 +139,6 @@ public class CoreEpiBootstrapUtil {
         }
 
         return populationDescriptionBuilder.build();
-    }
-
-    public PopulationDescription loadPopulationDescriptionFromFile(Path inputFile,
-                                                                          AgeGroupPartition ageGroupPartition) {
-        return loadPopulationDescription(Collections.singletonList(inputFile),
-                inputFile.toString(),
-                ageGroupPartition);
-    }
-
-    public PopulationDescription loadPopulationDescriptionFromDirectory(Path inputDirectory,
-                                                                               AgeGroupPartition ageGroupPartition) {
-        // Select only CSV files from the directory
-        try {
-            return loadPopulationDescription(Files.list(inputDirectory)
-                            .filter(file -> file.toString().endsWith(".csv"))
-                            .sorted()
-                            .collect(Collectors.toList()),
-                    inputDirectory.toString(),
-                    ageGroupPartition);
-        } catch (IOException e) {
-            e.printStackTrace(); // TODO: Handle exceptions appropriately
-            return ImmutablePopulationDescription.builder().id("Empty Population").build();
-        }
-    }
-
-    public PopulationDescription loadPopulationDescriptionFromDirectory(Path inputDirectory, String identifier,
-                                                                               AgeGroupPartition ageGroupPartition) {
-        // Select only CSV files from the directory
-        try {
-            return loadPopulationDescription(Files.list(inputDirectory)
-                            .filter(file -> file.toString().endsWith(".csv"))
-                            .sorted()
-                            .collect(Collectors.toList()),
-                    identifier,
-                    ageGroupPartition);
-        } catch (IOException e) {
-            e.printStackTrace(); // TODO: Handle exceptions appropriately
-            return ImmutablePopulationDescription.builder().id("Empty Population").build();
-        }
     }
 
     public static AgeGroupPartition loadAgeGroupsFromFile(Path file) throws IOException {
@@ -312,185 +258,6 @@ public class CoreEpiBootstrapUtil {
         return globalPropertyIds;
     }
 
-    /**
-     * Loads all of the person properties from the model, selected plugins, and scenarios into the experiment builder
-     *
-     * @param experimentBuilder The ExperimentBuilder for the experiment
-     * @param pluginList        The List of Plugins used in this experiment
-     * @param configuration     CoreFluConfiguration configuration
-     * @param objectMapper      The ObjectMapper to use to parse YAML/JSON
-     * @param inputPath         The path used for resolving file locations when given as parameter values in the input
-     * @throws IOException When there is an exception reading from any input file
-     */
-    public void loadGlobalProperties(ExperimentBuilder experimentBuilder,
-                                            List<Plugin> pluginList,
-                                            CoreEpiConfiguration configuration,
-                                            ObjectMapper objectMapper,
-                                            Path inputPath,
-                                            AgeGroupPartition ageGroupPartition) throws
-            IOException {
-        // First get string mappings for all external global properties
-        Map<String, DefinedGlobalProperty> externalGlobalProperties = new HashMap<>();
-
-        // Main global properties
-        for (GlobalProperty globalProperty : GlobalProperty.values()) {
-            if (globalProperty.isExternalProperty()) {
-                externalGlobalProperties.put(globalProperty.toString(), globalProperty);
-            }
-            experimentBuilder.defineGlobalProperty(globalProperty, globalProperty.getPropertyDefinition());
-        }
-
-        // Plugin global properties
-        for (Plugin plugin : pluginList) {
-            for (DefinedGlobalProperty definedGlobalProperty : plugin.getGlobalProperties()) {
-                if (definedGlobalProperty.isExternalProperty()) {
-                    externalGlobalProperties.put(definedGlobalProperty.toString(), definedGlobalProperty);
-                }
-            }
-        }
-
-        // Load property values for scenarios into experiment
-        for (Map.Entry<String, DefinedGlobalProperty> entry : externalGlobalProperties.entrySet()) {
-            String propertyName = entry.getKey();
-            DefinedGlobalProperty definedGlobalProperty = entry.getValue();
-            List<JsonNode> externalPropertyNodeList = configuration.scenarios().get(propertyName);
-            if (externalPropertyNodeList != null) {
-                for (JsonNode jsonNode : externalPropertyNodeList) {
-                    final GlobalPropertyParsingResult result = parseJsonInput(objectMapper, jsonNode, inputPath, definedGlobalProperty,
-                            ageGroupPartition);
-                    if (result.getType() == GlobalPropertyParsingResult.Type.GLOBAL) {
-                        experimentBuilder.addGlobalPropertyValue(definedGlobalProperty, result.getValue());
-                    } else {
-                        // GLOBAL_AND_REGIONAL
-                        FipsCodeDouble fipsCodeDouble = (FipsCodeDouble) result.getValue();
-                    }
-
-//                    if (definedGlobalProperty.equals(GlobalProperty.POPULATION_DESCRIPTION)) {
-//                        experimentBuilder.addSuggestedPopulationSize(
-//                                ((PopulationDescription) propertyValue).dataByPersonId().size());
-//                    }
-                }
-            } else {
-                logger.warn("Warning: External property " + propertyName + " is not defined in configuration file");
-            }
-        }
-
-//        // Covary population size suggestion
-//        experimentBuilder.covaryGlobalProperty(GlobalProperty.POPULATION_DESCRIPTION, "Suggested Population Size");
-//        experimentBuilder.covarySuggestedPopulationSize("Suggested Population Size");
-
-        // Handle external property covariation
-        for (PropertyGroupSpecification propertyGroupSpecification : configuration.propertyGroups()) {
-            PropertyGroup covariationGroup = PropertyGroup.of(propertyGroupSpecification.name());
-            for (String propertyName : propertyGroupSpecification.properties()) {
-                DefinedGlobalProperty property = externalGlobalProperties.get(propertyName);
-                if (property != null) {
-                    experimentBuilder.covaryGlobalProperty(property, covariationGroup);
-                } else {
-                    throw new IllegalArgumentException("Configuration file includes an invalid property name: " +
-                            propertyName);
-                }
-            }
-            // Add labels if provided as a group property for reporting
-            if (propertyGroupSpecification.labels().size() > 0) {
-                experimentBuilder.defineGlobalProperty(covariationGroup, PropertyDefinition.builder()
-                        .setType(String.class).setPropertyValueMutability(false).build());
-                experimentBuilder.covaryGlobalProperty(covariationGroup, covariationGroup);
-                for (String label : propertyGroupSpecification.labels()) {
-                    experimentBuilder.addGlobalPropertyValue(covariationGroup, label);
-                }
-                // Force inclusion in experiment columns
-                experimentBuilder.forceGlobalPropertyExperimentColumn(covariationGroup);
-            }
-        }
-
-        // Force inclusion of certain properties in experiment columns
-        for (String propertyName : configuration.forcedExperimentColumnProperties()) {
-            DefinedGlobalProperty property = externalGlobalProperties.get(propertyName);
-            if (property != null) {
-                experimentBuilder.forceGlobalPropertyExperimentColumn(property);
-            } else {
-                logger.warn("Warning: forcedExperimentColumnProperties references an undefined global property: " +
-                        propertyName);
-            }
-        }
-
-    }
-
-    /**
-     * Parses the given JSON node extracted from the input file that corresponds to a scenario parameter value
-     *
-     * @param objectMapper      The ObjectMapper used to perform the parsing
-     * @param jsonNode          The JSON node of the input file representing the input parameter value
-     * @param basePath          The path used for resolving file locations in input parameter strings
-     * @param property          The DefinedProperty that is to be parsed from the input string
-     * @param ageGroupPartition The AgeGroupPartition that is being used for all simulations in this experiment
-     * @return The parsed value of the parameter
-     * @throws IOException When there is an exception reading from any input file
-     */
-    private GlobalPropertyParsingResult parseJsonInput(ObjectMapper objectMapper, JsonNode jsonNode,
-                                                              Path basePath, DefinedProperty property,
-                                                              AgeGroupPartition ageGroupPartition) throws IOException {
-        /*
-            First try to convert the jsonNode to the parameter value in question.
-            Next, see if it can be interpreted as a string YAML file, and then load from Immutables
-            If that fails, try a specialty loader (generally presuming the input is a file/directory)
-            Otherwise, throw an exception
-         */
-        List<CheckedSupplier<GlobalPropertyParsingResult>> parsingMethods = new ArrayList<>();
-
-        parsingMethods.add(() -> new GlobalPropertyParsingResult(
-                getPropertyValueFromJson(objectMapper, jsonNode, property),
-                GlobalPropertyParsingResult.Type.GLOBAL
-        ));
-
-        // Handle Global/Regional properties with Double values that can be specified by FipsCodeValues
-        if (property instanceof DefinedGlobalAndRegionProperty &
-                property.getPropertyDefinition().getType().equals(Double.class)) {
-            parsingMethods.add(() -> new GlobalPropertyParsingResult(
-                    objectMapper.readerFor(FipsCodeDouble.class).readValue(jsonNode),
-                    GlobalPropertyParsingResult.Type.GLOBAL_AND_REGIONAL
-            ));
-        }
-
-        final Object basePropertyValue = objectMapper.treeToValue(jsonNode, Object.class);
-        if (String.class.isAssignableFrom(basePropertyValue.getClass())) {
-            String stringPathForLoading = (String) basePropertyValue;
-            if (stringPathForLoading.endsWith(".yaml")) {
-                // Load from YAML file via Immutables
-                logger.info(property + ": loading from file " + stringPathForLoading);
-                parsingMethods.add(() -> new GlobalPropertyParsingResult(
-                        objectMapper.readValue(basePath.resolve(stringPathForLoading).toFile(),
-                                property.getPropertyDefinition().getType()),
-                        GlobalPropertyParsingResult.Type.GLOBAL));
-            } else {
-                // Look for specialty loader
-                if (property.equals(GlobalProperty.POPULATION_DESCRIPTION)) {
-                    logger.info(property + ": loading from file " + stringPathForLoading);
-                    Path pathForLoading = basePath.resolve(stringPathForLoading);
-                    if (pathForLoading.toFile().isFile()) {
-                        parsingMethods.add(() -> new GlobalPropertyParsingResult(
-                                loadPopulationDescriptionFromFile(pathForLoading, ageGroupPartition),
-                                GlobalPropertyParsingResult.Type.GLOBAL));
-                    } else {
-                        parsingMethods.add(() -> new GlobalPropertyParsingResult(
-                                loadPopulationDescriptionFromDirectory(pathForLoading, ageGroupPartition),
-                                GlobalPropertyParsingResult.Type.GLOBAL));
-                    }
-                }
-            }
-        }
-
-        for (CheckedSupplier<GlobalPropertyParsingResult> checkedSupplier : parsingMethods) {
-            try {
-                return checkedSupplier.get();
-            } catch (IOException e) {
-                // Try next parsing method
-            }
-        }
-        throw new RuntimeException("Cannot parse " + property + " from input " + basePropertyValue);
-    }
-
     private static Object getPropertyValueFromJson(ObjectMapper objectMapper, JsonNode jsonNode,
                                                    DefinedProperty property) throws IOException {
         Class<?> propertyType = property.getPropertyDefinition().getType();
@@ -565,38 +332,221 @@ public class CoreEpiBootstrapUtil {
         }
     }
 
+    /**
+     * This will load the population description by concatenating the data in the specified input files
+     * Results are cached. Work is performed by the loadPopulationDescriptionWithoutCache method.
+     *
+     * @param inputFiles        The list of files that contain the data for the population description
+     * @param identifier        The string id that will be used in output reporting to name this population description
+     * @param ageGroupPartition The AgeGroupPartition that will be used for all simulations in this experiment
+     * @return The population description that contains the data from the listed files
+     */
+    public PopulationDescription loadPopulationDescription(List<Path> inputFiles, String identifier,
+                                                           AgeGroupPartition ageGroupPartition) {
+
+        MultiKey callKey = new MultiKey(inputFiles, identifier, ageGroupPartition);
+        return populationDescriptionCache.computeIfAbsent(callKey,
+                (x) -> loadPopulationDescriptionWithoutCache(inputFiles, identifier, ageGroupPartition));
+    }
+
+    public PopulationDescription loadPopulationDescriptionFromFile(Path inputFile,
+                                                                   AgeGroupPartition ageGroupPartition) {
+        return loadPopulationDescription(Collections.singletonList(inputFile),
+                inputFile.toString(),
+                ageGroupPartition);
+    }
+
+    public PopulationDescription loadPopulationDescriptionFromDirectory(Path inputDirectory,
+                                                                        AgeGroupPartition ageGroupPartition) {
+        // Select only CSV files from the directory
+        try {
+            return loadPopulationDescription(Files.list(inputDirectory)
+                            .filter(file -> file.toString().endsWith(".csv"))
+                            .sorted()
+                            .collect(Collectors.toList()),
+                    inputDirectory.toString(),
+                    ageGroupPartition);
+        } catch (IOException e) {
+            e.printStackTrace(); // TODO: Handle exceptions appropriately
+            return ImmutablePopulationDescription.builder().id("Empty Population").build();
+        }
+    }
+
+    public PopulationDescription loadPopulationDescriptionFromDirectory(Path inputDirectory, String identifier,
+                                                                        AgeGroupPartition ageGroupPartition) {
+        // Select only CSV files from the directory
+        try {
+            return loadPopulationDescription(Files.list(inputDirectory)
+                            .filter(file -> file.toString().endsWith(".csv"))
+                            .sorted()
+                            .collect(Collectors.toList()),
+                    identifier,
+                    ageGroupPartition);
+        } catch (IOException e) {
+            e.printStackTrace(); // TODO: Handle exceptions appropriately
+            return ImmutablePopulationDescription.builder().id("Empty Population").build();
+        }
+    }
+
+    /**
+     * Loads all of the person properties from the model, selected plugins, and scenarios into the experiment builder
+     *
+     * @param experimentBuilder The ExperimentBuilder for the experiment
+     * @param pluginList        The List of Plugins used in this experiment
+     * @param configuration     CoreFluConfiguration configuration
+     * @param objectMapper      The ObjectMapper to use to parse YAML/JSON
+     * @param inputPath         The path used for resolving file locations when given as parameter values in the input
+     * @throws IOException When there is an exception reading from any input file
+     */
+    public void loadGlobalProperties(ExperimentBuilder experimentBuilder,
+                                     List<Plugin> pluginList,
+                                     CoreEpiConfiguration configuration,
+                                     ObjectMapper objectMapper,
+                                     Path inputPath,
+                                     AgeGroupPartition ageGroupPartition) throws
+            IOException {
+        // First get string mappings for all external global properties
+        Map<String, DefinedGlobalProperty> externalGlobalProperties = new HashMap<>();
+
+        // Main global properties
+        for (GlobalProperty globalProperty : GlobalProperty.values()) {
+            if (globalProperty.isExternalProperty()) {
+                externalGlobalProperties.put(globalProperty.toString(), globalProperty);
+            }
+            experimentBuilder.defineGlobalProperty(globalProperty, globalProperty.getPropertyDefinition());
+        }
+
+        // Plugin global properties
+        for (Plugin plugin : pluginList) {
+            for (DefinedGlobalProperty definedGlobalProperty : plugin.getGlobalProperties()) {
+                if (definedGlobalProperty.isExternalProperty()) {
+                    externalGlobalProperties.put(definedGlobalProperty.toString(), definedGlobalProperty);
+                }
+            }
+        }
+
+        // Load property values for scenarios into experiment
+        for (Map.Entry<String, DefinedGlobalProperty> entry : externalGlobalProperties.entrySet()) {
+            String propertyName = entry.getKey();
+            DefinedGlobalProperty definedGlobalProperty = entry.getValue();
+            List<JsonNode> externalPropertyNodeList = configuration.scenarios().get(propertyName);
+            if (externalPropertyNodeList != null) {
+                for (JsonNode jsonNode : externalPropertyNodeList) {
+                    final Object result = parseJsonInput(objectMapper, jsonNode, inputPath, definedGlobalProperty,
+                            ageGroupPartition);
+                    experimentBuilder.addGlobalPropertyValue(definedGlobalProperty, result);
+//                    if (definedGlobalProperty.equals(GlobalProperty.POPULATION_DESCRIPTION)) {
+//                        experimentBuilder.addSuggestedPopulationSize(
+//                                ((PopulationDescription) propertyValue).dataByPersonId().size());
+//                    }
+                }
+            } else {
+                logger.warn("Warning: External property " + propertyName + " is not defined in configuration file");
+            }
+        }
+
+//        // Covary population size suggestion
+//        experimentBuilder.covaryGlobalProperty(GlobalProperty.POPULATION_DESCRIPTION, "Suggested Population Size");
+//        experimentBuilder.covarySuggestedPopulationSize("Suggested Population Size");
+
+        // Handle external property covariation
+        for (PropertyGroupSpecification propertyGroupSpecification : configuration.propertyGroups()) {
+            PropertyGroup covariationGroup = PropertyGroup.of(propertyGroupSpecification.name());
+            for (String propertyName : propertyGroupSpecification.properties()) {
+                DefinedGlobalProperty property = externalGlobalProperties.get(propertyName);
+                if (property != null) {
+                    experimentBuilder.covaryGlobalProperty(property, covariationGroup);
+                } else {
+                    throw new IllegalArgumentException("Configuration file includes an invalid property name: " +
+                            propertyName);
+                }
+            }
+            // Add labels if provided as a group property for reporting
+            if (propertyGroupSpecification.labels().size() > 0) {
+                experimentBuilder.defineGlobalProperty(covariationGroup, PropertyDefinition.builder()
+                        .setType(String.class).setPropertyValueMutability(false).build());
+                experimentBuilder.covaryGlobalProperty(covariationGroup, covariationGroup);
+                for (String label : propertyGroupSpecification.labels()) {
+                    experimentBuilder.addGlobalPropertyValue(covariationGroup, label);
+                }
+                // Force inclusion in experiment columns
+                experimentBuilder.forceGlobalPropertyExperimentColumn(covariationGroup);
+            }
+        }
+
+        // Force inclusion of certain properties in experiment columns
+        for (String propertyName : configuration.forcedExperimentColumnProperties()) {
+            DefinedGlobalProperty property = externalGlobalProperties.get(propertyName);
+            if (property != null) {
+                experimentBuilder.forceGlobalPropertyExperimentColumn(property);
+            } else {
+                logger.warn("Warning: forcedExperimentColumnProperties references an undefined global property: " +
+                        propertyName);
+            }
+        }
+
+    }
+
+    /**
+     * Parses the given JSON node extracted from the input file that corresponds to a scenario parameter value
+     *
+     * @param objectMapper      The ObjectMapper used to perform the parsing
+     * @param jsonNode          The JSON node of the input file representing the input parameter value
+     * @param basePath          The path used for resolving file locations in input parameter strings
+     * @param property          The DefinedProperty that is to be parsed from the input string
+     * @param ageGroupPartition The AgeGroupPartition that is being used for all simulations in this experiment
+     * @return The parsed value of the parameter
+     * @throws IOException When there is an exception reading from any input file
+     */
+    private Object parseJsonInput(ObjectMapper objectMapper, JsonNode jsonNode,
+                                  Path basePath, DefinedProperty property,
+                                  AgeGroupPartition ageGroupPartition) throws IOException {
+        /*
+            First try to convert the jsonNode to the parameter value in question.
+            Next, see if it can be interpreted as a string YAML file, and then load from Immutables
+            If that fails, try a specialty loader (generally presuming the input is a file/directory)
+            Otherwise, throw an exception
+         */
+        List<CheckedSupplier<Object>> parsingMethods = new ArrayList<>();
+
+        parsingMethods.add(() -> getPropertyValueFromJson(objectMapper, jsonNode, property));
+
+        final Object basePropertyValue = objectMapper.treeToValue(jsonNode, Object.class);
+        if (String.class.isAssignableFrom(basePropertyValue.getClass())) {
+            String stringPathForLoading = (String) basePropertyValue;
+            if (stringPathForLoading.endsWith(".yaml")) {
+                // Load from YAML file via Immutables
+                logger.info(property + ": loading from file " + stringPathForLoading);
+                parsingMethods.add(() ->
+                        objectMapper.readValue(basePath.resolve(stringPathForLoading).toFile(),
+                                property.getPropertyDefinition().getType()));
+            } else {
+                // Look for specialty loader
+                if (property.equals(GlobalProperty.POPULATION_DESCRIPTION)) {
+                    logger.info(property + ": loading from file " + stringPathForLoading);
+                    Path pathForLoading = basePath.resolve(stringPathForLoading);
+                    if (pathForLoading.toFile().isFile()) {
+                        parsingMethods.add(() -> loadPopulationDescriptionFromFile(pathForLoading, ageGroupPartition));
+                    } else {
+                        parsingMethods.add(() -> loadPopulationDescriptionFromDirectory(pathForLoading, ageGroupPartition));
+                    }
+                }
+            }
+        }
+
+        for (CheckedSupplier<Object> checkedSupplier : parsingMethods) {
+            try {
+                return checkedSupplier.get();
+            } catch (IOException e) {
+                // Try next parsing method
+            }
+        }
+        throw new RuntimeException("Cannot parse " + property + " from input " + basePropertyValue);
+    }
+
     @FunctionalInterface
     public interface CheckedSupplier<T> {
         T get() throws IOException;
     }
 
-    /*
-        Represents the result of an attempt to parse a global property
-            GLOBAL type connotes that the property value can be used as-is
-            GLOBAL_AND_REGIONAL type indicates that the property must be loaded for both global and regional property values
-     */
-    private static class GlobalPropertyParsingResult {
-
-        private final Object value;
-        private final Type type;
-
-        private GlobalPropertyParsingResult(Object value, Type type) {
-            this.value = value;
-            this.type = type;
-        }
-
-        public Object getValue() {
-            return value;
-        }
-
-        public Type getType() {
-            return type;
-        }
-
-        enum Type {
-            GLOBAL,
-            GLOBAL_AND_REGIONAL
-        }
-
-    }
 }

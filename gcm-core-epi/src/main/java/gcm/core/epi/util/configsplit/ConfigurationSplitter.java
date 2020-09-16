@@ -143,7 +143,7 @@ public class ConfigurationSplitter {
         for (CovariantGroup covariantGroup : covariantMap.values()) {
             if (covariantGroup.labels.size() > 0) {
                 if (covariantGroup.labels.size() != covariantGroup.variantCount) {
-                    throw new RuntimeException("The number of group labels for covaiant group " + covariantGroup.name + " does not match the variant count of its constituent variables");
+                    throw new RuntimeException("The number of group labels for covariant group " + covariantGroup.name + " does not match the variant count of its constituent variables");
                 }
             }
         }
@@ -168,19 +168,19 @@ public class ConfigurationSplitter {
             }
         }
 
-        Set<CovariantGroup> activeCovarinantGroups = covariantMap.values().stream().filter(covariant -> covariant.active).collect(Collectors.toSet());
-        Set<CovariantGroup> inactiveCovarinantGroups = covariantMap.values().stream().filter(covariant -> !covariant.active).collect(Collectors.toSet());
+        Set<CovariantGroup> activeCovariantGroups = covariantMap.values().stream().filter(covariant -> covariant.active).collect(Collectors.toSet());
+        Set<CovariantGroup> inactiveCovariantGroups = covariantMap.values().stream().filter(covariant -> !covariant.active).collect(Collectors.toSet());
         // establish the modulus for each covariant group that will aid in
         // determining which variant value to use for each generated input
         // yaml
         int fileCount = 1;
-        for (CovariantGroup covariantGroup : activeCovarinantGroups) {
+        for (CovariantGroup covariantGroup : activeCovariantGroups) {
             covariantGroup.modulus = fileCount;
             fileCount *= covariantGroup.variantCount;
         }
 
         int scenariosPerFile = 1;
-        for (CovariantGroup covariantGroup : inactiveCovarinantGroups) {
+        for (CovariantGroup covariantGroup : inactiveCovariantGroups) {
             scenariosPerFile *= covariantGroup.variantCount;
         }
 
@@ -193,7 +193,7 @@ public class ConfigurationSplitter {
              * original entries that corresponds to the current tuple value and
              * place that in the new entries
              */
-            for (CovariantGroup covariantGroup : activeCovarinantGroups) {
+            for (CovariantGroup covariantGroup : activeCovariantGroups) {
                 for (String key : covariantGroup.entries.keySet()) {
                     List<JsonNode> list = covariantGroup.entries.get(key);
                     List<JsonNode> newList = new ArrayList<>();

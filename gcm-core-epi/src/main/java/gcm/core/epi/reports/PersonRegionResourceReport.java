@@ -390,7 +390,7 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
     }
 
     /**
-     * An enmeration mirroring the differentiation in the report for populations
+     * An enumeration mirroring the differentiation in the report for populations
      * of people with and without a resource.
      *
      * @author Shawn Hatch

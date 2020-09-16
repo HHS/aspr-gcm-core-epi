@@ -36,7 +36,7 @@ import java.util.Set;
 public final class CompartmentRegionalPopulationReport extends RegionAggregationPeriodicReport {
 
     /*
-     * (region, compartment) pairs maped to population counters
+     * (region, compartment) pairs mapped to population counters
      */
     private final Map<String, Map<CompartmentId, Counter>> regionMap = new LinkedHashMap<>();
     /*

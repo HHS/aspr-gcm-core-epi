@@ -40,7 +40,7 @@ public class Runner {
         /*
          * CoreFlu Configuration
          *
-         * Note: args[0] should be the path to the coreflu_config.yaml file
+         * Note: args[0] should be the path to the YAML configuration file
          */
         if (args.length == 0) {
             throw new IllegalArgumentException("First argument must be path to YAML configuration file.");
