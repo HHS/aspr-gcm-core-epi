@@ -47,8 +47,20 @@ public class PropertyDeserializerUtil {
                 }));
         // Telework
         propertyDeserializers.put(
+                TeleworkBehaviorPlugin.TeleworkGlobalAndRegionProperty.FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES,
+                new PropertyDeserializer(new TypeReference<FipsCodeValue<Double>>() {
+                }));
+        propertyDeserializers.put(
+                TeleworkBehaviorPlugin.TeleworkGlobalAndRegionProperty.FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE,
+                new PropertyDeserializer(new TypeReference<FipsCodeValue<Double>>() {
+                }));
+        propertyDeserializers.put(
                 TeleworkBehaviorPlugin.TeleworkGlobalAndRegionProperty.WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS,
                 new PropertyDeserializer(new TypeReference<FipsCodeValue<Map<ContactGroupType, Double>>>() {
+                }));
+        propertyDeserializers.put(
+                TeleworkBehaviorPlugin.TeleworkGlobalAndRegionProperty.TELEWORK_TIME_FRACTION,
+                new PropertyDeserializer(new TypeReference<FipsCodeValue<Double>>() {
                 }));
         propertyDeserializers.put(
                 TeleworkBehaviorPlugin.TeleworkGlobalProperty.TELEWORK_TRIGGER_OVERRIDES,
