@@ -15,6 +15,7 @@ import gcm.core.epi.identifiers.*;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.population.*;
 import gcm.core.epi.propertytypes.FipsCode;
+import gcm.core.epi.propertytypes.FipsCodeValueDeserializerModifier;
 import gcm.core.epi.reports.CustomReport;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedProperty;
@@ -272,9 +273,12 @@ public class CoreEpiBootstrapUtil {
 
     public static Object getPropertyValueFromJson(JsonNode jsonNode, DefinedProperty property,
                                                   AgeGroupPartition ageGroupPartition) throws IOException {
+        // Create module for deserializing special objects from Strings for use in map keys during property loading
         SimpleModule deserializationModule = new SimpleModule();
         deserializationModule.addKeyDeserializer(AgeGroup.class, new AgeGroupStringMapDeserializer(ageGroupPartition));
         deserializationModule.addKeyDeserializer(FipsCode.class, new FipsCodeStringMapDeserializer());
+        // Add dynamic mapping for FipsCodeValue<T> and FipsCodeDouble objects
+        deserializationModule.setDeserializerModifier(new FipsCodeValueDeserializerModifier());
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory())
                 .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
                 .registerModule(new Jdk8Module())

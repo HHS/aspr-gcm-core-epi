@@ -11,6 +11,7 @@ import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.propertytypes.FipsCode;
+import gcm.core.epi.propertytypes.FipsCodeValueDeserializerModifier;
 import gcm.core.epi.trigger.ImmutableTriggerId;
 import gcm.core.epi.trigger.Trigger;
 import gcm.core.epi.trigger.TriggerContainer;
@@ -88,6 +89,8 @@ public class Runner {
         SimpleModule deserializationModule = new SimpleModule();
         deserializationModule.addKeyDeserializer(AgeGroup.class, new AgeGroupStringMapDeserializer(ageGroupPartition));
         deserializationModule.addKeyDeserializer(FipsCode.class, new FipsCodeStringMapDeserializer());
+        // Add dynamic mapping for FipsCodeValue<T> and FipsCodeDouble objects
+        deserializationModule.setDeserializerModifier(new FipsCodeValueDeserializerModifier());
         // Register module in objectMapper
         objectMapper.registerModule(deserializationModule);
 
