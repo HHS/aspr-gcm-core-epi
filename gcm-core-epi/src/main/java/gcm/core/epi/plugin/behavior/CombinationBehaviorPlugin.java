@@ -1,15 +1,16 @@
 package gcm.core.epi.plugin.behavior;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.Util;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerUtils;
-import gcm.core.epi.util.property.DefinedGlobalProperty;
-import gcm.core.epi.util.property.DefinedGroupProperty;
-import gcm.core.epi.util.property.DefinedPersonProperty;
-import gcm.core.epi.util.property.DefinedRegionProperty;
-import gcm.scenario.*;
+import gcm.core.epi.util.property.*;
+import gcm.scenario.ExperimentBuilder;
+import gcm.scenario.PersonId;
+import gcm.scenario.RandomNumberGeneratorId;
+import gcm.scenario.RegionId;
 import gcm.simulation.Environment;
 
 import java.util.*;
@@ -190,32 +191,34 @@ public class CombinationBehaviorPlugin extends BehaviorPlugin {
 
     public enum CombinationBehaviorGlobalProperty implements DefinedGlobalProperty {
 
-        TRANSMISSION_RATE_REDUCTION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        TRANSMISSION_RATE_REDUCTION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        TRANSMISSION_RATE_REDUCTION_START(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        TRANSMISSION_RATE_REDUCTION_START(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        TRANSMISSION_RATE_REDUCTION_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        TRANSMISSION_RATE_REDUCTION_END(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        INFECTION_RATE_REDUCTION(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(new HashMap<>()).setPropertyValueMutability(false).build()),
+        INFECTION_RATE_REDUCTION(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<AgeGroup, Double>>() {
+                })
+                .defaultValue(new HashMap<>()).isMutable(false).build()),
 
-        INFECTION_RATE_REDUCTION_START(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        INFECTION_RATE_REDUCTION_START(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        INFECTION_RATE_REDUCTION_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build());
+        INFECTION_RATE_REDUCTION_END(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        CombinationBehaviorGlobalProperty(PropertyDefinition propertyDefinition) {
+        CombinationBehaviorGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -228,26 +231,26 @@ public class CombinationBehaviorPlugin extends BehaviorPlugin {
 
     public enum CombinationBehaviorRegionProperty implements DefinedRegionProperty {
 
-        TRANSMISSION_RATE_REDUCTION_TRIGGER_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build()),
+        TRANSMISSION_RATE_REDUCTION_TRIGGER_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build()),
 
-        TRANSMISSION_RATE_REDUCTION_TRIGGER_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build()),
+        TRANSMISSION_RATE_REDUCTION_TRIGGER_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build()),
 
-        INFECTION_RATE_REDUCTION_TRIGGER_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build()),
+        INFECTION_RATE_REDUCTION_TRIGGER_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build()),
 
-        INFECTION_RATE_REDUCTION_TRIGGER_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build());
+        INFECTION_RATE_REDUCTION_TRIGGER_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        CombinationBehaviorRegionProperty(PropertyDefinition propertyDefinition) {
+        CombinationBehaviorRegionProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

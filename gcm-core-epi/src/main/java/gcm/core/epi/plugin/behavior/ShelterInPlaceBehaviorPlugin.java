@@ -5,7 +5,11 @@ import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
-import gcm.scenario.*;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.scenario.PersonId;
+import gcm.scenario.RandomNumberGeneratorId;
+import gcm.scenario.RegionId;
+import gcm.scenario.TimeTrackingPolicy;
 import gcm.simulation.Environment;
 
 import java.util.*;
@@ -59,24 +63,24 @@ public class ShelterInPlaceBehaviorPlugin extends BehaviorPlugin {
 
     public enum ShelterInPlaceGlobalProperty implements DefinedGlobalProperty {
 
-        COMMUNITY_CONTACT_REDUCTION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        COMMUNITY_CONTACT_REDUCTION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        SHELTER_IN_PLACE_START(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        SHELTER_IN_PLACE_START(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        SHELTER_IN_PLACE_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build());
+        SHELTER_IN_PLACE_END(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build());
 
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        ShelterInPlaceGlobalProperty(PropertyDefinition propertyDefinition) {
+        ShelterInPlaceGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -93,22 +97,22 @@ public class ShelterInPlaceBehaviorPlugin extends BehaviorPlugin {
 
     public enum ShelterInPlaceRegionProperty implements DefinedRegionProperty {
 
-        SHELTER_IN_PLACE_TRIGGER_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+        SHELTER_IN_PLACE_TRIGGER_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
-        SHELTER_IN_PLACE_TRIGGER_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build());
+        SHELTER_IN_PLACE_TRIGGER_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        ShelterInPlaceRegionProperty(PropertyDefinition propertyDefinition) {
+        ShelterInPlaceRegionProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

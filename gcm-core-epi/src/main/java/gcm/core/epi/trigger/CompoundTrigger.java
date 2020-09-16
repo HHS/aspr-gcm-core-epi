@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import gcm.components.Component;
 import gcm.core.epi.components.trigger.CompoundTriggerComponent;
 import gcm.core.epi.util.property.DefinedRegionProperty;
-import gcm.scenario.PropertyDefinition;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import org.immutables.value.Value;
 
 import java.util.List;
@@ -31,8 +31,8 @@ public abstract class CompoundTrigger implements Trigger, DefinedRegionProperty 
     }
 
     @Override
-    public PropertyDefinition getPropertyDefinition() {
-        return PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build();
+    public TypedPropertyDefinition getPropertyDefinition() {
+        return TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build();
     }
 
 }

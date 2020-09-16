@@ -6,7 +6,7 @@ import gcm.core.epi.components.trigger.RelativeTimeTriggerComponent;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsScope;
 import gcm.core.epi.util.property.DefinedRegionProperty;
-import gcm.scenario.PropertyDefinition;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
@@ -46,8 +46,8 @@ public abstract class RelativeTimeTrigger implements Trigger, DefinedRegionPrope
     }
 
     @Override
-    public PropertyDefinition getPropertyDefinition() {
-        return PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build();
+    public TypedPropertyDefinition getPropertyDefinition() {
+        return TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build();
     }
 
 }

@@ -1,8 +1,8 @@
 package gcm.core.epi.plugin.transmission;
 
 import gcm.core.epi.util.property.DefinedGlobalProperty;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.PersonId;
-import gcm.scenario.PropertyDefinition;
 import gcm.simulation.Environment;
 
 import java.util.EnumSet;
@@ -54,25 +54,25 @@ public class SeasonalTransmissionPlugin implements TransmissionPlugin {
 
     public enum SeasonalTransmissionGlobalProperty implements DefinedGlobalProperty {
 
-        TRANSMISSION_DECLINE_START(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
-        TRANSMISSION_DECLINE_DURATION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
-        TRANSMISSION_NADIR_DURATION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
-        TRANSMISSION_INCLINE_DURATION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
-        RELATIVE_TRANSMISSIBILITY_AT_NADIR(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build());
+        TRANSMISSION_DECLINE_START(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
+        TRANSMISSION_DECLINE_DURATION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
+        TRANSMISSION_NADIR_DURATION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
+        TRANSMISSION_INCLINE_DURATION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
+        RELATIVE_TRANSMISSIBILITY_AT_NADIR(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        SeasonalTransmissionGlobalProperty(PropertyDefinition propertyDefinition) {
+        SeasonalTransmissionGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

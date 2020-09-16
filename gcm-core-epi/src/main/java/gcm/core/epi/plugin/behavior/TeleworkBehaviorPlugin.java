@@ -1,5 +1,6 @@
 package gcm.core.epi.plugin.behavior;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.propertytypes.FipsCodeValue;
@@ -156,17 +157,17 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
 
     public enum TeleworkPersonProperty implements DefinedPersonProperty {
 
-        TELEWORK_PROPENSITY(PropertyDefinition.builder()
-                .setType(Float.class).setDefaultValue(0.0f).build());
+        TELEWORK_PROPENSITY(TypedPropertyDefinition.builder()
+                .type(Float.class).defaultValue(0.0f).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        TeleworkPersonProperty(PropertyDefinition propertyDefinition) {
+        TeleworkPersonProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -174,17 +175,17 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
 
     public enum TeleworkWorkProperty implements DefinedGroupProperty {
 
-        TELEWORK_PROPENSITY(PropertyDefinition.builder()
-                .setType(Float.class).setDefaultValue(0.0f).build());
+        TELEWORK_PROPENSITY(TypedPropertyDefinition.builder()
+                .type(Float.class).defaultValue(0.0f).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        TeleworkWorkProperty(PropertyDefinition propertyDefinition) {
+        TeleworkWorkProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -192,24 +193,26 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
 
     public enum TeleworkGlobalProperty implements DefinedGlobalProperty {
 
-        TELEWORK_START(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        TELEWORK_START(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        TELEWORK_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        TELEWORK_END(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        TELEWORK_TRIGGER_OVERRIDES(PropertyDefinition.builder()
-                .setType(List.class).setDefaultValue(new ArrayList<TriggeredPropertyOverride>())
-                .setPropertyValueMutability(false).build());
+        TELEWORK_TRIGGER_OVERRIDES(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<List<TriggeredPropertyOverride>>() {
+                })
+                .defaultValue(new ArrayList<TriggeredPropertyOverride>())
+                .isMutable(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        TeleworkGlobalProperty(PropertyDefinition propertyDefinition) {
+        TeleworkGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -222,32 +225,36 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
 
     public enum TeleworkGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
 
-        FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES(PropertyDefinition.builder()
-                .setType(FipsCodeValue.class)
-                .setDefaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
+        FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<FipsCodeValue<Double>>() {
+                })
+                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
                 TeleworkRegionProperty.FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES),
 
-        FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE(PropertyDefinition.builder()
-                .setType(FipsCodeValue.class)
-                .setDefaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
+        FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<FipsCodeValue<Double>>() {
+                })
+                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
                 TeleworkRegionProperty.FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE),
 
-        TELEWORK_TIME_FRACTION(PropertyDefinition.builder()
-                .setType(FipsCodeValue.class)
-                .setDefaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
+        TELEWORK_TIME_FRACTION(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<FipsCodeValue<Double>>() {
+                })
+                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
                 TeleworkRegionProperty.TELEWORK_TIME_FRACTION),
 
-        WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS(PropertyDefinition.builder()
-                .setType(FipsCodeValue.class)
-                .setDefaultValue(ImmutableFipsCodeValue.builder()
+        WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<FipsCodeValue<Map<ContactGroupType, Double>>>() {
+                })
+                .defaultValue(ImmutableFipsCodeValue.builder()
                         .defaultValue(getDefaultContactSubstitutionWeights()).build())
-                .setPropertyValueMutability(false).build(),
+                .isMutable(false).build(),
                 TeleworkRegionProperty.WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS);
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
         private final DefinedRegionProperty regionProperty;
 
-        TeleworkGlobalAndRegionProperty(PropertyDefinition propertyDefinition, DefinedRegionProperty regionProperty) {
+        TeleworkGlobalAndRegionProperty(TypedPropertyDefinition propertyDefinition, DefinedRegionProperty regionProperty) {
             this.propertyDefinition = propertyDefinition;
             this.regionProperty = regionProperty;
         }
@@ -260,7 +267,7 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -278,30 +285,32 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
 
     public enum TeleworkRegionProperty implements DefinedRegionProperty {
 
-        TELEWORK_TRIGGER_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+        TELEWORK_TRIGGER_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
-        TELEWORK_TRIGGER_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+        TELEWORK_TRIGGER_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
-        FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).build()),
+        FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).build()),
 
-        FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).build()),
+        FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).build()),
 
-        TELEWORK_TIME_FRACTION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).build()),
+        TELEWORK_TIME_FRACTION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).build()),
 
-        WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(getDefaultContactSubstitutionWeights())
-                .setPropertyValueMutability(false).build());
+        WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<ContactGroupType, Double>>() {
+                })
+                .type(Map.class).defaultValue(getDefaultContactSubstitutionWeights())
+                .isMutable(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        TeleworkRegionProperty(PropertyDefinition propertyDefinition) {
+        TeleworkRegionProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
@@ -313,7 +322,7 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

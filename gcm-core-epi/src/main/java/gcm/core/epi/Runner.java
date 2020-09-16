@@ -55,13 +55,11 @@ public class Runner {
         // Open configuration file and parse
         CoreEpiConfiguration configuration = objectMapper.readValue(inputConfigPath.toFile(), ImmutableCoreEpiConfiguration.class);
 
-        // Get input path from configuration, translating home directory if
-        // needed
+        // Get input path from configuration, translating home directory if needed
         final Path inputPath = CoreEpiBootstrapUtil.getPathFromRelativeString(configuration.inputDirectory());
         System.setProperty("user.dir", inputPath.toString());
 
-        // Get output path from configuration, translating home directory if
-        // needed, and create if needed
+        // Get output path from configuration, translating home directory if needed, and create if needed
         final Path outputPath = CoreEpiBootstrapUtil.getPathFromRelativeString(configuration.outputDirectory());
         Files.createDirectories(outputPath);
 
@@ -135,7 +133,8 @@ public class Runner {
 
         // Region property loading
         for (RegionProperty regionProperty : RegionProperty.values()) {
-            experimentBuilder.defineRegionProperty(regionProperty, regionProperty.getPropertyDefinition());
+            experimentBuilder.defineRegionProperty(regionProperty,
+                    regionProperty.getPropertyDefinition().definition());
         }
         for (RegionFileRecord regionFileRecord : regionFileRecords) {
             RegionId regionId = StringRegionId.of(regionFileRecord.id());
@@ -145,12 +144,14 @@ public class Runner {
 
         // Person property loading
         for (PersonProperty personProperty : PersonProperty.values()) {
-            experimentBuilder.definePersonProperty(personProperty, personProperty.getPropertyDefinition());
+            experimentBuilder.definePersonProperty(personProperty,
+                    personProperty.getPropertyDefinition().definition());
         }
 
         // Group property loading
         for (WorkplaceProperty workplaceProperty : WorkplaceProperty.values()) {
-            experimentBuilder.defineGroupProperty(ContactGroupType.WORK, workplaceProperty, workplaceProperty.getPropertyDefinition());
+            experimentBuilder.defineGroupProperty(ContactGroupType.WORK, workplaceProperty,
+                    workplaceProperty.getPropertyDefinition().definition());
         }
 
         // Add resources
@@ -173,7 +174,7 @@ public class Runner {
             if (trigger.triggeringRegionProperty().isPresent()) {
                 DefinedRegionProperty triggeringRegionProperty = trigger.triggeringRegionProperty().get();
                 experimentBuilder.defineRegionProperty(triggeringRegionProperty,
-                        triggeringRegionProperty.getPropertyDefinition());
+                        triggeringRegionProperty.getPropertyDefinition().definition());
             }
             //triggerDescription.type().load(triggerContainerBuilder, triggerDescription.name(), triggerDescription.data());
         }

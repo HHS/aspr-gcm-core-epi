@@ -1,5 +1,6 @@
 package gcm.core.epi.plugin.vaccine.resourcebased;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
@@ -9,6 +10,7 @@ import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.*;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedResourceProperty;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
@@ -103,40 +105,42 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
      */
     public enum VaccineGlobalProperty implements DefinedGlobalProperty {
 
-        VE_S(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VE_S(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        VE_I(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VE_I(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        VE_P(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VE_P(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        EFFECTIVENESS_FUNCTION(PropertyDefinition.builder().setType(EffectivenessFunction.class)
-                .setDefaultValue(ImmutableEffectivenessFunction.builder().build()).build()),
+        EFFECTIVENESS_FUNCTION(TypedPropertyDefinition.builder().type(EffectivenessFunction.class)
+                .defaultValue(ImmutableEffectivenessFunction.builder().build()).build()),
 
-        VACCINE_DELIVERIES(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(new HashMap<Double, FipsCodeDouble>()).build()),
+        VACCINE_DELIVERIES(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<Double, FipsCodeDouble>>() {
+                })
+                .defaultValue(new HashMap<Double, FipsCodeDouble>()).build()),
 
-        VACCINATION_START_DAY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        VACCINATION_START_DAY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        VACCINATION_RATE_PER_DAY(PropertyDefinition.builder()
-                .setType(FipsCodeDouble.class).setDefaultValue(ImmutableFipsCodeDouble.builder().build())
-                .setPropertyValueMutability(false).build()),
+        VACCINATION_RATE_PER_DAY(TypedPropertyDefinition.builder()
+                .type(FipsCodeDouble.class).defaultValue(ImmutableFipsCodeDouble.builder().build())
+                .isMutable(false).build()),
 
-        VACCINE_UPTAKE_WEIGHTS(PropertyDefinition.builder()
-                .setType(AgeWeights.class)
-                .setDefaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build());
+        VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
+                .type(AgeWeights.class)
+                .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        VaccineGlobalProperty(PropertyDefinition propertyDefinition) {
+        VaccineGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -154,26 +158,26 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
     enum VaccineProperty implements DefinedResourceProperty {
         // TODO: Determine how to use Global vs Resource properties
-        VE_S(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VE_S(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        VE_I(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VE_I(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        VE_P(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VE_P(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        EFFECTIVENESS_FUNCTION(PropertyDefinition.builder().setType(EffectivenessFunction.class)
-                .setDefaultValue(ImmutableEffectivenessFunction.builder().build()).build());
+        EFFECTIVENESS_FUNCTION(TypedPropertyDefinition.builder().type(EffectivenessFunction.class)
+                .defaultValue(ImmutableEffectivenessFunction.builder().build()).build());
 
-        final PropertyDefinition propertyDefinition;
+        final TypedPropertyDefinition propertyDefinition;
 
-        VaccineProperty(PropertyDefinition propertyDefinition) {
+        VaccineProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

@@ -10,7 +10,11 @@ import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.propertytypes.ImmutableAgeWeights;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
-import gcm.scenario.*;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.scenario.ExperimentBuilder;
+import gcm.scenario.MapOption;
+import gcm.scenario.PersonId;
+import gcm.scenario.RandomNumberGeneratorId;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
 import gcm.simulation.partition.LabelSet;
@@ -79,19 +83,19 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
      */
     public enum VaccinePersonProperty implements DefinedPersonProperty {
 
-        VACCINE_STATUS(PropertyDefinition.builder()
-                .setType(OneDoseVaccineStatus.class)
-                .setDefaultValue(OneDoseVaccineStatus.NOT_VACCINATED)
-                .setMapOption(MapOption.ARRAY).build());
+        VACCINE_STATUS(TypedPropertyDefinition.builder()
+                .type(OneDoseVaccineStatus.class)
+                .defaultValue(OneDoseVaccineStatus.NOT_VACCINATED)
+                .mapOption(MapOption.ARRAY).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        VaccinePersonProperty(PropertyDefinition propertyDefinition) {
+        VaccinePersonProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -102,39 +106,39 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
      */
     public enum VaccineGlobalProperty implements DefinedGlobalProperty {
 
-        VE_S(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VE_S(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        VE_I(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VE_I(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        VE_P(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VE_P(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        VACCINATION_START_DAY(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VACCINATION_START_DAY(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        VACCINATION_RATE_PER_DAY(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VACCINATION_RATE_PER_DAY(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        VE_DELAY_DAYS(PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0)
-                .setPropertyValueMutability(false).build()),
+        VE_DELAY_DAYS(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
+                .isMutable(false).build()),
 
-        VE_DURATION_DAYS(PropertyDefinition.builder().setType(Double.class).setDefaultValue(Double.POSITIVE_INFINITY)
-                .setPropertyValueMutability(false).build()),
+        VE_DURATION_DAYS(TypedPropertyDefinition.builder().type(Double.class).defaultValue(Double.POSITIVE_INFINITY)
+                .isMutable(false).build()),
 
-        VACCINE_UPTAKE_WEIGHTS(PropertyDefinition.builder()
-                .setType(AgeWeights.class)
-                .setDefaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build());
+        VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
+                .type(AgeWeights.class)
+                .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        VaccineGlobalProperty(PropertyDefinition propertyDefinition) {
+        VaccineGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

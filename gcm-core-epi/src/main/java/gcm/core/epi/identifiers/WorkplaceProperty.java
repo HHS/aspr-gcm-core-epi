@@ -1,21 +1,21 @@
 package gcm.core.epi.identifiers;
 
 import gcm.core.epi.util.property.DefinedGroupProperty;
-import gcm.scenario.PropertyDefinition;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.RegionId;
 
 public enum WorkplaceProperty implements DefinedGroupProperty {
 
-    REGION_ID(PropertyDefinition.builder().setType(RegionId.class).setDefaultValue(StringRegionId.of("")).build());
+    REGION_ID(TypedPropertyDefinition.builder().type(RegionId.class).defaultValue(StringRegionId.of("")).build());
 
-    private final PropertyDefinition propertyDefinition;
+    private final TypedPropertyDefinition propertyDefinition;
 
-    WorkplaceProperty(PropertyDefinition propertyDefinition) {
+    WorkplaceProperty(TypedPropertyDefinition propertyDefinition) {
         this.propertyDefinition = propertyDefinition;
     }
 
     @Override
-    public PropertyDefinition getPropertyDefinition() {
+    public TypedPropertyDefinition getPropertyDefinition() {
         return propertyDefinition;
     }
 

@@ -9,6 +9,7 @@ import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
@@ -129,17 +130,17 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
 
     enum IsolationHygienePersonProperties implements DefinedPersonProperty {
 
-        IS_USING_HAND_HYGIENE(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build());
+        IS_USING_HAND_HYGIENE(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build());
 
-        final PropertyDefinition propertyDefinition;
+        final TypedPropertyDefinition propertyDefinition;
 
-        IsolationHygienePersonProperties(PropertyDefinition propertyDefinition) {
+        IsolationHygienePersonProperties(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -147,42 +148,42 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
 
     public enum IsolationHygieneGlobalProperty implements DefinedGlobalProperty {
 
-        HAND_HYGIENE_EFFICACY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        HAND_HYGIENE_EFFICACY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        FRACTION_STAY_HOME_WHEN_SUSPECT_INFECTION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        FRACTION_STAY_HOME_WHEN_SUSPECT_INFECTION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        FRACTION_USING_HAND_HYGIENE(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        FRACTION_USING_HAND_HYGIENE(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        ISOLATION_HYGIENE_START(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        ISOLATION_HYGIENE_START(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        ISOLATION_HYGIENE_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        ISOLATION_HYGIENE_END(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        ISOLATION_HYGIENE_DELAY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        ISOLATION_HYGIENE_DELAY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        ISOLATION_HYGIENE_DURATION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build());
+        ISOLATION_HYGIENE_DURATION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
         private final boolean isExternal;
 
-        IsolationHygieneGlobalProperty(PropertyDefinition propertyDefinition, boolean isExternal) {
+        IsolationHygieneGlobalProperty(TypedPropertyDefinition propertyDefinition, boolean isExternal) {
             this.propertyDefinition = propertyDefinition;
             this.isExternal = isExternal;
         }
 
-        IsolationHygieneGlobalProperty(PropertyDefinition propertyDefinition) {
+        IsolationHygieneGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
             this.isExternal = true;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -195,23 +196,23 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
 
     public enum IsolationHygieneRegionProperty implements DefinedRegionProperty {
 
-        ISOLATION_HYGIENE_TRIGGER_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build()),
+        ISOLATION_HYGIENE_TRIGGER_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build()),
 
-        ISOLATION_HYGIENE_TRIGGER_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build()),
+        ISOLATION_HYGIENE_TRIGGER_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build()),
 
-        ISOLATION_HYGIENE_IN_EFFECT(PropertyDefinition.builder().
-                setType(Boolean.class).setDefaultValue(false).build());
+        ISOLATION_HYGIENE_IN_EFFECT(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        IsolationHygieneRegionProperty(PropertyDefinition propertyDefinition) {
+        IsolationHygieneRegionProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

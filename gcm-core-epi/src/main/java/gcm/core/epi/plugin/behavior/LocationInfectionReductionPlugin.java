@@ -1,5 +1,6 @@
 package gcm.core.epi.plugin.behavior;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.Util;
@@ -10,6 +11,7 @@ import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.DefinedGlobalAndRegionProperty;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 
@@ -92,26 +94,28 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
 
     public enum LocationInfectionReductionGlobalProperty implements DefinedGlobalProperty {
 
-        LOCATION_INFECTION_REDUCTION_START(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        LOCATION_INFECTION_REDUCTION_START(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        LOCATION_INFECTION_REDUCTION_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        LOCATION_INFECTION_REDUCTION_END(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        LOCATION_INFECTION_REDUCTION_TRIGGER_OVERRIDES(PropertyDefinition.builder()
-                .setType(List.class).setDefaultValue(new ArrayList<TriggeredPropertyOverride>())
-                .setPropertyValueMutability(false).build());
+        LOCATION_INFECTION_REDUCTION_TRIGGER_OVERRIDES(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<List<TriggeredPropertyOverride>>() {
+                })
+                .defaultValue(new ArrayList<TriggeredPropertyOverride>())
+                .isMutable(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
         private final boolean isExternal;
 
-        LocationInfectionReductionGlobalProperty(PropertyDefinition propertyDefinition) {
+        LocationInfectionReductionGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
             this.isExternal = true;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -124,23 +128,24 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
 
     public enum LocationInfectionReductionGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
 
-        LOCATION_INFECTION_REDUCTION(PropertyDefinition.builder()
-                .setType(FipsCodeValue.class)
-                .setDefaultValue(ImmutableFipsCodeValue.builder()
+        LOCATION_INFECTION_REDUCTION(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<FipsCodeValue<Map<AgeGroup, Map<ContactGroupType, Double>>>>() {
+                })
+                .defaultValue(ImmutableFipsCodeValue.builder()
                         .defaultValue(new HashMap<AgeGroup, Map<ContactGroupType, Double>>()).build())
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build(),
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build(),
                 LocationInfectionReductionRegionProperty.LOCATION_INFECTION_REDUCTION);
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
         private final DefinedRegionProperty regionProperty;
 
-        LocationInfectionReductionGlobalAndRegionProperty(PropertyDefinition propertyDefinition, DefinedRegionProperty regionProperty) {
+        LocationInfectionReductionGlobalAndRegionProperty(TypedPropertyDefinition propertyDefinition, DefinedRegionProperty regionProperty) {
             this.propertyDefinition = propertyDefinition;
             this.regionProperty = regionProperty;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -157,26 +162,28 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
 
     public enum LocationInfectionReductionRegionProperty implements DefinedRegionProperty {
 
-        LOCATION_INFECTION_REDUCTION(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(new HashMap<AgeGroup, Map<ContactGroupType, Double>>())
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+        LOCATION_INFECTION_REDUCTION(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<AgeGroup, Map<ContactGroupType, Double>>>() {
+                })
+                .type(Map.class).defaultValue(new HashMap<AgeGroup, Map<ContactGroupType, Double>>())
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
-        LOCATION_INFECTION_REDUCTION_TRIGGER_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+        LOCATION_INFECTION_REDUCTION_TRIGGER_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
-        LOCATION_INFECTION_REDUCTION_TRIGGER_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build());
+        LOCATION_INFECTION_REDUCTION_TRIGGER_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        LocationInfectionReductionRegionProperty(PropertyDefinition propertyDefinition) {
+        LocationInfectionReductionRegionProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

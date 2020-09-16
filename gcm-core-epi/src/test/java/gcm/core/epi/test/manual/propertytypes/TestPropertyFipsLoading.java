@@ -18,6 +18,7 @@ import gcm.core.epi.util.loading.CoreEpiBootstrapUtil;
 import gcm.core.epi.util.loading.FipsCodeStringMapDeserializer;
 import gcm.core.epi.util.property.DefinedGlobalAndRegionProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.PropertyDefinition;
 import org.junit.Test;
 
@@ -78,8 +79,8 @@ public class TestPropertyFipsLoading {
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
-            return PropertyDefinition.builder().setType(Double.class).setDefaultValue(0.0).build();
+        public TypedPropertyDefinition getPropertyDefinition() {
+            return TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0).build();
         }
     };
 
@@ -101,8 +102,10 @@ public class TestPropertyFipsLoading {
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
-            return PropertyDefinition.builder().setType(Map.class).setDefaultValue(new HashMap<String, Double>()).build();
+        public TypedPropertyDefinition getPropertyDefinition() {
+            return TypedPropertyDefinition.builder()
+                    .typeReference(new TypeReference<Map<String, Double>>() {})
+                    .defaultValue(new HashMap<String, Double>()).build();
         }
     };
 

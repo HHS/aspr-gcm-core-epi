@@ -261,14 +261,7 @@ public class CoreEpiBootstrapUtil {
 
     private static Object getPropertyValueFromJson(ObjectMapper objectMapper, JsonNode jsonNode,
                                                    DefinedProperty property) throws IOException {
-        Class<?> propertyType = property.getPropertyDefinition().getType();
-        Optional<PropertyDeserializer> propertyDeserializer = PropertyDeserializerUtil.getPropertyDeserializer(property);
-        if (propertyDeserializer.isPresent()) {
-            return objectMapper.readValue(objectMapper.treeAsTokens(jsonNode),
-                    propertyDeserializer.get().getTypeReference());
-        } else {
-            return objectMapper.treeToValue(jsonNode, propertyType);
-        }
+        return objectMapper.readerFor(property.getPropertyDefinition().javaType()).readValue(jsonNode);
     }
 
     public static Object getPropertyValueFromJson(JsonNode jsonNode, DefinedProperty property,
@@ -417,7 +410,8 @@ public class CoreEpiBootstrapUtil {
             if (globalProperty.isExternalProperty()) {
                 externalGlobalProperties.put(globalProperty.toString(), globalProperty);
             }
-            experimentBuilder.defineGlobalProperty(globalProperty, globalProperty.getPropertyDefinition());
+            experimentBuilder.defineGlobalProperty(globalProperty,
+                    globalProperty.getPropertyDefinition().definition());
         }
 
         // Plugin global properties
@@ -523,7 +517,7 @@ public class CoreEpiBootstrapUtil {
                 logger.info(property + ": loading from file " + stringPathForLoading);
                 parsingMethods.add(() ->
                         objectMapper.readValue(basePath.resolve(stringPathForLoading).toFile(),
-                                property.getPropertyDefinition().getType()));
+                                property.getPropertyDefinition().javaType()));
             } else {
                 // Look for specialty loader
                 if (property.equals(GlobalProperty.POPULATION_DESCRIPTION)) {

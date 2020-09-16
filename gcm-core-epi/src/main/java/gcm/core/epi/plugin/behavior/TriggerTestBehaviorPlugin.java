@@ -4,7 +4,7 @@ import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
-import gcm.scenario.PropertyDefinition;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.simulation.Environment;
 
 import java.util.*;
@@ -39,26 +39,26 @@ public class TriggerTestBehaviorPlugin extends BehaviorPlugin {
 
     public enum TriggerTestGlobalProperty implements DefinedGlobalProperty {
 
-        START_TRIGGER_ONE(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        START_TRIGGER_ONE(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        END_TRIGGER_ONE(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        END_TRIGGER_ONE(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        START_TRIGGER_TWO(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        START_TRIGGER_TWO(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        END_TRIGGER_TWO(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build());
+        END_TRIGGER_TWO(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        TriggerTestGlobalProperty(PropertyDefinition propertyDefinition) {
+        TriggerTestGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -71,23 +71,23 @@ public class TriggerTestBehaviorPlugin extends BehaviorPlugin {
 
     public enum TriggerTestRegionProperty implements DefinedRegionProperty {
 
-        TRIGGER_CONDITION_ONE_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build()),
-        TRIGGER_CONDITION_ONE_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build()),
-        TRIGGER_CONDITION_TWO_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build()),
-        TRIGGER_CONDITION_TWO_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build());
+        TRIGGER_CONDITION_ONE_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build()),
+        TRIGGER_CONDITION_ONE_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build()),
+        TRIGGER_CONDITION_TWO_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build()),
+        TRIGGER_CONDITION_TWO_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        TriggerTestRegionProperty(PropertyDefinition propertyDefinition) {
+        TriggerTestRegionProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

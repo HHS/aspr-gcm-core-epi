@@ -58,21 +58,24 @@ public interface Plugin {
     default void load(ExperimentBuilder experimentBuilder) {
 
         for (DefinedGlobalProperty globalProperty : getGlobalProperties()) {
-            experimentBuilder.defineGlobalProperty(globalProperty, globalProperty.getPropertyDefinition());
+            experimentBuilder.defineGlobalProperty(globalProperty,
+                    globalProperty.getPropertyDefinition().definition());
         }
 
         for (DefinedRegionProperty regionProperty : getRegionProperties()) {
-            experimentBuilder.defineRegionProperty(regionProperty, regionProperty.getPropertyDefinition());
+            experimentBuilder.defineRegionProperty(regionProperty,
+                    regionProperty.getPropertyDefinition().definition());
         }
 
         for (DefinedPersonProperty personProperty : getPersonProperties()) {
-            experimentBuilder.definePersonProperty(personProperty, personProperty.getPropertyDefinition());
+            experimentBuilder.definePersonProperty(personProperty,
+                    personProperty.getPropertyDefinition().definition());
         }
 
         for (Map.Entry<ContactGroupType, Set<DefinedGroupProperty>> entry : getGroupProperties().entrySet()) {
             for (DefinedGroupProperty groupProperty : entry.getValue()) {
                 experimentBuilder.defineGroupProperty(entry.getKey(), groupProperty,
-                        groupProperty.getPropertyDefinition());
+                        groupProperty.getPropertyDefinition().definition());
             }
         }
 
@@ -81,7 +84,7 @@ public interface Plugin {
             experimentBuilder.addResource(resourceId);
             for (DefinedResourceProperty resourceProperty : entry.getValue()) {
                 experimentBuilder.defineResourceProperty(resourceId, resourceProperty,
-                        resourceProperty.getPropertyDefinition());
+                        resourceProperty.getPropertyDefinition().definition());
             }
         }
 

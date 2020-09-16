@@ -10,7 +10,11 @@ import gcm.core.epi.propertytypes.FipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableFipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
-import gcm.scenario.*;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.scenario.ExperimentBuilder;
+import gcm.scenario.GlobalComponentId;
+import gcm.scenario.PersonId;
+import gcm.scenario.RandomNumberGeneratorId;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
 import gcm.simulation.partition.LabelSet;
@@ -49,28 +53,28 @@ public class ExponentialSeedingPlugin implements Plugin {
 
     public enum ExponentialSeedingGlobalProperty implements DefinedGlobalProperty {
 
-        SEEDING_START_DAY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        SEEDING_START_DAY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        SEEDING_END_DAY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        SEEDING_END_DAY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        INITIAL_SEEDING_RATE_PER_DAY(PropertyDefinition.builder()
-                .setType(FipsCodeDouble.class).setDefaultValue(
+        INITIAL_SEEDING_RATE_PER_DAY(TypedPropertyDefinition.builder()
+                .type(FipsCodeDouble.class).defaultValue(
                         ImmutableFipsCodeDouble.builder().build())
-                .setPropertyValueMutability(false).build()),
+                .isMutable(false).build()),
 
-        SEEDING_GROWTH_DOUBLING_TIME(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(Double.POSITIVE_INFINITY).setPropertyValueMutability(false).build());
+        SEEDING_GROWTH_DOUBLING_TIME(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(Double.POSITIVE_INFINITY).isMutable(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        ExponentialSeedingGlobalProperty(PropertyDefinition propertyDefinition) {
+        ExponentialSeedingGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

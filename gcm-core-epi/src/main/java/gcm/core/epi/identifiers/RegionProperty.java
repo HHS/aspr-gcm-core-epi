@@ -1,22 +1,22 @@
 package gcm.core.epi.identifiers;
 
 import gcm.core.epi.util.property.DefinedRegionProperty;
-import gcm.scenario.PropertyDefinition;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 
 public enum RegionProperty implements DefinedRegionProperty {
 
-    LAT(PropertyDefinition.builder().setType(Double.class).setPropertyValueMutability(false).build()),
+    LAT(TypedPropertyDefinition.builder().type(Double.class).isMutable(false).build()),
 
-    LON(PropertyDefinition.builder().setType(Double.class).setPropertyValueMutability(false).build());
+    LON(TypedPropertyDefinition.builder().type(Double.class).isMutable(false).build());
 
-    private final PropertyDefinition propertyDefinition;
+    private final TypedPropertyDefinition propertyDefinition;
 
-    RegionProperty(PropertyDefinition propertyDefinition) {
+    RegionProperty(TypedPropertyDefinition propertyDefinition) {
         this.propertyDefinition = propertyDefinition;
     }
 
     @Override
-    public PropertyDefinition getPropertyDefinition() {
+    public TypedPropertyDefinition getPropertyDefinition() {
         return propertyDefinition;
     }
 

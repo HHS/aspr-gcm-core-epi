@@ -10,7 +10,11 @@ import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.propertytypes.ImmutableAgeWeights;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
-import gcm.scenario.*;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.scenario.ExperimentBuilder;
+import gcm.scenario.MapOption;
+import gcm.scenario.PersonId;
+import gcm.scenario.RandomNumberGeneratorId;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
 import gcm.simulation.partition.LabelSet;
@@ -93,19 +97,19 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
      */
     public enum VaccinePersonProperty implements DefinedPersonProperty {
 
-        VACCINE_STATUS(PropertyDefinition.builder()
-                .setType(TwoDoseVaccineStatus.class)
-                .setDefaultValue(TwoDoseVaccineStatus.NOT_VACCINATED)
-                .setMapOption(MapOption.ARRAY).build());
+        VACCINE_STATUS(TypedPropertyDefinition.builder()
+                .type(TwoDoseVaccineStatus.class)
+                .defaultValue(TwoDoseVaccineStatus.NOT_VACCINATED)
+                .mapOption(MapOption.ARRAY).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        VaccinePersonProperty(PropertyDefinition propertyDefinition) {
+        VaccinePersonProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -119,54 +123,54 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
         /*
             First dose
          */
-        VE_S_1(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        VE_S_1(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        VE_I_1(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        VE_I_1(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        VE_P_1(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        VE_P_1(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
         /*
             Second dose
          */
-        VE_S_2(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        VE_S_2(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        VE_I_2(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        VE_I_2(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        VE_P_2(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        VE_P_2(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        VACCINATION_START_DAY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        VACCINATION_START_DAY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        VACCINATION_RATE_PER_DAY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        VACCINATION_RATE_PER_DAY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        VE_DELAY_DAYS(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        VE_DELAY_DAYS(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        VE_DURATION_DAYS(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(Double.POSITIVE_INFINITY).setPropertyValueMutability(false).build()),
+        VE_DURATION_DAYS(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(Double.POSITIVE_INFINITY).isMutable(false).build()),
 
-        INTER_DOSE_DELAY_DAYS(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        INTER_DOSE_DELAY_DAYS(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        VACCINE_UPTAKE_WEIGHTS(PropertyDefinition.builder()
-                .setType(AgeWeights.class)
-                .setDefaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build());
+        VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
+                .type(AgeWeights.class)
+                .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        VaccineGlobalProperty(PropertyDefinition propertyDefinition) {
+        VaccineGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

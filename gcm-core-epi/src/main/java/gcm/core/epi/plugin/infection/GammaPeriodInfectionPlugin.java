@@ -3,8 +3,8 @@ package gcm.core.epi.plugin.infection;
 import gcm.core.epi.util.distributions.GammaHelper;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.PersonId;
-import gcm.scenario.PropertyDefinition;
 import gcm.simulation.Environment;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.GammaDistribution;
@@ -80,32 +80,32 @@ public class GammaPeriodInfectionPlugin implements InfectionPlugin {
 
     private enum GlobalProperty implements DefinedGlobalProperty {
 
-        LATENT_PERIOD(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(1.0).setPropertyValueMutability(false).build()),
+        LATENT_PERIOD(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(1.0).isMutable(false).build()),
 
-        LATENT_PERIOD_COV(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(1.0).setPropertyValueMutability(false).build()),
+        LATENT_PERIOD_COV(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(1.0).isMutable(false).build()),
 
-        SYMPTOMATIC_INFECTIOUS_PERIOD(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(1.0).setPropertyValueMutability(false).build()),
+        SYMPTOMATIC_INFECTIOUS_PERIOD(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(1.0).isMutable(false).build()),
 
-        SYMPTOMATIC_INFECTIOUS_PERIOD_COV(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(1.0).setPropertyValueMutability(false).build()),
+        SYMPTOMATIC_INFECTIOUS_PERIOD_COV(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(1.0).isMutable(false).build()),
 
-        FRACTION_LATENT_PERIOD_INFECTIOUS(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(1.0).setPropertyValueMutability(false).build()),
+        FRACTION_LATENT_PERIOD_INFECTIOUS(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(1.0).isMutable(false).build()),
 
-        TRANSMISSION_OVERDISPERSION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build());
+        TRANSMISSION_OVERDISPERSION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        GlobalProperty(PropertyDefinition propertyDefinition) {
+        GlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -118,17 +118,17 @@ public class GammaPeriodInfectionPlugin implements InfectionPlugin {
 
     private enum PersonProperty implements DefinedPersonProperty {
 
-        RELATIVE_INFECTIOUSNESS(PropertyDefinition.builder()
-                .setType(Float.class).setDefaultValue(1.0f).build());
+        RELATIVE_INFECTIOUSNESS(TypedPropertyDefinition.builder()
+                .type(Float.class).defaultValue(1.0f).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        PersonProperty(PropertyDefinition propertyDefinition) {
+        PersonProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

@@ -1,5 +1,6 @@
 package gcm.core.epi.plugin.behavior;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.propertytypes.DayOfWeekSchedule;
 import gcm.core.epi.propertytypes.ImmutableDayOfWeekSchedule;
@@ -8,6 +9,7 @@ import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedGroupProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
@@ -195,17 +197,17 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
 
     private enum SchoolClosureSchoolProperty implements DefinedGroupProperty {
 
-        HAS_ASSIGNED_COHORTS(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build());
+        HAS_ASSIGNED_COHORTS(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        SchoolClosureSchoolProperty(PropertyDefinition propertyDefinition) {
+        SchoolClosureSchoolProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -213,17 +215,17 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
 
     private enum SchoolClosureCohortProperty implements DefinedGroupProperty {
 
-        COHORT_NUMBER(PropertyDefinition.builder()
-                .setType(Cohort.class).setDefaultValue(Cohort.ONE).build());
+        COHORT_NUMBER(TypedPropertyDefinition.builder()
+                .type(Cohort.class).defaultValue(Cohort.ONE).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        SchoolClosureCohortProperty(PropertyDefinition propertyDefinition) {
+        SchoolClosureCohortProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -235,48 +237,54 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
 
     public enum SchoolClosureGlobalProperty implements DefinedGlobalProperty {
 
-        SCHOOL_CLOSURE_START(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        SCHOOL_CLOSURE_START(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        SCHOOL_CLOSURE_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        SCHOOL_CLOSURE_END(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        COHORTING_START(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        COHORTING_START(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        COHORTING_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        COHORTING_END(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        SUMMER_START(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        SUMMER_START(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        SUMMER_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        SUMMER_END(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        SCHOOL_CLOSED_CONTACT_SUBSTITUTION_WEIGHTS(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(getSchoolClosedSubstitutionWeights())
-                .setPropertyValueMutability(false).build()),
+        SCHOOL_CLOSED_CONTACT_SUBSTITUTION_WEIGHTS(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<ContactGroupType, Double>>() {
+                })
+                .defaultValue(getSchoolClosedSubstitutionWeights())
+                .isMutable(false).build()),
 
-        COHORTING_CONTACT_SUBSTITUTION_WEIGHTS(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(getCohortingSubstitutionWeights())
-                .setPropertyValueMutability(false).build()),
+        COHORTING_CONTACT_SUBSTITUTION_WEIGHTS(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<ContactGroupType, Double>>() {
+                })
+                .defaultValue(getCohortingSubstitutionWeights())
+                .isMutable(false).build()),
 
-        SUMMER_CONTACT_SUBSTITUTION_WEIGHTS(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(getSummerSubstitutionWeights())
-                .setPropertyValueMutability(false).build()),
+        SUMMER_CONTACT_SUBSTITUTION_WEIGHTS(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<ContactGroupType, Double>>() {
+                })
+                .defaultValue(getSummerSubstitutionWeights())
+                .isMutable(false).build()),
 
-        COHORT_ONE_SCHEDULE(PropertyDefinition.builder()
-                .setType(ImmutableDayOfWeekSchedule.class).setDefaultValue(DayOfWeekSchedule.mondayToFriday()).build()),
+        COHORT_ONE_SCHEDULE(TypedPropertyDefinition.builder()
+                .type(ImmutableDayOfWeekSchedule.class).defaultValue(DayOfWeekSchedule.mondayToFriday()).build()),
 
-        COHORT_TWO_SCHEDULE(PropertyDefinition.builder()
-                .setType(ImmutableDayOfWeekSchedule.class).setDefaultValue(DayOfWeekSchedule.mondayToFriday()).build()),
+        COHORT_TWO_SCHEDULE(TypedPropertyDefinition.builder()
+                .type(ImmutableDayOfWeekSchedule.class).defaultValue(DayOfWeekSchedule.mondayToFriday()).build()),
 
-        WITHIN_COHORT_TRANSMISSION_FRACTION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(1.0).build());
+        WITHIN_COHORT_TRANSMISSION_FRACTION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(1.0).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        SchoolClosureGlobalProperty(PropertyDefinition propertyDefinition) {
+        SchoolClosureGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
@@ -305,7 +313,7 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -318,38 +326,38 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
 
     public enum SchoolClosureRegionProperty implements DefinedRegionProperty {
 
-        SCHOOL_CLOSURE_TRIGGER_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+        SCHOOL_CLOSURE_TRIGGER_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
-        SCHOOL_CLOSURE_TRIGGER_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+        SCHOOL_CLOSURE_TRIGGER_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
-        SUMMER_TRIGGER_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+        SUMMER_TRIGGER_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
-        SUMMER_TRIGGER_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+        SUMMER_TRIGGER_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
-        COHORTING_TRIGGER_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+        COHORTING_TRIGGER_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
-        COHORTING_TRIGGER_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build());
+        COHORTING_TRIGGER_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        SchoolClosureRegionProperty(PropertyDefinition propertyDefinition) {
+        SchoolClosureRegionProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

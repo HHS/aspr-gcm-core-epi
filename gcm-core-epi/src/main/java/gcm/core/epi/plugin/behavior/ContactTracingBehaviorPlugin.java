@@ -1,5 +1,6 @@
 package gcm.core.epi.plugin.behavior;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.components.ContactManager;
 import gcm.core.epi.identifiers.ContactGroupType;
@@ -11,6 +12,7 @@ import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
@@ -94,22 +96,22 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
     public enum ContactTracingRegionProperty implements DefinedRegionProperty {
 
-        CONTACT_TRACING_TRIGGER_START(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
+        CONTACT_TRACING_TRIGGER_START(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
-        CONTACT_TRACING_TRIGGER_END(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false)
-                .setTimeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build());
+        CONTACT_TRACING_TRIGGER_END(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false)
+                .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        ContactTracingRegionProperty(PropertyDefinition propertyDefinition) {
+        ContactTracingRegionProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -118,22 +120,22 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
     public enum ContactTracingPersonProperty implements DefinedPersonProperty {
 
         // Will track infectious contacts in the GLOBAL setting
-        GLOBAL_INFECTION_SOURCE_PERSON_ID(PropertyDefinition.builder()
-                .setType(Integer.class).setDefaultValue(-1).setMapOption(MapOption.ARRAY).build()),
+        GLOBAL_INFECTION_SOURCE_PERSON_ID(TypedPropertyDefinition.builder()
+                .type(Integer.class).defaultValue(-1).mapOption(MapOption.ARRAY).build()),
 
         // Track infectious contacts outside of GLOBAL setting.
         // This is used when CONTACT_TRACING_MAX_CONTACTS_TO_TRACE is limited
-        NON_GLOBAL_INFECTION_SOURCE_PERSON_ID(PropertyDefinition.builder()
-                .setType(Integer.class).setDefaultValue(-1).setMapOption(MapOption.ARRAY).build());
+        NON_GLOBAL_INFECTION_SOURCE_PERSON_ID(TypedPropertyDefinition.builder()
+                .type(Integer.class).defaultValue(-1).mapOption(MapOption.ARRAY).build());
 
-        final PropertyDefinition propertyDefinition;
+        final TypedPropertyDefinition propertyDefinition;
 
-        ContactTracingPersonProperty(PropertyDefinition propertyDefinition) {
+        ContactTracingPersonProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -141,66 +143,70 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
     public enum ContactTracingGlobalProperty implements DefinedGlobalProperty {
 
-        MAXIMUM_INFECTIONS_TO_TRACE(PropertyDefinition.builder()
-                .setType(FipsCodeDouble.class).setDefaultValue(ImmutableFipsCodeDouble.builder().build())
-                .setPropertyValueMutability(false).build()),
+        MAXIMUM_INFECTIONS_TO_TRACE(TypedPropertyDefinition.builder()
+                .type(FipsCodeDouble.class).defaultValue(ImmutableFipsCodeDouble.builder().build())
+                .isMutable(false).build()),
 
-        CURRENT_INFECTIONS_BEING_TRACED(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(new HashMap<FipsCode,
+        CURRENT_INFECTIONS_BEING_TRACED(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<FipsCode, ContactTracingManager.Counter>>() {
+                })
+                .defaultValue(new HashMap<FipsCode,
                         ContactTracingManager.Counter>()).build(), false),
 
-        FRACTION_INFECTIONS_TRACED(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).build()),
+        FRACTION_INFECTIONS_TRACED(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).build()),
 
         // This value will multiply both infected & uninfected contacts
         // There's no way to specify that you want to correctly identify and quarantine X% of infected contacts and
         // then also say that some other number of people should quarantine with Z probability.
-        FRACTION_CONTACTS_TRACED_AND_ISOLATED(PropertyDefinition.builder()
-                .setType(Map.class)
-                .setDefaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class))
-                .setPropertyValueMutability(false).build()),
+        FRACTION_CONTACTS_TRACED_AND_ISOLATED(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<ContactGroupType, Double>>() {
+                })
+                .defaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class))
+                .isMutable(false).build()),
 
-        TRACED_CONTACT_STAY_HOME_DURATION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        TRACED_CONTACT_STAY_HOME_DURATION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        CONTACT_TRACING_ASCERTAINMENT_DELAY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        CONTACT_TRACING_ASCERTAINMENT_DELAY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        CONTACT_TRACING_DELAY(PropertyDefinition.builder()
-                .setType(Map.class)
-                .setDefaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class))
-                .setPropertyValueMutability(false).build()),
+        CONTACT_TRACING_DELAY(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<ContactGroupType, Double>>() {
+                })
+                .defaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class))
+                .isMutable(false).build()),
 
-        CONTACT_TRACING_TIME(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        CONTACT_TRACING_TIME(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        CONTACT_TRACING_START(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        CONTACT_TRACING_START(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        CONTACT_TRACING_END(PropertyDefinition.builder()
-                .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+        CONTACT_TRACING_END(TypedPropertyDefinition.builder()
+                .type(String.class).defaultValue("").isMutable(false).build()),
 
-        CONTACT_TRACING_MAX_CONTACTS_TO_TRACE(PropertyDefinition.builder()
-                .setType(Integer.class).setDefaultValue(Integer.MAX_VALUE).setPropertyValueMutability(false).build()),
+        CONTACT_TRACING_MAX_CONTACTS_TO_TRACE(TypedPropertyDefinition.builder()
+                .type(Integer.class).defaultValue(Integer.MAX_VALUE).isMutable(false).build()),
 
-        ADDITIONAL_GLOBAL_CONTACTS_TO_TRACE(PropertyDefinition.builder()
-                .setType(Integer.class).setDefaultValue(0).setPropertyValueMutability(false).build());
+        ADDITIONAL_GLOBAL_CONTACTS_TO_TRACE(TypedPropertyDefinition.builder()
+                .type(Integer.class).defaultValue(0).isMutable(false).build());
 
-        final PropertyDefinition propertyDefinition;
+        final TypedPropertyDefinition propertyDefinition;
         final boolean isExternal;
 
-        ContactTracingGlobalProperty(PropertyDefinition propertyDefinition) {
+        ContactTracingGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
             this.isExternal = true;
         }
 
-        ContactTracingGlobalProperty(PropertyDefinition propertyDefinition, boolean isExternal) {
+        ContactTracingGlobalProperty(TypedPropertyDefinition propertyDefinition, boolean isExternal) {
             this.propertyDefinition = propertyDefinition;
             this.isExternal = isExternal;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

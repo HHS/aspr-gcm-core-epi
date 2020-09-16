@@ -1,8 +1,8 @@
 package gcm.core.epi.plugin.infection;
 
 import gcm.core.epi.util.property.DefinedGlobalProperty;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.PersonId;
-import gcm.scenario.PropertyDefinition;
 import gcm.simulation.Environment;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 
@@ -40,20 +40,20 @@ public class ExponentialPeriodInfectionPlugin implements InfectionPlugin {
 
     private enum GlobalProperty implements DefinedGlobalProperty {
 
-        LATENT_PERIOD(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(1.0).setPropertyValueMutability(false).build()),
+        LATENT_PERIOD(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(1.0).isMutable(false).build()),
 
-        INFECTIOUS_PERIOD(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(1.0).setPropertyValueMutability(false).build());
+        INFECTIOUS_PERIOD(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(1.0).isMutable(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
 
-        GlobalProperty(PropertyDefinition propertyDefinition) {
+        GlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 

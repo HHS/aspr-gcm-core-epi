@@ -1,14 +1,18 @@
 package gcm.core.epi.identifiers;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import gcm.core.epi.plugin.behavior.BehaviorPlugin;
 import gcm.core.epi.plugin.infection.ExponentialPeriodInfectionPlugin;
 import gcm.core.epi.plugin.infection.InfectionPlugin;
+import gcm.core.epi.plugin.transmission.TransmissionPlugin;
+import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.HospitalData;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.*;
 import gcm.core.epi.trigger.TriggerContainer;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
-import gcm.scenario.PropertyDefinition;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.RegionId;
 import gcm.scenario.RegionPropertyId;
 import gcm.util.geolocator.GeoLocator;
@@ -20,153 +24,190 @@ import java.util.*;
 
 public enum GlobalProperty implements DefinedGlobalProperty {
 
-    AGE_WEIGHTS_TEST(PropertyDefinition.builder()
-            .setType(AgeWeights.class).setDefaultValue(ImmutableAgeWeights.builder().build()).build()),
+    AGE_WEIGHTS_TEST(TypedPropertyDefinition.builder()
+            .type(AgeWeights.class).defaultValue(ImmutableAgeWeights.builder().build()).build()),
 
-    AVERAGE_TRANSMISSION_RATIO(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+    AVERAGE_TRANSMISSION_RATIO(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-    POPULATION_DESCRIPTION(PropertyDefinition.builder()
-            .setType(PopulationDescription.class).setPropertyValueMutability(false).build()),
+    POPULATION_DESCRIPTION(TypedPropertyDefinition.builder()
+            .type(PopulationDescription.class).isMutable(false).build()),
 
-    TRANSMISSION_STRUCTURE(PropertyDefinition.builder()
-            .setType(TransmissionStructure.class).setPropertyValueMutability(false).build()),
+    TRANSMISSION_STRUCTURE(TypedPropertyDefinition.builder()
+            .type(TransmissionStructure.class).isMutable(false).build()),
 
-    TRANSMISSION_RATIOS(PropertyDefinition.builder()
-            .setType(Map.class).setDefaultValue(new HashMap<AgeGroup, Double>()).build(), false),
+    TRANSMISSION_RATIOS(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<AgeGroup, Double>>() {
+            })
+            .defaultValue(new HashMap<AgeGroup, Double>()).build(), false),
 
-    FRACTION_OF_GLOBAL_CONTACTS_IN_HOME_REGION(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.1).setPropertyValueMutability(false).build()),
+    FRACTION_OF_GLOBAL_CONTACTS_IN_HOME_REGION(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(0.1).isMutable(false).build()),
 
-    RADIATION_FLOW_GEOLOCATOR(PropertyDefinition.builder()
-            .setType(GeoLocator.class).setDefaultValue(getDefaultGeoLocator()).build(), false),
+    RADIATION_FLOW_GEOLOCATOR(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<GeoLocator<Object>>() {
+            })
+            .defaultValue(getDefaultGeoLocator()).build(), false),
 
-    RADIATION_FLOW_MAX_RADIUS_KM(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(100.0).setPropertyValueMutability(false).build()),
+    RADIATION_FLOW_MAX_RADIUS_KM(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(100.0).isMutable(false).build()),
 
-    RADIATION_FLOW_TARGET_DISTRIBUTIONS(PropertyDefinition.builder()
-            .setType(Map.class)
-            .setDefaultValue(new HashMap<RegionId, EnumeratedDistribution<RegionId>>()).build(), false),
+    RADIATION_FLOW_TARGET_DISTRIBUTIONS(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<RegionId, EnumeratedDistribution<RegionId>>>() {
+            })
+            .defaultValue(new HashMap<RegionId, EnumeratedDistribution<RegionId>>()).build(), false),
 
-    INITIAL_INFECTIONS(PropertyDefinition.builder()
-            .setType(FipsCodeDouble.class)
-            .setDefaultValue(ImmutableFipsCodeDouble.builder().build())
-            .setPropertyValueMutability(false).build()),
+    INITIAL_INFECTIONS(TypedPropertyDefinition.builder()
+            .type(FipsCodeDouble.class)
+            .defaultValue(ImmutableFipsCodeDouble.builder().build())
+            .isMutable(false).build()),
 
-    FRACTION_SYMPTOMATIC(PropertyDefinition.builder()
-            .setType(AgeWeights.class).setDefaultValue(ImmutableAgeWeights.builder().build()).setPropertyValueMutability(false).build()),
+    FRACTION_SYMPTOMATIC(TypedPropertyDefinition.builder()
+            .type(AgeWeights.class).defaultValue(ImmutableAgeWeights.builder().build()).isMutable(false).build()),
 
-    ASYMPTOMATIC_INFECTIOUSNESS(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(1.0).setPropertyValueMutability(false).build()),
+    ASYMPTOMATIC_INFECTIOUSNESS(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(1.0).isMutable(false).build()),
 
-    MOST_RECENT_INFECTION_DATA(PropertyDefinition.builder()
-            .setType(Optional.class).setDefaultValue(Optional.empty()).build(), false),
+    MOST_RECENT_INFECTION_DATA(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Optional<InfectionData>>() {
+            })
+            .defaultValue(Optional.empty()).build(), false),
 
-    HOSPITAL_DATA(PropertyDefinition.builder()
-            .setType(List.class).setDefaultValue(new ArrayList<HospitalData>()).build(), false),
+    HOSPITAL_DATA(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<List<HospitalData>>() {
+            })
+            .defaultValue(new ArrayList<HospitalData>()).build(), false),
 
-    HOSPITAL_DATA_FILE(PropertyDefinition.builder()
-            .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+    HOSPITAL_DATA_FILE(TypedPropertyDefinition.builder()
+            .type(String.class).defaultValue("").isMutable(false).build()),
 
-    HOSPITAL_BED_STAFF_RATIO(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+    HOSPITAL_BED_STAFF_RATIO(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-    HOSPITAL_BED_OCCUPANCY(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+    HOSPITAL_BED_OCCUPANCY(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-    REGION_WORKER_FLOW_DATA_FILE(PropertyDefinition.builder()
-            .setType(String.class).setDefaultValue("").setPropertyValueMutability(false).build()),
+    REGION_WORKER_FLOW_DATA_FILE(TypedPropertyDefinition.builder()
+            .type(String.class).defaultValue("").isMutable(false).build()),
 
-    HOSPITAL_GEOLOCATOR(PropertyDefinition.builder()
-            .setType(GeoLocator.class).setDefaultValue(getDefaultGeoLocator()).build(), false),
+    HOSPITAL_GEOLOCATOR(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<GeoLocator<Object>>() {
+            })
+            .defaultValue(getDefaultGeoLocator()).build(), false),
 
-    CASE_HOSPITALIZATION_RATIO(PropertyDefinition.builder()
-            .setType(Map.class).setDefaultValue(new HashMap<>()).setPropertyValueMutability(false).build()),
+    CASE_HOSPITALIZATION_RATIO(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<AgeGroup, Double>>() {
+            })
+            .defaultValue(new HashMap<>()).isMutable(false).build()),
 
-    HOSPITALIZATION_DELAY_MEAN(PropertyDefinition.builder()
-            .setType(Map.class).setDefaultValue(new HashMap<>()).setPropertyValueMutability(false).build()),
+    HOSPITALIZATION_DELAY_MEAN(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<AgeGroup, Double>>() {
+            })
+            .defaultValue(new HashMap<>()).isMutable(false).build()),
 
-    HOSPITALIZATION_DELAY_SD(PropertyDefinition.builder()
-            .setType(Map.class).setDefaultValue(new HashMap<>()).setPropertyValueMutability(false).build()),
+    HOSPITALIZATION_DELAY_SD(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<AgeGroup, Double>>() {
+            })
+            .defaultValue(new HashMap<>()).isMutable(false).build()),
 
-    HOSPITALIZATION_DURATION_MEAN(PropertyDefinition.builder()
-            .setType(Map.class).setDefaultValue(new HashMap<>()).setPropertyValueMutability(false).build()),
+    HOSPITALIZATION_DURATION_MEAN(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<AgeGroup, Double>>() {
+            })
+            .defaultValue(new HashMap<>()).isMutable(false).build()),
 
-    HOSPITALIZATION_DURATION_SD(PropertyDefinition.builder()
-            .setType(Map.class).setDefaultValue(new HashMap<>()).setPropertyValueMutability(false).build()),
+    HOSPITALIZATION_DURATION_SD(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<AgeGroup, Double>>() {
+            })
+            .defaultValue(new HashMap<>()).isMutable(false).build()),
 
-    HOSPITALIZATION_MAX_RADIUS_KM(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+    HOSPITALIZATION_MAX_RADIUS_KM(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-    CASE_FATALITY_RATIO(PropertyDefinition.builder()
-            .setType(Map.class).setDefaultValue(new HashMap<>()).setPropertyValueMutability(false).build()),
+    CASE_FATALITY_RATIO(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<AgeGroup, Double>>() {
+            })
+            .defaultValue(new HashMap<>()).isMutable(false).build()),
 
-    HOSPITALIZATION_TO_DEATH_DELAY_MEAN(PropertyDefinition.builder()
-            .setType(Map.class).setDefaultValue(new HashMap<>()).setPropertyValueMutability(false).build()),
+    HOSPITALIZATION_TO_DEATH_DELAY_MEAN(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<AgeGroup, Double>>() {
+            })
+            .defaultValue(new HashMap<>()).isMutable(false).build()),
 
-    HOSPITALIZATION_TO_DEATH_DELAY_SD(PropertyDefinition.builder()
-            .setType(Map.class).setDefaultValue(new HashMap<>()).setPropertyValueMutability(false).build()),
+    HOSPITALIZATION_TO_DEATH_DELAY_SD(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<AgeGroup, Double>>() {
+            })
+            .defaultValue(new HashMap<>()).isMutable(false).build()),
 
-    INFECTION_PLUGIN(PropertyDefinition.builder()
-            .setType(InfectionPlugin.class).setDefaultValue(new ExponentialPeriodInfectionPlugin()).build(), false),
+    INFECTION_PLUGIN(TypedPropertyDefinition.builder()
+            .type(InfectionPlugin.class).defaultValue(new ExponentialPeriodInfectionPlugin()).build(), false),
 
-    BEHAVIOR_PLUGIN(PropertyDefinition.builder()
-            .setType(Optional.class).setDefaultValue(Optional.empty()).build(), false),
+    BEHAVIOR_PLUGIN(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Optional<BehaviorPlugin>>() {
+            })
+            .defaultValue(Optional.empty()).build(), false),
 
-    TRANSMISSION_PLUGIN(PropertyDefinition.builder()
-            .setType(Optional.class).setDefaultValue(Optional.empty()).build(), false),
+    TRANSMISSION_PLUGIN(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Optional<TransmissionPlugin>>() {
+            })
+            .defaultValue(Optional.empty()).build(), false),
 
-    VACCINE_PLUGIN(PropertyDefinition.builder()
-            .setType(Optional.class).setDefaultValue(Optional.empty()).build(), false),
+    VACCINE_PLUGIN(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Optional<VaccinePlugin>>() {
+            })
+            .defaultValue(Optional.empty()).build(), false),
 
-    TRIGGER_CONTAINER(PropertyDefinition.builder()
-            .setType(TriggerContainer.class).setPropertyValueMutability(false).build(), false),
+    TRIGGER_CONTAINER(TypedPropertyDefinition.builder()
+            .type(TriggerContainer.class).isMutable(false).build(), false),
 
-    TRIGGER_CALLBACKS(PropertyDefinition.builder()
-            .setType(Map.class).setDefaultValue(new HashMap<String, Set<RegionPropertyId>>()).build(), false),
+    TRIGGER_CALLBACKS(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<String, Set<RegionPropertyId>>>() {
+            })
+            .defaultValue(new HashMap<String, Set<RegionPropertyId>>()).build(), false),
 
-    MAX_SIMULATION_LENGTH(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(Double.POSITIVE_INFINITY).build()),
+    MAX_SIMULATION_LENGTH(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(Double.POSITIVE_INFINITY).build()),
 
-    SIMULATION_START_DAY(PropertyDefinition.builder()
-            .setType(DayOfWeek.class).setDefaultValue(DayOfWeek.SUNDAY).build()),
+    SIMULATION_START_DAY(TypedPropertyDefinition.builder()
+            .type(DayOfWeek.class).defaultValue(DayOfWeek.SUNDAY).build()),
 
-    WORK_SCHEDULE(PropertyDefinition.builder()
-            .setType(ImmutableDayOfWeekSchedule.class).setDefaultValue(DayOfWeekSchedule.everyDay()).build()),
+    WORK_SCHEDULE(TypedPropertyDefinition.builder()
+            .type(ImmutableDayOfWeekSchedule.class).defaultValue(DayOfWeekSchedule.everyDay()).build()),
 
-    SCHOOL_SCHEDULE(PropertyDefinition.builder()
-            .setType(ImmutableDayOfWeekSchedule.class).setDefaultValue(DayOfWeekSchedule.everyDay()).build()),
+    SCHOOL_SCHEDULE(TypedPropertyDefinition.builder()
+            .type(ImmutableDayOfWeekSchedule.class).defaultValue(DayOfWeekSchedule.everyDay()).build()),
 
-    CONTACT_GROUP_SCHEDULE_WEIGHT(PropertyDefinition.builder()
-            .setType(Map.class).setDefaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class)).build(), false),
+    CONTACT_GROUP_SCHEDULE_WEIGHT(TypedPropertyDefinition.builder()
+            .typeReference(new TypeReference<Map<ContactGroupType, Double>>() {
+            })
+            .defaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class)).build(), false),
 
-    IMMUNITY_WANES_TIME_MEAN(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+    IMMUNITY_WANES_TIME_MEAN(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-    IMMUNITY_WANES_TIME_SD(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+    IMMUNITY_WANES_TIME_SD(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-    IMMUNITY_WANES_PROBABILITY(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+    IMMUNITY_WANES_PROBABILITY(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-    IMMUNITY_WANES_DECREASED_PROBABILITY_FROM_SEVERE_ILLNESS(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+    IMMUNITY_WANES_DECREASED_PROBABILITY_FROM_SEVERE_ILLNESS(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-    IMMUNITY_WANES_INCREASED_PROBABILITY_FROM_ASYMPTOMATIC(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+    IMMUNITY_WANES_INCREASED_PROBABILITY_FROM_ASYMPTOMATIC(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-    IMMUNITY_WANES_RESIDUAL_IMMUNITY(PropertyDefinition.builder()
-            .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build());
+    IMMUNITY_WANES_RESIDUAL_IMMUNITY(TypedPropertyDefinition.builder()
+            .type(Double.class).defaultValue(0.0).isMutable(false).build());
 
-    private final PropertyDefinition propertyDefinition;
+    private final TypedPropertyDefinition propertyDefinition;
     private final boolean isExternal;
 
-    GlobalProperty(PropertyDefinition propertyDefinition) {
+    GlobalProperty(TypedPropertyDefinition propertyDefinition) {
         this.propertyDefinition = propertyDefinition;
         this.isExternal = true;
     }
 
-    GlobalProperty(PropertyDefinition propertyDefinition, boolean isExternal) {
+    GlobalProperty(TypedPropertyDefinition propertyDefinition, boolean isExternal) {
         this.propertyDefinition = propertyDefinition;
         this.isExternal = isExternal;
     }
@@ -178,7 +219,7 @@ public enum GlobalProperty implements DefinedGlobalProperty {
     }
 
     @Override
-    public PropertyDefinition getPropertyDefinition() {
+    public TypedPropertyDefinition getPropertyDefinition() {
         return propertyDefinition;
     }
 

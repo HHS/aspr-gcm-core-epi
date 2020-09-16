@@ -1,41 +1,41 @@
 package gcm.core.epi.identifiers;
 
 import gcm.core.epi.util.property.DefinedPersonProperty;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.MapOption;
-import gcm.scenario.PropertyDefinition;
 
 public enum PersonProperty implements DefinedPersonProperty {
 
-    AGE_GROUP_INDEX(PropertyDefinition.builder().setType(Integer.class).setDefaultValue(0).setMapOption(MapOption.ARRAY).build()),
+    AGE_GROUP_INDEX(TypedPropertyDefinition.builder().type(Integer.class).defaultValue(0).mapOption(MapOption.ARRAY).build()),
 
-    HAD_INFECTIOUS_CONTACT(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build()),
+    HAD_INFECTIOUS_CONTACT(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
-    IS_INFECTIOUS(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build()),
+    IS_INFECTIOUS(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
-    WILL_BE_SYMPTOMATIC(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build()),
+    WILL_BE_SYMPTOMATIC(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
-    IS_SYMPTOMATIC(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build()),
+    IS_SYMPTOMATIC(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
-    EVER_HAD_SEVERE_ILLNESS(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build()),
+    EVER_HAD_SEVERE_ILLNESS(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
-    DID_NOT_RECEIVE_HOSPITAL_BED(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build()),
+    DID_NOT_RECEIVE_HOSPITAL_BED(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
-    IS_DEAD(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build()),
+    IS_DEAD(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
-    ACTIVITY_LEVEL_CHANGED(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build()),
+    ACTIVITY_LEVEL_CHANGED(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
-    IMMUNITY_WANED(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build()),
+    IMMUNITY_WANED(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
-    IS_STAYING_HOME(PropertyDefinition.builder().setType(Boolean.class).setDefaultValue(false).build());
+    IS_STAYING_HOME(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build());
 
-    private final PropertyDefinition propertyDefinition;
+    private final TypedPropertyDefinition propertyDefinition;
 
-    PersonProperty(PropertyDefinition propertyDefinition) {
+    PersonProperty(TypedPropertyDefinition propertyDefinition) {
         this.propertyDefinition = propertyDefinition;
     }
 
     @Override
-    public PropertyDefinition getPropertyDefinition() {
+    public TypedPropertyDefinition getPropertyDefinition() {
         return propertyDefinition;
     }
 

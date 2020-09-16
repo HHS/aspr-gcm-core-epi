@@ -1,12 +1,17 @@
 package gcm.core.epi.plugin.behavior;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
-import gcm.scenario.*;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.scenario.ExperimentBuilder;
+import gcm.scenario.GlobalComponentId;
+import gcm.scenario.PersonId;
+import gcm.scenario.RandomNumberGeneratorId;
 import gcm.simulation.Environment;
 import gcm.simulation.Filter;
 import gcm.simulation.Plan;
@@ -90,46 +95,48 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
 
     public enum RandomTestingGlobalProperty implements DefinedGlobalProperty {
 
-        FRACTION_OF_POPULATION_TESTED_DAILY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        FRACTION_OF_POPULATION_TESTED_DAILY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        INFECTION_TARGETING_RATIO(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(1.0).setPropertyValueMutability(false).build()),
+        INFECTION_TARGETING_RATIO(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(1.0).isMutable(false).build()),
 
-        TEST_SENSITIVITY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(1.0).setPropertyValueMutability(false).build()),
+        TEST_SENSITIVITY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(1.0).isMutable(false).build()),
 
-        TEST_ISOLATION_DELAY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        TEST_ISOLATION_DELAY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        TEST_ISOLATION_DURATION(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        TEST_ISOLATION_DURATION(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        TEST_ISOLATION_TRANSMISSION_REDUCTION(PropertyDefinition.builder()
-                .setType(Map.class).setDefaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class))
-                .setPropertyValueMutability(false).build()),
+        TEST_ISOLATION_TRANSMISSION_REDUCTION(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<ContactGroupType, Double>>() {
+                })
+                .defaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class))
+                .isMutable(false).build()),
 
-        TESTING_START_DAY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(0.0).setPropertyValueMutability(false).build()),
+        TESTING_START_DAY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        TESTING_END_DAY(PropertyDefinition.builder()
-                .setType(Double.class).setDefaultValue(Double.POSITIVE_INFINITY).setPropertyValueMutability(false).build());
+        TESTING_END_DAY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(Double.POSITIVE_INFINITY).isMutable(false).build());
 
-        private final PropertyDefinition propertyDefinition;
+        private final TypedPropertyDefinition propertyDefinition;
         private final boolean isExternal;
 
-        RandomTestingGlobalProperty(PropertyDefinition propertyDefinition, boolean isExternal) {
+        RandomTestingGlobalProperty(TypedPropertyDefinition propertyDefinition, boolean isExternal) {
             this.propertyDefinition = propertyDefinition;
             this.isExternal = isExternal;
         }
 
-        RandomTestingGlobalProperty(PropertyDefinition propertyDefinition) {
+        RandomTestingGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
             this.isExternal = true;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
@@ -142,17 +149,17 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
 
     public enum RandomTestingPersonProperty implements DefinedPersonProperty {
 
-        HAS_RECENTLY_TESTED_POSITIVE(PropertyDefinition.builder()
-                .setType(Boolean.class).setDefaultValue(false).build());
+        HAS_RECENTLY_TESTED_POSITIVE(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(false).build());
 
-        final PropertyDefinition propertyDefinition;
+        final TypedPropertyDefinition propertyDefinition;
 
-        RandomTestingPersonProperty(PropertyDefinition propertyDefinition) {
+        RandomTestingPersonProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
         }
 
         @Override
-        public PropertyDefinition getPropertyDefinition() {
+        public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
         }
 
