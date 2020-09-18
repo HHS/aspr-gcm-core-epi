@@ -14,10 +14,13 @@ import gcm.core.epi.propertytypes.WeightsDeserializerModifier;
 import gcm.core.epi.util.loading.AgeGroupStringMapDeserializer;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+
 public class TestAgeLoading {
 
     @Test
     public void test() throws JsonProcessingException {
+
         ObjectMapper mapper = new ObjectMapper();
         AgeGroupPartition ageGroupPartition = ImmutableAgeGroupPartition.builder()
                 .addAgeGroupList(ImmutableAgeGroup.builder().name("A").maxAge(10).build())
@@ -29,31 +32,19 @@ public class TestAgeLoading {
         deserializationModule.setDeserializerModifier(new WeightsDeserializerModifier());
         mapper.registerModule(deserializationModule);
 
-        //mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-
         AgeWeights ageWeights;
-        
+
         ageWeights = mapper.readerFor(AgeWeights.class).readValue("{\"values\": {\"A\": 3.0}, \"defaultValue\": 1.0}");
-        System.out.println(ageWeights);
-        System.out.println(ageWeights.values().containsKey(ageGroupPartition.getAgeGroupFromName("A")));
-        System.out.println(ageWeights.getWeight(ageGroupPartition.getAgeGroupFromName("B")));
+        assertEquals(ageWeights.getWeight(ageGroupPartition.getAgeGroupFromName("A")), 3.0, 1e-16);
+        assertEquals(ageWeights.getWeight(ageGroupPartition.getAgeGroupFromName("B")), 1.0, 1e-16);
 
         ageWeights = mapper.readerFor(AgeWeights.class).readValue("1.0");
-        System.out.println(ageWeights);
+        assertEquals(ageWeights.getWeight(ageGroupPartition.getAgeGroupFromName("A")), 1.0, 1e-16);
+        assertEquals(ageWeights.getWeight(ageGroupPartition.getAgeGroupFromName("B")), 1.0, 1e-16);
 
-        // Will throw exception
         ageWeights = mapper.readerFor(AgeWeights.class).readValue("{\"A\":3.0, \"B\":2.0}");
-        System.out.println(ageWeights);
-
-//        ageWeights = mapper.readerFor(AgeWeights.class).readValue("{\"A\":3.0, \"defaultValue\": 1.0}");
-//        System.out.println(ageWeights);
-
-//        DoubleWrapper doubleWrapper = mapper.readerFor(DoubleWrapper.class).readValue("1.0");
-//        System.out.println(doubleWrapper);
-//
-//        // Will throw exception
-//        MapWrapper mapWrapper = mapper.readerFor(MapWrapper.class).readValue("{\"1\": 2.0}");
-//        System.out.println(mapWrapper);
+        assertEquals(ageWeights.getWeight(ageGroupPartition.getAgeGroupFromName("A")), 3.0, 1e-16);
+        assertEquals(ageWeights.getWeight(ageGroupPartition.getAgeGroupFromName("B")), 2.0, 1e-16);
 
     }
 
