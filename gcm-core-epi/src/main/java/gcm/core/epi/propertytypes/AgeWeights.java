@@ -6,6 +6,6 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableAgeWeights.class)
-public abstract class AgeWeights extends Weights<AgeGroup> {
+public abstract class AgeWeights extends AbstractWeights<AgeGroup> {
 
 }
