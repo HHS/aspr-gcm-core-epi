@@ -427,9 +427,9 @@ public class CoreEpiBootstrapUtil {
         for (Map.Entry<String, DefinedGlobalProperty> entry : externalGlobalProperties.entrySet()) {
             String propertyName = entry.getKey();
             DefinedGlobalProperty definedGlobalProperty = entry.getValue();
-            List<JsonNode> externalPropertyNodeList = configuration.scenarios().get(propertyName);
-            if (externalPropertyNodeList != null) {
-                for (JsonNode jsonNode : externalPropertyNodeList) {
+            PropertyValueJsonList propertyValueJsonList = configuration.scenarios().get(propertyName);
+            if (propertyValueJsonList != null) {
+                for (JsonNode jsonNode : propertyValueJsonList.jsonNodeList()) {
                     final Object result = parseJsonInput(objectMapper, jsonNode, inputPath, definedGlobalProperty,
                             ageGroupPartition);
                     experimentBuilder.addGlobalPropertyValue(definedGlobalProperty, result);

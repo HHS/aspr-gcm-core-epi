@@ -23,7 +23,7 @@ public class AgeWeightsDeserializer extends JsonDeserializer<AgeWeights> impleme
     }
 
     @Override
-    public AgeWeights deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+    public AgeWeights deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
         // Store json to use for second-round parsing
         JsonNode jsonNode = jsonParser.readValueAsTree();
         // If the value is a double then use this as the default value

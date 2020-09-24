@@ -7,6 +7,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import gcm.core.epi.util.loading.CoreEpiConfiguration;
 import gcm.core.epi.util.loading.ImmutableCoreEpiConfiguration;
+import gcm.core.epi.util.loading.ImmutablePropertyValueJsonList;
+import gcm.core.epi.util.loading.PropertyValueJsonList;
 import gcm.core.epi.util.property.ImmutablePropertyGroupSpecification;
 import gcm.core.epi.util.property.PropertyGroupSpecification;
 
@@ -120,9 +122,9 @@ public class ConfigurationSplitter {
         // Loop through the scenario entries, associating each entry with a
         // covariant group and adding it to that group
 
-        Map<String, List<JsonNode>> entries = configuration.scenarios();
+        Map<String, PropertyValueJsonList> entries = configuration.scenarios();
         for (String key : entries.keySet()) {
-            List<JsonNode> list = entries.get(key);
+            List<JsonNode> list = entries.get(key).jsonNodeList();
 
             CovariantGroup covariantGroup = covariantMap.get(key);
             if (covariantGroup == null) {
@@ -186,7 +188,7 @@ public class ConfigurationSplitter {
 
         // create the split config files
         for (int fileCounter = 0; fileCounter < fileCount; fileCounter++) {
-            Map<String, List<JsonNode>> newEntries = new LinkedHashMap<>(entries);
+            Map<String, PropertyValueJsonList> newEntries = new LinkedHashMap<>(entries);
 
             /*
              * For each entry in the covariant group, use the JsonNode from the
@@ -199,7 +201,7 @@ public class ConfigurationSplitter {
                     List<JsonNode> newList = new ArrayList<>();
                     int valueIndex = (fileCounter / covariantGroup.modulus) % covariantGroup.variantCount;
                     newList.add(list.get(valueIndex));
-                    newEntries.put(key, newList);
+                    newEntries.put(key, ImmutablePropertyValueJsonList.builder().jsonNodeList(newList).build());
                 }
 
             }

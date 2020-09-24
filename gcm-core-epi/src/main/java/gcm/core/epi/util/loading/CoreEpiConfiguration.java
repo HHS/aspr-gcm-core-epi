@@ -37,7 +37,7 @@ public abstract class CoreEpiConfiguration {
 
     public abstract List<TriggerDescription> triggers();
 
-    public abstract Map<String, List<JsonNode>> scenarios();
+    public abstract Map<String, PropertyValueJsonList> scenarios();
 
     @Value.Default
     public int baseScenarioId() {

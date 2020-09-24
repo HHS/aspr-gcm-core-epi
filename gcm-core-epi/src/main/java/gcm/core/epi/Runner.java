@@ -1,6 +1,7 @@
 package gcm.core.epi;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -51,6 +52,9 @@ public class Runner {
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory())
                 .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
                 .registerModule(new Jdk8Module());
+        Module propertyDeserializationModule = new SimpleModule()
+                .addDeserializer(ImmutablePropertyValueJsonList.class, new PropertyValueJsonListDeserializer());
+        objectMapper.registerModule(propertyDeserializationModule);
 
         // Open configuration file and parse
         CoreEpiConfiguration configuration = objectMapper.readValue(inputConfigPath.toFile(), ImmutableCoreEpiConfiguration.class);

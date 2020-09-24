@@ -23,7 +23,7 @@ public class WeightsDeserializer extends JsonDeserializer<Weights<?>> implements
     }
 
     @Override
-    public Weights<?> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+    public Weights<?> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
         // Store json to use for second-round parsing
         JsonNode jsonNode = jsonParser.readValueAsTree();
         // If the value is a double then use this as the default value
