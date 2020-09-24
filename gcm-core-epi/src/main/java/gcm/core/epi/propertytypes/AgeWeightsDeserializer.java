@@ -1,10 +1,8 @@
 package gcm.core.epi.propertytypes;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.ResolvableDeserializer;
 import com.fasterxml.jackson.databind.node.TreeTraversingParser;
 import com.fasterxml.jackson.databind.type.TypeFactory;
@@ -43,6 +41,7 @@ public class AgeWeightsDeserializer extends JsonDeserializer<AgeWeights> impleme
             // Map<AgeGroup, Double> type
             JavaType javaType = typeFactory.constructType(new TypeReference<Map<AgeGroup, Double>>() {
             });
+            //noinspection unchecked
             Map<AgeGroup, Double> valuesMap = (Map<AgeGroup, Double>) deserializationContext.findRootValueDeserializer(javaType).deserialize(jsonParser, deserializationContext);
             return ImmutableAgeWeights.builder().putAllValues(valuesMap).build();
         }

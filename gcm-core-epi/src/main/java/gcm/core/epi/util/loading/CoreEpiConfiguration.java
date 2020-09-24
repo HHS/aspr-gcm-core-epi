@@ -1,6 +1,5 @@
 package gcm.core.epi.util.loading;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import gcm.core.epi.plugin.behavior.BehaviorPluginType;
 import gcm.core.epi.plugin.infection.InfectionPluginType;

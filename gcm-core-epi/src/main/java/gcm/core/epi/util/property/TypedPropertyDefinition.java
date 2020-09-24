@@ -18,7 +18,7 @@ public abstract class TypedPropertyDefinition {
         return ImmutableTypedPropertyDefinition.builder();
     }
 
-    abstract Optional<TypeReference> typeReference();
+    abstract Optional<TypeReference<?>> typeReference();
 
     abstract Optional<Class<?>> type();
 

@@ -44,11 +44,11 @@ public class ConfigurationSplitter {
 
     private static String getPaddedString(int maxValue, int value) {
         int maxLength = Integer.toString(maxValue).length();
-        String result = Integer.toString(value);
+        StringBuilder result = new StringBuilder(Integer.toString(value));
         while (result.length() < maxLength) {
-            result = "0" + result;
+            result.insert(0, "0");
         }
-        return result;
+        return result.toString();
     }
 
     public static void main(String[] args) throws Exception {
@@ -70,10 +70,7 @@ public class ConfigurationSplitter {
         // config files, even when they have multiple values. Dropping a
         // variable from the split algorithm will drop all other variables that are
         // covariant as well.
-        List<String> nonSplittingVariables = new ArrayList<>();
-        for (int i = 4; i < args.length; i++) {
-            nonSplittingVariables.add(args[i]);
-        }
+        List<String> nonSplittingVariables = new ArrayList<>(Arrays.asList(args).subList(4, args.length));
 
         new ConfigurationSplitter(inputConfigPath, targetDirectory, inputDirectory, outputDirectory, nonSplittingVariables).execute();
 
@@ -97,9 +94,7 @@ public class ConfigurationSplitter {
         // get a CoreFluConfiguration instance from the input config path
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory()).enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY).registerModule(new Jdk8Module());
         CoreEpiConfiguration configuration = objectMapper.readValue(inputConfigPath.toFile(), ImmutableCoreEpiConfiguration.class);
-        configuration.propertyGroups().forEach(propertyGroup -> {
-            propertyGroup.labels();
-        });
+        configuration.propertyGroups().forEach(PropertyGroupSpecification::labels);
 
         // determine the name of the input config path to use as the root name
         // of the resultant config files
@@ -248,7 +243,7 @@ public class ConfigurationSplitter {
         int modulus;
         int variantCount = -1;
         boolean active = true;
-        Map<String, List<JsonNode>> entries = new LinkedHashMap<>();
-        List<String> labels = new ArrayList<>();
+        final Map<String, List<JsonNode>> entries = new LinkedHashMap<>();
+        final List<String> labels = new ArrayList<>();
     }
 }

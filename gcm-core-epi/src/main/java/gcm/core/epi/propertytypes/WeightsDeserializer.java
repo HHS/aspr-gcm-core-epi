@@ -1,7 +1,6 @@
 package gcm.core.epi.propertytypes;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.ResolvableDeserializer;
@@ -42,6 +41,7 @@ public class WeightsDeserializer extends JsonDeserializer<Weights<?>> implements
             TypeFactory typeFactory = deserializationContext.getTypeFactory();
             // Map<T, Double> type
             JavaType javaType = typeFactory.constructMapType(Map.class, keyType, typeFactory.constructSimpleType(Double.class, null));
+            //noinspection unchecked
             Map<?, Double> valuesMap = (Map<?, Double>) deserializationContext.findRootValueDeserializer(javaType).deserialize(jsonParser, deserializationContext);
             return ImmutableWeights.builder().putAllValues(valuesMap).build();
         }
