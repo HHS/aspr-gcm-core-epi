@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
+import java.util.Optional;
+
 @Value.Immutable
 @JsonSerialize(as = ImmutablePopulationDescriptionFileRecord.class)
 @JsonDeserialize(as = ImmutablePopulationDescriptionFileRecord.class)
@@ -15,8 +17,8 @@ public interface PopulationDescriptionFileRecord {
 
     String homeId();
 
-    String schoolId();
+    Optional<String> schoolId();
 
-    String workplaceId();
+    Optional<String> workplaceId();
 
 }

@@ -1,10 +1,7 @@
 package gcm.core.epi.util.loading;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MappingIterator;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
@@ -58,17 +55,17 @@ public class CoreEpiBootstrapUtil {
         int personCounter = 0;
 
         // Read synthetic population from csv files
-        ObjectMapper csvMapper = new CsvMapper();
         Jdk8Module jdk8Module = new Jdk8Module();
         jdk8Module.configureAbsentsAsNulls(true);
-        CsvSchema schema = CsvSchema.emptySchema().withHeader();
+        CsvSchema schema = CsvSchema.emptySchema().withHeader().withNullValue("");
+        ObjectReader csvMapper = new CsvMapper()
+                .registerModule(jdk8Module)
+                .readerFor(PopulationDescriptionFileRecord.class)
+                .with(schema);
 
         for (Path inputFile : inputFiles) {
             try (
                     MappingIterator<PopulationDescriptionFileRecord> populationDescriptionFileRecordMappingIterator = csvMapper
-                            .registerModule(jdk8Module)
-                            .readerFor(PopulationDescriptionFileRecord.class)
-                            .with(schema)
                             .readValues(inputFile.toFile())) {
 
                 // This will be used to consolidate RegionId object references
@@ -86,6 +83,7 @@ public class CoreEpiBootstrapUtil {
                             StringRegionId::of);
                     PersonData personData = ImmutablePersonData.builder()
                             .regionId(homeRegionId)
+//                            .putPersonPropertyValues(PersonProperty.AGE_GROUP_INDEX, 0)
                             .putPersonPropertyValues(PersonProperty.AGE_GROUP_INDEX,
                                     ageGroupPartition.getAgeGroupIndexFromAge(populationDescriptionFileRecord.age()))
                             .build();
@@ -99,23 +97,23 @@ public class CoreEpiBootstrapUtil {
                     groupSpecificationBuilder.addGroupMembers(personCounter);
 
                     // Add school if present
-                    if (!populationDescriptionFileRecord.schoolId().equals("")) {
+                    if (populationDescriptionFileRecord.schoolId().isPresent()) {
                         groupSpecificationBuilder = groupSpecificationBuilderMap.computeIfAbsent(
-                                new Pair<>(ContactGroupType.SCHOOL, populationDescriptionFileRecord.schoolId()),
+                                new Pair<>(ContactGroupType.SCHOOL, populationDescriptionFileRecord.schoolId().get()),
                                 (fileGroupId) -> ImmutableGroupSpecification.builder().groupType(ContactGroupType.SCHOOL)
                         );
                         groupSpecificationBuilder.addGroupMembers(personCounter);
                     }
 
                     // Add workplace if present
-                    if (!populationDescriptionFileRecord.workplaceId().equals("")) {
-                        String workplaceId = populationDescriptionFileRecord.workplaceId();
+                    if (populationDescriptionFileRecord.workplaceId().isPresent()) {
+                        String workplaceId = populationDescriptionFileRecord.workplaceId().get();
                         // Corresponding census tract is the first 11 characters of the workplace ID
                         String workplaceTractString = workplaceId.substring(1, 12);
                         RegionId workplaceRegionId = censusTractRegionIdMap.computeIfAbsent(workplaceTractString,
                                 StringRegionId::of);
                         groupSpecificationBuilder = groupSpecificationBuilderMap.computeIfAbsent(
-                                new Pair<>(ContactGroupType.WORK, populationDescriptionFileRecord.workplaceId()),
+                                new Pair<>(ContactGroupType.WORK, workplaceId),
                                 (fileGroupId) -> ImmutableGroupSpecification.builder().groupType(ContactGroupType.WORK)
                         );
                         groupSpecificationBuilder.regionId(workplaceRegionId);

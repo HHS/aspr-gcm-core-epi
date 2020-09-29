@@ -52,6 +52,8 @@ public class Runner {
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory())
                 .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
                 .registerModule(new Jdk8Module());
+
+        // Enable modified deserialization for property value lists to handle potential empty strings
         Module propertyDeserializationModule = new SimpleModule()
                 .addDeserializer(ImmutablePropertyValueJsonList.class, new PropertyValueJsonListDeserializer());
         objectMapper.registerModule(propertyDeserializationModule);
