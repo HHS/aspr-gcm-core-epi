@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
 @Value.Immutable
 public abstract class AltCompactPopulationDescription {
 
+    public static final Integer NO_GROUP_ASSIGNED = -1;
+
     /*
         The id used for naming the population description in toString() and output reporting
      */
@@ -35,7 +37,7 @@ public abstract class AltCompactPopulationDescription {
     public abstract List<RegionId> regionByPersonId();
 
     /*
-        A map that store for each contact group type the
+        A map that store for each contact group type the id of the group assigned to each person if applicable
      */
     public abstract Map<GroupTypeId, List<Integer>> groupIdByTypeAndPersonId();
 
