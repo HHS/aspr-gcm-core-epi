@@ -24,6 +24,7 @@ import gcm.simulation.partition.PartitionSampler;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.BinomialDistribution;
 import org.apache.commons.math3.util.Pair;
+import org.openjdk.jol.info.GraphLayout;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -45,7 +46,7 @@ public class PopulationLoader extends AbstractComponent {
 
         List<PersonId> personIdList = new ArrayList<>(populationDescription.dataByPersonId().size());
 
-        // Add people to simulation
+        long startTime = java.lang.System.currentTimeMillis();
         for (PersonData personData : populationDescription.dataByPersonId()) {
             PersonId personId = environment.addPerson(personData.regionId(), Compartment.SUSCEPTIBLE);
             personIdList.add(personId);
@@ -73,7 +74,10 @@ public class PopulationLoader extends AbstractComponent {
                 environment.addPersonToGroup(personId, groupId);
             }
         }
+        long endTime = java.lang.System.currentTimeMillis();
+        System.out.println("Population loaded into simulation in " + (endTime-startTime)/1000.0 + "s");
 
+        System.out.println(GraphLayout.parseInstance(populationDescription).toFootprint());
         // Set up hospitals, if needed
         String hospitalInputFile = environment.getGlobalPropertyValue(GlobalProperty.HOSPITAL_DATA_FILE);
         if (!hospitalInputFile.equals("")) {
