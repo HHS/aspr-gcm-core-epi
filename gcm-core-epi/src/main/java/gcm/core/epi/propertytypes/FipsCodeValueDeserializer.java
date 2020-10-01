@@ -20,7 +20,7 @@ public class FipsCodeValueDeserializer extends JsonDeserializer<ImmutableFipsCod
     }
 
     @Override
-    public JsonDeserializer<?> createContextual(DeserializationContext deserializationContext, BeanProperty beanProperty) throws JsonMappingException {
+    public JsonDeserializer<?> createContextual(DeserializationContext deserializationContext, BeanProperty beanProperty) {
         valueType = deserializationContext.getContextualType().containedType(0);
         return this;
     }

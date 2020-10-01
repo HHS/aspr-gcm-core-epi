@@ -22,6 +22,8 @@ import gcm.experiment.ExperimentExecutor;
 import gcm.scenario.*;
 import gcm.util.MultiKey;
 import org.apache.commons.math3.util.Pair;
+import org.simpleflatmapper.csv.CsvParser;
+import org.simpleflatmapper.util.CloseableIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +42,7 @@ public class CoreEpiBootstrapUtil {
     public static PopulationDescription loadPopulationDescriptionWithoutCache(List<Path> inputFiles, String identifier,
                                                                               AgeGroupPartition ageGroupPartition) {
         // Builder to store population description
-        ImmutablePopulationDescription.Builder populationDescriptionBuilder = ImmutablePopulationDescription.builder();
+        final ImmutablePopulationDescription.Builder populationDescriptionBuilder = ImmutablePopulationDescription.builder();
 
         // Store the string identifier
         populationDescriptionBuilder.id(identifier);
@@ -49,95 +51,96 @@ public class CoreEpiBootstrapUtil {
         populationDescriptionBuilder.ageGroupPartition(ageGroupPartition);
 
         // Each key is a pair of the contact group type and the string id in the file (assumed to be unique for type)
-        final Map<Pair<GroupTypeId, String>, ImmutableGroupSpecification.Builder> groupSpecificationBuilderMap = new LinkedHashMap<>();
+        final Map<Pair<GroupTypeId, String>, Integer> groupIndexMap = new LinkedHashMap<>();
+        Counter groupCounter = new Counter();
 
-        // Id of the next person to be added to the simulation.
-        int personCounter = 0;
-
-        // Read synthetic population from csv files
-        Jdk8Module jdk8Module = new Jdk8Module();
-        jdk8Module.configureAbsentsAsNulls(true);
-        CsvSchema schema = CsvSchema.emptySchema().withHeader().withNullValue("");
-        ObjectReader csvMapper = new CsvMapper()
-                .registerModule(jdk8Module)
-                .readerFor(PopulationDescriptionFileRecord.class)
-                .with(schema);
+        // This will be used to consolidate RegionId object references
+        Map<String, StringRegionId> censusTractRegionIdMap = new HashMap<>();
 
         for (Path inputFile : inputFiles) {
-            try (
-                    MappingIterator<PopulationDescriptionFileRecord> populationDescriptionFileRecordMappingIterator = csvMapper
-                            .readValues(inputFile.toFile())) {
 
-                // This will be used to consolidate RegionId object references
-                Map<String, StringRegionId> censusTractRegionIdMap = new HashMap<>();
-
-                // Iterate over the file and add data
-                while (populationDescriptionFileRecordMappingIterator.hasNext()) {
-
-                    PopulationDescriptionFileRecord populationDescriptionFileRecord =
-                            populationDescriptionFileRecordMappingIterator.next();
-
-                    // Add new person to the population description
-                    String homeTractString = populationDescriptionFileRecord.homeId().substring(0, 11);
-                    RegionId homeRegionId = censusTractRegionIdMap.computeIfAbsent(homeTractString,
-                            StringRegionId::of);
-                    PersonData personData = ImmutablePersonData.builder()
-                            .regionId(homeRegionId)
-//                            .putPersonPropertyValues(PersonProperty.AGE_GROUP_INDEX, 0)
-                            .putPersonPropertyValues(PersonProperty.AGE_GROUP_INDEX,
-                                    ageGroupPartition.getAgeGroupIndexFromAge(populationDescriptionFileRecord.age()))
-                            .build();
-                    populationDescriptionBuilder.addDataByPersonId(personData);
-
-                    // Add home
-                    ImmutableGroupSpecification.Builder groupSpecificationBuilder = groupSpecificationBuilderMap.computeIfAbsent(
-                            new Pair<>(ContactGroupType.HOME, populationDescriptionFileRecord.homeId()),
-                            (fileGroupId) -> ImmutableGroupSpecification.builder().groupType(ContactGroupType.HOME)
-                    );
-                    groupSpecificationBuilder.addGroupMembers(personCounter);
-
-                    // Add school if present
-                    if (populationDescriptionFileRecord.schoolId().isPresent()) {
-                        groupSpecificationBuilder = groupSpecificationBuilderMap.computeIfAbsent(
-                                new Pair<>(ContactGroupType.SCHOOL, populationDescriptionFileRecord.schoolId().get()),
-                                (fileGroupId) -> ImmutableGroupSpecification.builder().groupType(ContactGroupType.SCHOOL)
-                        );
-                        groupSpecificationBuilder.addGroupMembers(personCounter);
-                    }
-
-                    // Add workplace if present
-                    if (populationDescriptionFileRecord.workplaceId().isPresent()) {
-                        String workplaceId = populationDescriptionFileRecord.workplaceId().get();
-                        // Corresponding census tract is the first 11 characters of the workplace ID
-                        String workplaceTractString = workplaceId.substring(1, 12);
-                        RegionId workplaceRegionId = censusTractRegionIdMap.computeIfAbsent(workplaceTractString,
-                                StringRegionId::of);
-                        groupSpecificationBuilder = groupSpecificationBuilderMap.computeIfAbsent(
-                                new Pair<>(ContactGroupType.WORK, workplaceId),
-                                (fileGroupId) -> ImmutableGroupSpecification.builder().groupType(ContactGroupType.WORK)
-                        );
-                        groupSpecificationBuilder.regionId(workplaceRegionId);
-                        groupSpecificationBuilder.addGroupMembers(personCounter);
-                    }
-
-                    // Increment counter
-                    personCounter++;
-
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();  // TODO: Handle exceptions appropriately
+            CloseableIterator<PopulationDescriptionFileRecord> populationDescriptionFileRecordIterator;
+            try {
+                populationDescriptionFileRecordIterator = CsvParser
+                        .mapTo(PopulationDescriptionFileRecord.class)
+                        .iterator(inputFile.toFile());
+            } catch (IOException e) {
+                throw new RuntimeException("Cannot read input file: " + inputFile.toFile());
             }
 
-        }
+            while (populationDescriptionFileRecordIterator.hasNext()) {
 
-        // Build the group specifications
-        for (Map.Entry<Pair<GroupTypeId, String>, ImmutableGroupSpecification.Builder> entry :
-                groupSpecificationBuilderMap.entrySet()) {
-            populationDescriptionBuilder.addGroupSpecificationByGroupId(entry.getValue().build());
+                PopulationDescriptionFileRecord populationDescriptionFileRecord =
+                        populationDescriptionFileRecordIterator.next();
+
+                // Add new person to the population description
+                String homeTractString = populationDescriptionFileRecord.homeId().substring(0, 11);
+                RegionId homeRegionId = censusTractRegionIdMap.computeIfAbsent(homeTractString,
+                        StringRegionId::of);
+                // Add region
+                populationDescriptionBuilder.addRegionByPersonId(homeRegionId);
+                // Add age group
+                populationDescriptionBuilder.addAgeGroupIndexByPersonId(ageGroupPartition.getAgeGroupIndexFromAge(populationDescriptionFileRecord.age()));
+
+                // Add home
+                Integer groupId = groupIndexMap.computeIfAbsent(
+                        new Pair<>(ContactGroupType.HOME, populationDescriptionFileRecord.homeId()),
+                        (fileGroupId) -> {
+                            //populationDescriptionBuilder.addGroupTypeByGroupId(ContactGroupType.HOME);
+                            return groupCounter.increment().getCount();
+                        }
+                );
+                populationDescriptionBuilder.addHomeGroupIdByPersonId(groupId);
+
+                // Add school if present
+                if (populationDescriptionFileRecord.schoolId().isPresent()) {
+                    groupId = groupIndexMap.computeIfAbsent(
+                            new Pair<>(ContactGroupType.SCHOOL, populationDescriptionFileRecord.schoolId().get()),
+                            (fileGroupId) -> {
+                                //populationDescriptionBuilder.addGroupTypeByGroupId(ContactGroupType.SCHOOL);
+                                return groupCounter.increment().getCount();
+                            }
+                    );
+                    populationDescriptionBuilder.addSchoolGroupIdByPersonId(groupId);
+                } else {
+                    populationDescriptionBuilder.addSchoolGroupIdByPersonId(PopulationDescription.NO_GROUP_ASSIGNED);
+                }
+
+                // Add workplace if present
+                if (populationDescriptionFileRecord.workplaceId().isPresent()) {
+                    String workplaceId = populationDescriptionFileRecord.workplaceId().get();
+//                // Corresponding census tract is the first 11 characters of the workplace ID
+//                String workplaceTractString = workplaceId.substring(1, 12);
+//                RegionId workplaceRegionId = censusTractRegionIdMap.computeIfAbsent(workplaceTractString,
+//                        StringRegionId::of);
+                    groupId = groupIndexMap.computeIfAbsent(
+                            new Pair<>(ContactGroupType.WORK, workplaceId),
+                            (fileGroupId) -> {
+                                //populationDescriptionBuilder.addGroupTypeByGroupId(ContactGroupType.WORK);
+                                return groupCounter.increment().getCount();
+                            }
+                    );
+                    populationDescriptionBuilder.addWorkGroupIdByPersonId(groupId);
+                } else {
+                    populationDescriptionBuilder.addWorkGroupIdByPersonId(PopulationDescription.NO_GROUP_ASSIGNED);
+                }
+            }
         }
 
         return populationDescriptionBuilder.build();
+    }
+
+    private static class Counter {
+        private int count = -1;
+
+        public int getCount() {
+            return count;
+        }
+
+        public Counter increment()  {
+            count++;
+            return this;
+        }
     }
 
     public static AgeGroupPartition loadAgeGroupsFromFile(Path file) throws IOException {

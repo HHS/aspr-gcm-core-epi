@@ -1,7 +1,6 @@
 package gcm.core.epi.reports;
 
 import gcm.core.epi.identifiers.GlobalProperty;
-import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.FipsCode;
@@ -34,13 +33,16 @@ public class PopulationReport extends AbstractReport {
         final Map<FipsCode, Map<AgeGroup, Counter>> counters = new HashMap<>();
         PopulationDescription populationDescription = observableEnvironment.getGlobalPropertyValue(
                 GlobalProperty.POPULATION_DESCRIPTION);
-        populationDescription.dataByPersonId().forEach(
-                personData -> {
-                    FipsCode fipsCode = fipsScope.getFipsSubCode(personData.regionId());
+
+        Counter personIndexCounter = new Counter();
+        populationDescription.regionByPersonId().forEach(
+                regionId -> {
+                    FipsCode fipsCode = fipsScope.getFipsSubCode(regionId);
                     AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(
-                            (Integer) personData.personPropertyValues().get(PersonProperty.AGE_GROUP_INDEX));
+                            populationDescription.ageGroupIndexByPersonId().get(personIndexCounter.count));
                     Map<AgeGroup, Counter> populationByAge = counters.computeIfAbsent(fipsCode, key -> new HashMap<>());
                     populationByAge.computeIfAbsent(ageGroup, key -> new Counter()).count++;
+                    personIndexCounter.count++;
                 }
         );
 

@@ -2,6 +2,7 @@ package gcm.core.epi.test.manual.propertytypes;
 
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -101,7 +102,7 @@ public class TestPopulationLoading {
     }
 
     @Test
-    public void testLoadingSimpleFlatMapper() throws IOException {
+    public void testLoadingCompact() throws IOException {
 
         final Path ageGroupFilePath = CoreEpiBootstrapUtil.getPathFromRelativeString(AGE_GROUP_FILE);
         AgeGroupPartition ageGroupPartition = CoreEpiBootstrapUtil.loadAgeGroupsFromFile(ageGroupFilePath);
@@ -109,12 +110,19 @@ public class TestPopulationLoading {
         final Path populationFilePath = CoreEpiBootstrapUtil.getPathFromRelativeString(POPULATION_FILE);
         String identifier = populationFilePath.toString();
 
-        // Read synthetic population from csv files
-
         long startTime = java.lang.System.currentTimeMillis();
 
+        // Read synthetic population from csv files
+        Jdk8Module jdk8Module = new Jdk8Module();
+        jdk8Module.configureAbsentsAsNulls(true);
+        CsvSchema schema = CsvSchema.emptySchema().withHeader().withNullValue("");
+        ObjectReader csvMapper = new CsvMapper()
+                .registerModule(jdk8Module)
+                .readerFor(PopulationDescriptionFileRecord.class)
+                .with(schema);
+
         // Builder to store population description
-        ImmutablePopulationDescription.Builder populationDescriptionBuilder = ImmutablePopulationDescription.builder();
+        final ImmutablePopulationDescription.Builder populationDescriptionBuilder = ImmutablePopulationDescription.builder();
 
         // Store the string identifier
         populationDescriptionBuilder.id(identifier);
@@ -123,17 +131,14 @@ public class TestPopulationLoading {
         populationDescriptionBuilder.ageGroupPartition(ageGroupPartition);
 
         // Each key is a pair of the contact group type and the string id in the file (assumed to be unique for type)
-        final Map<Pair<GroupTypeId, String>, ImmutableGroupSpecification.Builder> groupSpecificationBuilderMap = new LinkedHashMap<>();
-
-        // Id of the next person to be added to the simulation.
-        int personCounter = 0;
+        final Map<Pair<GroupTypeId, String>, Integer> groupIndexMap = new LinkedHashMap<>();
+        Counter groupCounter = new Counter();
 
         // This will be used to consolidate RegionId object references
         Map<String, StringRegionId> censusTractRegionIdMap = new HashMap<>();
 
-        CloseableIterator<PopulationDescriptionFileRecord> populationDescriptionFileRecordIterator = CsvParser
-                .mapTo(PopulationDescriptionFileRecord.class)
-                .iterator(populationFilePath.toFile());
+        MappingIterator<PopulationDescriptionFileRecord> populationDescriptionFileRecordIterator = csvMapper
+                .readValues(populationFilePath.toFile());
 
         System.out.println("Setup: " + (System.currentTimeMillis() - startTime)/1000.0);
 
@@ -147,63 +152,65 @@ public class TestPopulationLoading {
             String homeTractString = populationDescriptionFileRecord.homeId().substring(0, 11);
             RegionId homeRegionId = censusTractRegionIdMap.computeIfAbsent(homeTractString,
                     StringRegionId::of);
-            PersonData personData = ImmutablePersonData.builder()
-                    .regionId(homeRegionId)
-//                            .putPersonPropertyValues(PersonProperty.AGE_GROUP_INDEX, 0)
-                    .putPersonPropertyValues(PersonProperty.AGE_GROUP_INDEX,
-                            ageGroupPartition.getAgeGroupIndexFromAge(populationDescriptionFileRecord.age()))
-                    .build();
-            populationDescriptionBuilder.addDataByPersonId(personData);
+            // Add region
+            populationDescriptionBuilder.addRegionByPersonId(homeRegionId);
+            // Add age group
+            populationDescriptionBuilder.addAgeGroupIndexByPersonId(ageGroupPartition.getAgeGroupIndexFromAge(populationDescriptionFileRecord.age()));
 
             // Add home
-            ImmutableGroupSpecification.Builder groupSpecificationBuilder = groupSpecificationBuilderMap.computeIfAbsent(
+            Integer groupId = groupIndexMap.computeIfAbsent(
                     new Pair<>(ContactGroupType.HOME, populationDescriptionFileRecord.homeId()),
-                    (fileGroupId) -> ImmutableGroupSpecification.builder().groupType(ContactGroupType.HOME)
+                    (fileGroupId) -> {
+                        //populationDescriptionBuilder.addGroupTypeByGroupId(ContactGroupType.HOME);
+                        return groupCounter.increment().getCount();
+                    }
             );
-            groupSpecificationBuilder.addGroupMembers(personCounter);
+            populationDescriptionBuilder.addHomeGroupIdByPersonId(groupId);
 
             // Add school if present
             if (populationDescriptionFileRecord.schoolId().isPresent()) {
-                groupSpecificationBuilder = groupSpecificationBuilderMap.computeIfAbsent(
+                groupId = groupIndexMap.computeIfAbsent(
                         new Pair<>(ContactGroupType.SCHOOL, populationDescriptionFileRecord.schoolId().get()),
-                        (fileGroupId) -> ImmutableGroupSpecification.builder().groupType(ContactGroupType.SCHOOL)
+                        (fileGroupId) -> {
+                            //populationDescriptionBuilder.addGroupTypeByGroupId(ContactGroupType.SCHOOL);
+                            return groupCounter.increment().getCount();
+                        }
                 );
-                groupSpecificationBuilder.addGroupMembers(personCounter);
+                populationDescriptionBuilder.addSchoolGroupIdByPersonId(groupId);
+            } else {
+                populationDescriptionBuilder.addSchoolGroupIdByPersonId(PopulationDescription.NO_GROUP_ASSIGNED);
             }
 
             // Add workplace if present
             if (populationDescriptionFileRecord.workplaceId().isPresent()) {
                 String workplaceId = populationDescriptionFileRecord.workplaceId().get();
-                // Corresponding census tract is the first 11 characters of the workplace ID
-                String workplaceTractString = workplaceId.substring(1, 12);
-                RegionId workplaceRegionId = censusTractRegionIdMap.computeIfAbsent(workplaceTractString,
-                        StringRegionId::of);
-                groupSpecificationBuilder = groupSpecificationBuilderMap.computeIfAbsent(
+//                // Corresponding census tract is the first 11 characters of the workplace ID
+//                String workplaceTractString = workplaceId.substring(1, 12);
+//                RegionId workplaceRegionId = censusTractRegionIdMap.computeIfAbsent(workplaceTractString,
+//                        StringRegionId::of);
+                groupId = groupIndexMap.computeIfAbsent(
                         new Pair<>(ContactGroupType.WORK, workplaceId),
-                        (fileGroupId) -> ImmutableGroupSpecification.builder().groupType(ContactGroupType.WORK)
+                        (fileGroupId) -> {
+                            //populationDescriptionBuilder.addGroupTypeByGroupId(ContactGroupType.WORK);
+                            return groupCounter.increment().getCount();
+                        }
                 );
-                groupSpecificationBuilder.regionId(workplaceRegionId);
-                groupSpecificationBuilder.addGroupMembers(personCounter);
+                populationDescriptionBuilder.addWorkGroupIdByPersonId(groupId);
+            } else {
+                populationDescriptionBuilder.addWorkGroupIdByPersonId(PopulationDescription.NO_GROUP_ASSIGNED);
             }
-
-            // Increment counter
-            personCounter++;
-
         }
         System.out.println("Finished Parsing: " + (System.currentTimeMillis() - startTime)/1000.0);
 
-        // Build the group specifications
-        for (Map.Entry<Pair<GroupTypeId, String>, ImmutableGroupSpecification.Builder> entry :
-                groupSpecificationBuilderMap.entrySet()) {
-            populationDescriptionBuilder.addGroupSpecificationByGroupId(entry.getValue().build());
-        }
         PopulationDescription populationDescription = populationDescriptionBuilder.build();
         long endTime = java.lang.System.currentTimeMillis();
 
         System.out.println(populationDescription + " loaded in " + (endTime-startTime)/1000.0 + "s");
-        System.out.println(populationDescription.dataByPersonId().size());
+        System.out.println(populationDescription.ageGroupIndexByPersonId().size());
 
         System.out.println(GraphLayout.parseInstance(populationDescription).toFootprint());
+        //System.out.println(GraphLayout.parseInstance(populationDescription.workGroupIdByPersonId()).toFootprint());
+        //System.out.println(GraphLayout.parseInstance(populationDescription.regionByPersonId()).toFootprint());
     }
 
     @Test
@@ -220,7 +227,7 @@ public class TestPopulationLoading {
         long startTime = java.lang.System.currentTimeMillis();
 
         // Builder to store population description
-        final ImmutableCompactPopulationDescription.Builder populationDescriptionBuilder = ImmutableCompactPopulationDescription.builder();
+        final ImmutablePopulationDescription.Builder populationDescriptionBuilder = ImmutablePopulationDescription.builder();
 
         // Store the string identifier
         populationDescriptionBuilder.id(identifier);
@@ -277,7 +284,7 @@ public class TestPopulationLoading {
                 );
                 populationDescriptionBuilder.addSchoolGroupIdByPersonId(groupId);
             } else {
-                populationDescriptionBuilder.addSchoolGroupIdByPersonId(CompactPopulationDescription.NO_GROUP_ASSIGNED);
+                populationDescriptionBuilder.addSchoolGroupIdByPersonId(PopulationDescription.NO_GROUP_ASSIGNED);
             }
 
             // Add workplace if present
@@ -296,12 +303,12 @@ public class TestPopulationLoading {
                 );
                 populationDescriptionBuilder.addWorkGroupIdByPersonId(groupId);
             } else {
-                populationDescriptionBuilder.addWorkGroupIdByPersonId(CompactPopulationDescription.NO_GROUP_ASSIGNED);
+                populationDescriptionBuilder.addWorkGroupIdByPersonId(PopulationDescription.NO_GROUP_ASSIGNED);
             }
         }
         System.out.println("Finished Parsing: " + (System.currentTimeMillis() - startTime)/1000.0);
 
-        CompactPopulationDescription populationDescription = populationDescriptionBuilder.build();
+        PopulationDescription populationDescription = populationDescriptionBuilder.build();
         long endTime = java.lang.System.currentTimeMillis();
 
         System.out.println(populationDescription + " loaded in " + (endTime-startTime)/1000.0 + "s");
@@ -543,7 +550,7 @@ public class TestPopulationLoading {
         //System.out.println(GraphLayout.parseInstance(populationDescription.regionByPersonId()).toFootprint());
     }
 
-    class Counter {
+    private class Counter {
         private int count = -1;
 
         public int getCount() {
@@ -554,7 +561,6 @@ public class TestPopulationLoading {
             count++;
             return this;
         }
-
     }
 
 }

@@ -48,7 +48,7 @@ public class WeightsDeserializer extends JsonDeserializer<Weights<?>> implements
     }
 
     @Override
-    public JsonDeserializer<?> createContextual(DeserializationContext deserializationContext, BeanProperty beanProperty) throws JsonMappingException {
+    public JsonDeserializer<?> createContextual(DeserializationContext deserializationContext, BeanProperty beanProperty) {
         keyType = deserializationContext.getContextualType().containedType(0);
         return this;
     }

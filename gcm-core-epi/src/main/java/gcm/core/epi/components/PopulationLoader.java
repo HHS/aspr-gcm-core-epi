@@ -11,10 +11,8 @@ import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.util.loading.HospitalDataFileRecord;
-import gcm.core.epi.util.loading.RegionWorkFlowFileRecord;
 import gcm.scenario.GroupId;
 import gcm.scenario.PersonId;
-import gcm.scenario.PersonPropertyId;
 import gcm.scenario.RegionId;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
@@ -23,7 +21,6 @@ import gcm.simulation.partition.Partition;
 import gcm.simulation.partition.PartitionSampler;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.BinomialDistribution;
-import org.apache.commons.math3.util.Pair;
 import org.openjdk.jol.info.GraphLayout;
 
 import java.io.IOException;
@@ -44,40 +41,30 @@ public class PopulationLoader extends AbstractComponent {
         PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                 GlobalProperty.POPULATION_DESCRIPTION);
 
-        List<PersonId> personIdList = new ArrayList<>(populationDescription.dataByPersonId().size());
-
-        long startTime = java.lang.System.currentTimeMillis();
-        for (PersonData personData : populationDescription.dataByPersonId()) {
-            PersonId personId = environment.addPerson(personData.regionId(), Compartment.SUSCEPTIBLE);
-            personIdList.add(personId);
-            for (Map.Entry<PersonPropertyId, Object> entry : personData.personPropertyValues().entrySet()) {
-                environment.setPersonPropertyValue(personId, entry.getKey(), entry.getValue());
+        // Iterate over people, adding them to the simulation together with their groups
+        for (RegionId regionId : populationDescription.regionByPersonId()) {
+            // Add person and set properties
+            PersonId personId = environment.addPerson(regionId, Compartment.SUSCEPTIBLE);
+            // This relies on the fact that person ids are assigned sequentially
+            int index = personId.getValue();
+            if (index != environment.getPopulationCount() - 1) {
+                throw new RuntimeException("Person ID assignment expected to be sequential");
             }
+            environment.setPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX,
+                    populationDescription.ageGroupIndexByPersonId().get(index));
+
+            // Add groups
+            addPersonToGroupWithType(environment, personId, populationDescription.homeGroupIdByPersonId().get(index),
+                    ContactGroupType.HOME);
+
+            addPersonToGroupWithType(environment, personId, populationDescription.schoolGroupIdByPersonId().get(index),
+                    ContactGroupType.SCHOOL);
+
+            addPersonToGroupWithType(environment, personId, populationDescription.workGroupIdByPersonId().get(index),
+                    ContactGroupType.WORK);
+            // TODO: The code below that assigns workplaces to hospitals needs to re-incorporate workplace region
         }
 
-        // Add groups to simulation
-        //Map<RegionId, Map<Integer, List<GroupId>>> regionWorkplaceSizeMap = new HashMap<>();
-        for (GroupSpecification groupSpecification : populationDescription.groupSpecificationByGroupId()) {
-            GroupId groupId = environment.addGroup(groupSpecification.groupType());
-//            if (groupSpecification.groupType() == ContactGroupType.WORK & groupSpecification.regionId().isPresent()) {
-//                RegionId regionId = groupSpecification.regionId().get();
-//                Map<Integer, List<GroupId>> workplacesBySize = regionWorkplaceSizeMap.computeIfAbsent(regionId,
-//                        x -> new HashMap<>());
-//                Integer workplaceSize = groupSpecification.groupMembers().size();
-//                List<GroupId> workplaceList = workplacesBySize.computeIfAbsent(workplaceSize,
-//                        x -> new ArrayList<>());
-//                //environment.setGroupPropertyValue(groupId, WorkplaceProperty.REGION_ID, regionId);
-//                workplaceList.add(groupId);
-//            }
-            for (Integer personIdIndex : groupSpecification.groupMembers()) {
-                PersonId personId = personIdList.get(personIdIndex);
-                environment.addPersonToGroup(personId, groupId);
-            }
-        }
-        long endTime = java.lang.System.currentTimeMillis();
-        System.out.println("Population loaded into simulation in " + (endTime-startTime)/1000.0 + "s");
-
-        System.out.println(GraphLayout.parseInstance(populationDescription).toFootprint());
         // Set up hospitals, if needed
         String hospitalInputFile = environment.getGlobalPropertyValue(GlobalProperty.HOSPITAL_DATA_FILE);
         if (!hospitalInputFile.equals("")) {
@@ -100,29 +87,29 @@ public class PopulationLoader extends AbstractComponent {
                         ((PopulationDescription) environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION))
                                 .regionIds();
 
-                // The worker flow data to be used to assign hospital staff
-                Path workerFlowInputPath = Paths.get(System.getProperty("user.dir")).resolve(
-                        (String) environment.getGlobalPropertyValue(GlobalProperty.REGION_WORKER_FLOW_DATA_FILE));
+//                // The worker flow data to be used to assign hospital staff
+//                Path workerFlowInputPath = Paths.get(System.getProperty("user.dir")).resolve(
+//                        (String) environment.getGlobalPropertyValue(GlobalProperty.REGION_WORKER_FLOW_DATA_FILE));
 
 
-                // Build up outflow data for region ids in the simulation to
-                // parameterize enumerated random distributions
-                Map<RegionId, List<Pair<RegionId, Double>>> outflowData = new HashMap<>();
-
-                try (MappingIterator<RegionWorkFlowFileRecord> regionWorkerFlowFileRecordMappingIterator = //
-                             csvMapper.readerFor(RegionWorkFlowFileRecord.class)//
-                                     .with(schema)//
-                                     .readValues(workerFlowInputPath.toFile())) {//
-                    while (regionWorkerFlowFileRecordMappingIterator.hasNext()) {
-                        RegionWorkFlowFileRecord workFlowFileRecord = regionWorkerFlowFileRecordMappingIterator.next();
-                        RegionId targetRegionId = StringRegionId.of(workFlowFileRecord.targetRegionId());
-                        RegionId sourceRegionId = StringRegionId.of(workFlowFileRecord.sourceRegionId());
-                        if (regionIds.contains(targetRegionId) & regionIds.contains(sourceRegionId)) {
-                            List<Pair<RegionId, Double>> outflows = outflowData.computeIfAbsent(targetRegionId, regionId -> new ArrayList<>());
-                            outflows.add(new Pair<>(sourceRegionId, workFlowFileRecord.outflowFraction()));
-                        }
-                    }
-                }
+//                // Build up outflow data for region ids in the simulation to parameterize enumerated random distributions
+//                Map<RegionId, List<Pair<RegionId, Double>>> outflowData = new HashMap<>();
+//
+//                try (MappingIterator<RegionWorkFlowFileRecord> regionWorkerFlowFileRecordMappingIterator =
+//                             csvMapper.readerFor(RegionWorkFlowFileRecord.class)
+//                                     .with(schema)
+//                                     .readValues(workerFlowInputPath.toFile())) {
+//                    while (regionWorkerFlowFileRecordMappingIterator.hasNext()) {
+//                        RegionWorkFlowFileRecord workFlowFileRecord = regionWorkerFlowFileRecordMappingIterator.next();
+//                        RegionId targetRegionId = StringRegionId.of(workFlowFileRecord.targetRegionId());
+//                        RegionId sourceRegionId = StringRegionId.of(workFlowFileRecord.sourceRegionId());
+//                        if (regionIds.contains(targetRegionId) & regionIds.contains(sourceRegionId)) {
+//                            List<Pair<RegionId, Double>> outflows = outflowData.computeIfAbsent(targetRegionId,
+//                                    regionId -> new ArrayList<>());
+//                            outflows.add(new Pair<>(sourceRegionId, workFlowFileRecord.outflowFraction()));
+//                        }
+//                    }
+//                }
 
 
 //                // Finally assemble the distributions
@@ -255,6 +242,27 @@ public class PopulationLoader extends AbstractComponent {
         // Remove partition that is no longer needed
         environment.removePopulationPartition(initialInfectionPartitionKey);
 
+    }
+
+    /*
+        Adds a the specified person to the group with id given by groupIdInteger
+            If the group does not exist it creates it with the specified type
+            This function requires that new groups when added by integer id are added sequentially
+     */
+    private static void addPersonToGroupWithType(Environment environment, PersonId personId, Integer groupIdInteger,
+                                                 ContactGroupType contactGroupType) {
+        if (!groupIdInteger.equals(PopulationDescription.NO_GROUP_ASSIGNED)) {
+            GroupId groupId = new GroupId(groupIdInteger);
+            if (!environment.groupExists(groupId)) {
+                // Adds new group, checking that the group ID matches what is expected in the population description
+                if (environment.addGroup(contactGroupType).getValue() != groupId.getValue()) {
+                    throw new RuntimeException("Group ID assignment expected to be sequential");
+                }
+            } else if (environment.getGroupType(groupId) != contactGroupType) {
+                throw new RuntimeException("Group ID has the incorrect type");
+            }
+            environment.addPersonToGroup(personId, groupId);
+        }
     }
 
     private static class InitializePopulationPlan implements Plan {
