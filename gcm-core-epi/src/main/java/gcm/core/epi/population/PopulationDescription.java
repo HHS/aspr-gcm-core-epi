@@ -61,7 +61,6 @@ public abstract class PopulationDescription {
     @AllowNulls
     public abstract List<Integer> workGroupIdByPersonId();
 
-    //TODO: If desired, support workplace region specification
     /*
         Holds the region id for each group
             Only used for work groups at the moment - use NO_REGION_ID for the rest
