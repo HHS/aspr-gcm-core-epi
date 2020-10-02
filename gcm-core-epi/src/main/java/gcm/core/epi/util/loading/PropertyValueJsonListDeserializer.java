@@ -22,7 +22,8 @@ public class PropertyValueJsonListDeserializer extends JsonDeserializer<Immutabl
                     .build();
         } else {
             // Parse as List<JsonNode>
-            JavaType type = deserializationContext.getTypeFactory().constructType(new TypeReference<List<JsonNode>>(){});
+            JavaType type = deserializationContext.getTypeFactory().constructType(new TypeReference<List<JsonNode>>() {
+            });
             return ImmutablePropertyValueJsonList.builder()
                     .jsonNodeList(deserializationContext.readValue(jsonParser, type))
                     .build();

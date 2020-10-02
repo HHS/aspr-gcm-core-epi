@@ -1,7 +1,10 @@
 package gcm.core.epi.util.loading;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
@@ -86,7 +89,7 @@ public class CoreEpiBootstrapUtil {
                 Integer groupId = groupIndexMap.computeIfAbsent(
                         new Pair<>(ContactGroupType.HOME, populationDescriptionFileRecord.homeId()),
                         (fileGroupId) -> {
-                            //populationDescriptionBuilder.addGroupTypeByGroupId(ContactGroupType.HOME);
+                            populationDescriptionBuilder.addRegionByGroupId(PopulationDescription.NO_REGION_ID);
                             return groupCounter.increment().getCount();
                         }
                 );
@@ -97,7 +100,7 @@ public class CoreEpiBootstrapUtil {
                     groupId = groupIndexMap.computeIfAbsent(
                             new Pair<>(ContactGroupType.SCHOOL, populationDescriptionFileRecord.schoolId().get()),
                             (fileGroupId) -> {
-                                //populationDescriptionBuilder.addGroupTypeByGroupId(ContactGroupType.SCHOOL);
+                                populationDescriptionBuilder.addRegionByGroupId(PopulationDescription.NO_REGION_ID);
                                 return groupCounter.increment().getCount();
                             }
                     );
@@ -109,14 +112,14 @@ public class CoreEpiBootstrapUtil {
                 // Add workplace if present
                 if (populationDescriptionFileRecord.workplaceId().isPresent()) {
                     String workplaceId = populationDescriptionFileRecord.workplaceId().get();
-//                // Corresponding census tract is the first 11 characters of the workplace ID
-//                String workplaceTractString = workplaceId.substring(1, 12);
-//                RegionId workplaceRegionId = censusTractRegionIdMap.computeIfAbsent(workplaceTractString,
-//                        StringRegionId::of);
+                    // Corresponding census tract is the first 11 characters of the workplace ID
+                    String workplaceTractString = workplaceId.substring(1, 12);
+                    RegionId workplaceRegionId = censusTractRegionIdMap.computeIfAbsent(workplaceTractString,
+                            StringRegionId::of);
                     groupId = groupIndexMap.computeIfAbsent(
                             new Pair<>(ContactGroupType.WORK, workplaceId),
                             (fileGroupId) -> {
-                                //populationDescriptionBuilder.addGroupTypeByGroupId(ContactGroupType.WORK);
+                                populationDescriptionBuilder.addRegionByGroupId(workplaceRegionId);
                                 return groupCounter.increment().getCount();
                             }
                     );
@@ -128,19 +131,6 @@ public class CoreEpiBootstrapUtil {
         }
 
         return populationDescriptionBuilder.build();
-    }
-
-    private static class Counter {
-        private int count = -1;
-
-        public int getCount() {
-            return count;
-        }
-
-        public Counter increment()  {
-            count++;
-            return this;
-        }
     }
 
     public static AgeGroupPartition loadAgeGroupsFromFile(Path file) throws IOException {
@@ -546,6 +536,19 @@ public class CoreEpiBootstrapUtil {
     @FunctionalInterface
     public interface CheckedSupplier<T> {
         T get() throws IOException;
+    }
+
+    private static class Counter {
+        private int count = -1;
+
+        public int getCount() {
+            return count;
+        }
+
+        public Counter increment() {
+            count++;
+            return this;
+        }
     }
 
 }

@@ -1,5 +1,6 @@
 package gcm.core.epi.population;
 
+import gcm.core.epi.identifiers.StringRegionId;
 import gcm.scenario.RegionId;
 import org.immutables.value.Value;
 
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 public abstract class PopulationDescription {
 
     public static final Integer NO_GROUP_ASSIGNED = -1;
+    public static final RegionId NO_REGION_ID = StringRegionId.of("");
 
     /*
         This will be the id used for naming the population description in toString() and output reporting
@@ -60,8 +62,11 @@ public abstract class PopulationDescription {
     public abstract List<Integer> workGroupIdByPersonId();
 
     //TODO: If desired, support workplace region specification
-    // @AllowNulls
-    // public abstract List<RegionId> workGroupRegionByGroupId();
+    /*
+        Holds the region id for each group
+            Only used for work groups at the moment - use NO_REGION_ID for the rest
+     */
+    public abstract List<RegionId> regionByGroupId();
 
     /*
         The partition of the population into age groups

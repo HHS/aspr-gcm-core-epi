@@ -11,7 +11,7 @@ public class WeightsDeserializerModifier extends BeanDeserializerModifier {
     public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config, BeanDescription beanDesc, JsonDeserializer<?> deserializer) {
         if (beanDesc.getBeanClass() == ImmutableWeights.class) {
             return new WeightsDeserializer(deserializer);
-        }  if (beanDesc.getBeanClass() == ImmutableAgeWeights.class) {
+        } else if (beanDesc.getBeanClass() == ImmutableAgeWeights.class) {
             return new AgeWeightsDeserializer(deserializer);
         } else {
             return deserializer;

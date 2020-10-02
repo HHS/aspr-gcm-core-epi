@@ -51,7 +51,7 @@ public abstract class TypedPropertyDefinition {
     @Value.Derived
     public PropertyDefinition definition() {
 
-        // Can set all fields aside from
+        // Can set all fields aside from default value
         PropertyDefinition.Builder builder = PropertyDefinition.builder()
                 .setType(javaType().getRawClass())
                 .setMapOption(mapOption())

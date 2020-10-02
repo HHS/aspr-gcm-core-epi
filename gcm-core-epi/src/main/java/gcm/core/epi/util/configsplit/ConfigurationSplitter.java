@@ -239,11 +239,11 @@ public class ConfigurationSplitter {
     }
 
     private static class CovariantGroup {
+        final Map<String, List<JsonNode>> entries = new LinkedHashMap<>();
+        final List<String> labels = new ArrayList<>();
         String name;
         int modulus;
         int variantCount = -1;
         boolean active = true;
-        final Map<String, List<JsonNode>> entries = new LinkedHashMap<>();
-        final List<String> labels = new ArrayList<>();
     }
 }

@@ -6,7 +6,9 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.*;
-import gcm.core.epi.population.*;
+import gcm.core.epi.population.HospitalData;
+import gcm.core.epi.population.ImmutableHospitalData;
+import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
@@ -21,7 +23,6 @@ import gcm.simulation.partition.Partition;
 import gcm.simulation.partition.PartitionSampler;
 import gcm.util.geolocator.GeoLocator;
 import org.apache.commons.math3.distribution.BinomialDistribution;
-import org.openjdk.jol.info.GraphLayout;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -30,6 +31,33 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 public class PopulationLoader extends AbstractComponent {
+
+    /*
+        Adds a the specified person to the group with id given by groupIdInteger
+            If the group does not exist it creates it with the specified type
+            This function requires that new groups when added by integer id are added sequentially
+     */
+    private static void addPersonToGroupWithType(Environment environment, PersonId personId, Integer groupIdInteger,
+                                                 ContactGroupType contactGroupType, List<RegionId> groupRegionIds) {
+        if (!groupIdInteger.equals(PopulationDescription.NO_GROUP_ASSIGNED)) {
+            GroupId groupId = new GroupId(groupIdInteger);
+            if (!environment.groupExists(groupId)) {
+                // Adds new group, checking that the group ID matches what is expected in the population description
+                if (environment.addGroup(contactGroupType).getValue() != groupId.getValue()) {
+                    throw new RuntimeException("Group ID assignment expected to be sequential");
+                }
+            } else if (environment.getGroupType(groupId) != contactGroupType) {
+                throw new RuntimeException("Group ID has the incorrect type");
+            }
+            environment.addPersonToGroup(personId, groupId);
+            if (contactGroupType == ContactGroupType.WORK) {
+                RegionId groupRegionId = groupRegionIds.get(groupIdInteger);
+                if (!groupRegionId.equals(PopulationDescription.NO_REGION_ID)) {
+                    environment.setGroupPropertyValue(groupId, WorkplaceProperty.REGION_ID, groupRegionId);
+                }
+            }
+        }
+    }
 
     @Override
     public void init(Environment environment) {
@@ -55,14 +83,13 @@ public class PopulationLoader extends AbstractComponent {
 
             // Add groups
             addPersonToGroupWithType(environment, personId, populationDescription.homeGroupIdByPersonId().get(index),
-                    ContactGroupType.HOME);
+                    ContactGroupType.HOME, populationDescription.regionByGroupId());
 
             addPersonToGroupWithType(environment, personId, populationDescription.schoolGroupIdByPersonId().get(index),
-                    ContactGroupType.SCHOOL);
+                    ContactGroupType.SCHOOL, populationDescription.regionByGroupId());
 
             addPersonToGroupWithType(environment, personId, populationDescription.workGroupIdByPersonId().get(index),
-                    ContactGroupType.WORK);
-            // TODO: The code below that assigns workplaces to hospitals needs to re-incorporate workplace region
+                    ContactGroupType.WORK, populationDescription.regionByGroupId());
         }
 
         // Set up hospitals, if needed
@@ -242,27 +269,6 @@ public class PopulationLoader extends AbstractComponent {
         // Remove partition that is no longer needed
         environment.removePopulationPartition(initialInfectionPartitionKey);
 
-    }
-
-    /*
-        Adds a the specified person to the group with id given by groupIdInteger
-            If the group does not exist it creates it with the specified type
-            This function requires that new groups when added by integer id are added sequentially
-     */
-    private static void addPersonToGroupWithType(Environment environment, PersonId personId, Integer groupIdInteger,
-                                                 ContactGroupType contactGroupType) {
-        if (!groupIdInteger.equals(PopulationDescription.NO_GROUP_ASSIGNED)) {
-            GroupId groupId = new GroupId(groupIdInteger);
-            if (!environment.groupExists(groupId)) {
-                // Adds new group, checking that the group ID matches what is expected in the population description
-                if (environment.addGroup(contactGroupType).getValue() != groupId.getValue()) {
-                    throw new RuntimeException("Group ID assignment expected to be sequential");
-                }
-            } else if (environment.getGroupType(groupId) != contactGroupType) {
-                throw new RuntimeException("Group ID has the incorrect type");
-            }
-            environment.addPersonToGroup(personId, groupId);
-        }
     }
 
     private static class InitializePopulationPlan implements Plan {
