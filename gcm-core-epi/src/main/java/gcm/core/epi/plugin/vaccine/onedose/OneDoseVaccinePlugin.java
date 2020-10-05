@@ -169,7 +169,7 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-                environment.addPopulationPartition(Partition.create()
+                environment.addPartition(Partition.create()
                                 // Partition by age group
                                 .property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
                                 // Partition by vaccine status
@@ -233,18 +233,18 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
             // Get a random person to vaccinate, if possible, taking into account vaccine uptake weights
             AgeWeights vaccineUptakeWeights = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINE_UPTAKE_WEIGHTS);
-            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
-                    GlobalProperty.POPULATION_DESCRIPTION);
 
-            final Optional<PersonId> personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.create()
-                    .labelSet(LabelSet.create().property(VaccinePersonProperty.VACCINE_STATUS, OneDoseVaccineStatus.NOT_VACCINATED))
-                    .labelWeight((observableEnvironment, labelSetInfo) -> {
+            final Optional<PersonId> personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
+                    .setLabelSet(LabelSet.builder()
+                            .setPropertyLabel(VaccinePersonProperty.VACCINE_STATUS, OneDoseVaccineStatus.NOT_VACCINATED).build())
+                    .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {
                         // We know this labelSetInfo will have a label for this person property
                         //noinspection OptionalGetWithoutIsPresent
                         AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
                         return vaccineUptakeWeights.getWeight(ageGroup);
                     })
-                    .generator(VaccineRandomId.ID));
+                    .setRandomNumberGeneratorId(VaccineRandomId.ID)
+                    .build());
 
             if (personId.isPresent()) {
                 // Vaccinate the person

@@ -69,22 +69,24 @@ public class ContactManager extends AbstractComponent {
             Map<AgeGroup, Double> ageGroupSelectionWeights = biWeightingFunctionMap.get(sourceAgeGroup);
 
             return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY,
-                    PartitionSampler.create()
-                            .labelSet(LabelSet.create().region(targetRegionId))
-                            .labelWeight((observableEnvironment, labelSetInfo) -> {
+                    PartitionSampler.builder()
+                            .setLabelSet(LabelSet.builder().setRegionLabel(targetRegionId).build())
+                            .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {
                                 // We know this labelSetInfo will have a label for this person property
                                 //noinspection OptionalGetWithoutIsPresent
                                 AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
                                 return ageGroupSelectionWeights.get(ageGroup);
                             })
-                            .generator(RandomId.CONTACT_MANAGER)
-                            .excludePerson(sourcePersonId));
+                            .setRandomNumberGeneratorId(RandomId.CONTACT_MANAGER)
+                            .setExcludedPerson(sourcePersonId)
+                            .build());
 
         } else {
-            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY, PartitionSampler.create()
-                    .labelSet(LabelSet.create().region(targetRegionId))
-                    .generator(RandomId.CONTACT_MANAGER)
-                    .excludePerson(sourcePersonId));
+            return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY, PartitionSampler.builder()
+                    .setLabelSet(LabelSet.builder().setRegionLabel(targetRegionId).build())
+                    .setRandomNumberGeneratorId(RandomId.CONTACT_MANAGER)
+                    .setExcludedPerson(sourcePersonId)
+                    .build());
         }
     }
 
@@ -206,7 +208,7 @@ public class ContactManager extends AbstractComponent {
                     .with(Partition.create().property(PersonProperty.AGE_GROUP_INDEX,
                             ageGroupIndex -> ageGroups.get((int) ageGroupIndex)));
         }
-        environment.addPopulationPartition(radiationModelPartition, RADIATION_MODEL_PARTITION_KEY);
+        environment.addPartition(radiationModelPartition, RADIATION_MODEL_PARTITION_KEY);
 
         // Register to observe the transmission ratio for a person changing (due to behavior)
         environment.observeGlobalPersonPropertyChange(true, PersonProperty.ACTIVITY_LEVEL_CHANGED);

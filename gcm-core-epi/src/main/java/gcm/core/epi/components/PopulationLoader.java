@@ -234,7 +234,7 @@ public class PopulationLoader extends AbstractComponent {
         final Object initialInfectionPartitionKey = new Object();
 
         // Make a partition for susceptible people
-        environment.addPopulationPartition(Partition.create()
+        environment.addPartition(Partition.create()
                         .region(regionId -> initialInfectionSpecification.scope().getFipsSubCode(regionId))
                         .compartment(compartmentId -> compartmentId == Compartment.SUSCEPTIBLE),
                 initialInfectionPartitionKey);
@@ -245,12 +245,14 @@ public class PopulationLoader extends AbstractComponent {
                         .forEach(
                                 i -> {
                                     Optional<PersonId> targetPersonId = environment.samplePartition(
-                                            initialInfectionPartitionKey, PartitionSampler.create()
-                                                    .labelSet(LabelSet.create()
-                                                            .region(key)
+                                            initialInfectionPartitionKey, PartitionSampler.builder()
+                                                    .setLabelSet(LabelSet.builder()
+                                                        .setRegionLabel(key)
                                                             // Only use those in the susceptible compartment
-                                                            .compartment(true))
-                                                    .generator(RandomId.INITIAL_INFECTIONS));
+                                                        .setCompartmentLabel(true)
+                                                        .build())
+                                                    .setRandomNumberGeneratorId(RandomId.INITIAL_INFECTIONS)
+                                                    .build());
                                     // Will only infect if there are susceptible people that remain
                                     targetPersonId.ifPresent(personId -> {
                                                 environment.setPersonCompartment(personId, Compartment.INFECTED);
@@ -267,7 +269,7 @@ public class PopulationLoader extends AbstractComponent {
                         ));
 
         // Remove partition that is no longer needed
-        environment.removePopulationPartition(initialInfectionPartitionKey);
+        environment.removePartition(initialInfectionPartitionKey);
 
     }
 

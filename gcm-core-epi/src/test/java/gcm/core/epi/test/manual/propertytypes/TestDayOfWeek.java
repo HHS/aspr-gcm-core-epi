@@ -8,10 +8,7 @@ import gcm.output.OutputItem;
 import gcm.scenario.*;
 import gcm.simulation.*;
 import gcm.simulation.group.GroupSampler;
-import gcm.simulation.partition.LabelSet;
-import gcm.simulation.partition.LabelSetWeightingFunction;
-import gcm.simulation.partition.Partition;
-import gcm.simulation.partition.PartitionSampler;
+import gcm.simulation.partition.*;
 import gcm.util.MemoryPartition;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.junit.Test;
@@ -1148,6 +1145,11 @@ public class TestDayOfWeek {
         }
 
         @Override
+        public void observePartitionChange(boolean observe, Object key) {
+
+        }
+
+        @Override
         public void observeGroupDepartureByGroupAndPerson(boolean observe, GroupId groupId, PersonId personId) {
 
         }
@@ -1228,7 +1230,12 @@ public class TestDayOfWeek {
         }
 
         @Override
-        public void addPopulationPartition(Partition partition, Object key) {
+        public List<PersonId> getPartitionPeople(Object key) {
+            return null;
+        }
+
+        @Override
+        public void addPartition(Partition partition, Object key) {
 
         }
 
@@ -1238,7 +1245,7 @@ public class TestDayOfWeek {
         }
 
         @Override
-        public void removePopulationPartition(Object key) {
+        public void removePartition(Object key) {
 
         }
 

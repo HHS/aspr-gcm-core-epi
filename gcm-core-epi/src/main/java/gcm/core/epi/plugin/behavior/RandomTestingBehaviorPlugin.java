@@ -13,8 +13,11 @@ import gcm.scenario.GlobalComponentId;
 import gcm.scenario.PersonId;
 import gcm.scenario.RandomNumberGeneratorId;
 import gcm.simulation.Environment;
-import gcm.simulation.Filter;
 import gcm.simulation.Plan;
+import gcm.simulation.partition.Filter;
+import gcm.simulation.partition.LabelSet;
+import gcm.simulation.partition.Partition;
+import gcm.simulation.partition.PartitionSampler;
 import org.apache.commons.math3.distribution.BinomialDistribution;
 
 import java.util.*;
@@ -171,21 +174,22 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
 
     public static class RandomTestingManager extends AbstractComponent {
 
-        private static final Object INFECTED_INDEX_KEY = new Object();
+        private static final Object INFECTED_PARTITION_KEY = new Object();
 
         @Override
         public void init(Environment environment) {
             double startTestingTime = environment.getGlobalPropertyValue(RandomTestingGlobalProperty.TESTING_START_DAY);
             environment.addPlan(new RandomTestingPlan(), startTestingTime);
             // Add index
-            environment.addPopulationIndex(Filter.compartment(Compartment.INFECTED), INFECTED_INDEX_KEY);
+            environment.addPartition(Partition.create().filter(Filter.compartment(Compartment.INFECTED)),
+                    INFECTED_PARTITION_KEY);
         }
 
         @Override
         public void executePlan(Environment environment, Plan plan) {
             if (plan.getClass() == RandomTestingPlan.class) {
                 double infectionTargetingRatio = environment.getGlobalPropertyValue(RandomTestingGlobalProperty.INFECTION_TARGETING_RATIO);
-                int numberInfected = environment.getIndexSize(INFECTED_INDEX_KEY);
+                int numberInfected = environment.getPartitionSize(INFECTED_PARTITION_KEY, LabelSet.builder().build());
                 int numberNotInfected = environment.getPopulationCount() - numberInfected;
                 double probabilityTestInfected = numberInfected * infectionTargetingRatio /
                         (numberInfected * infectionTargetingRatio + numberNotInfected);
@@ -201,8 +205,8 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
                 // Randomly select infected people to isolate.
                 IntStream.range(0, numberInfectedTestPositive).forEach(
                         x -> {
-                            Optional<PersonId> personToIsolate = environment.sampleIndex(INFECTED_INDEX_KEY,
-                                    RandomTestingRandomId.ID);
+                            Optional<PersonId> personToIsolate = environment.samplePartition(INFECTED_PARTITION_KEY,
+                                    PartitionSampler.builder().setRandomNumberGeneratorId(RandomTestingRandomId.ID).build());
                             if (personToIsolate.isPresent()) {
                                 boolean hasTestedPositive = environment.getPersonPropertyValue(personToIsolate.get(),
                                         RandomTestingPersonProperty.HAS_RECENTLY_TESTED_POSITIVE);

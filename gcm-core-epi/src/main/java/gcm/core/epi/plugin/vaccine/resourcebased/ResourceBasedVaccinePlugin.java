@@ -226,7 +226,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-                environment.addPopulationPartition(Partition.create()
+                environment.addPartition(Partition.create()
                                 // Partition regions by FIPS code
                                 .region(regionId -> vaccinationRatePerDayFipsCodeValues.scope().getFipsSubCode(regionId))
                                 // Partition by age group
@@ -336,18 +336,20 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
 
-                final Optional<PersonId> personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.create()
-                        .labelSet(LabelSet.create()
-                                .region(fipsCode)
+                final Optional<PersonId> personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
+                        .setLabelSet(LabelSet.builder()
+                                .setRegionLabel(fipsCode)
                                 // Be careful to use long and not int 0
-                                .resource(VaccineId.VACCINE_ONE, 0L))
-                        .labelWeight((observableEnvironment, labelSetInfo) -> {
+                                .setResourceLabel(VaccineId.VACCINE_ONE, 0L)
+                                .build())
+                        .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {
                             // We know this labelSetInfo will have a label for this person property
                             //noinspection OptionalGetWithoutIsPresent
                             AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
                             return vaccineUptakeWeights.getWeight(ageGroup);
                         })
-                        .generator(VaccineRandomId.ID));
+                        .setRandomNumberGeneratorId(VaccineRandomId.ID)
+                        .build());
 
                 if (personId.isPresent()) {
                     // Vaccinate the person, delivering vaccine to the appropriate region just in time

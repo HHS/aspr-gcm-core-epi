@@ -1,7 +1,6 @@
 package gcm.core.epi.plugin.vaccine.combination;
 
 import gcm.components.AbstractComponent;
-import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.plugin.vaccine.onedose.OneDoseVaccineEfficacySpecification;
@@ -11,14 +10,12 @@ import gcm.core.epi.plugin.vaccine.twodose.TwoDoseVaccineEfficacySpecification;
 import gcm.core.epi.plugin.vaccine.twodose.TwoDoseVaccineHelper;
 import gcm.core.epi.plugin.vaccine.twodose.TwoDoseVaccineStatus;
 import gcm.core.epi.population.AgeGroup;
-import gcm.core.epi.population.AgeGroupPartition;
-import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
-import gcm.simulation.Equality;
-import gcm.simulation.Filter;
 import gcm.simulation.Plan;
+import gcm.simulation.partition.LabelSet;
+import gcm.simulation.partition.PartitionSampler;
 import gcm.util.MultiKey;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
@@ -202,17 +199,12 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
     class VaccineManager extends AbstractComponent {
 
         // Keys for vaccine indexes
-        private final Object TO_VACCINATE_INDEX_KEY = new Object();
-        private final Map<Integer, Map<AgeGroup, Object>> perVaccineIndexKeys = new HashMap<>();
-        // Re-used array for selecting age group to vaccinate next
-        private final List<Double> vaccineCumulativeWeights = new ArrayList<>();
+        private final Object TO_VACCINATE_PARTITION_KEY = new Object();
+        private final Map<Integer, Object> perVaccinePartitionKeys = new HashMap<>();
         private final Map<Integer, RealDistribution> perVaccineInterVaccinationDelayDistribution = new HashMap<>();
 
         @Override
         public void init(Environment environment) {
-
-            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
-                    GlobalProperty.POPULATION_DESCRIPTION);
 
             int vaccineId = 0;
             for (VaccineType vaccineType : vaccineTypes) {
@@ -226,24 +218,7 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
                     perVaccineInterVaccinationDelayDistribution.put(vaccineId, interVaccinationDelayDistribution);
 
                     // Random vaccination target indexes
-                    Map<AgeGroup, Object> vaccineIndexKeys = new HashMap<>();
-                    for (AgeGroup ageGroup : populationDescription.ageGroupPartition().ageGroupList()) {
-                        Filter filter = Filter.property(
-                                getPropertyIdForVaccine(vaccineId, VaccinePersonProperty.VACCINE_STATUS),
-                                Equality.EQUAL,
-                                vaccineType == VaccineType.ONE_DOSE ?
-                                        OneDoseVaccineStatus.NOT_VACCINATED :
-                                        TwoDoseVaccineStatus.NOT_VACCINATED)
-                                .and(Filter.property(
-                                        PersonProperty.AGE_GROUP_INDEX,
-                                        Equality.EQUAL,
-                                        populationDescription.ageGroupPartition().getAgeGroupIndexFromName(ageGroup.toString())
-                                ));
-                        Object indexKey = new MultiKey(vaccineId, TO_VACCINATE_INDEX_KEY, ageGroup);
-                        vaccineIndexKeys.put(ageGroup, indexKey);
-                        environment.addPopulationIndex(filter, indexKey);
-                    }
-                    perVaccineIndexKeys.put(vaccineId, vaccineIndexKeys);
+                    perVaccinePartitionKeys.put(vaccineId, new MultiKey(vaccineId, TO_VACCINATE_PARTITION_KEY));
 
                     // Schedule first vaccination event
                     final double vaccinationStartDay = environment.getGlobalPropertyValue(
@@ -289,40 +264,33 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
             // First select a random person to vaccinate, if possible, taking into account vaccine uptake weights
             AgeWeights vaccineUptakeWeights = environment.getGlobalPropertyValue(
                     getPropertyIdForVaccine(vaccineId, VaccineGlobalProperty.VACCINE_UPTAKE_WEIGHTS));
-            Map<AgeGroup, Object> vaccineIndexKeys = perVaccineIndexKeys.get(vaccineId);
+            Object vaccinePartitionKey = perVaccinePartitionKeys.get(vaccineId);
 
-            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
-                    GlobalProperty.POPULATION_DESCRIPTION);
-            AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
-
-            int ageGroupIndex = 0;
-            double cumulativeWeight = 0;
-            // Calculate cumulative weights for each age group
-            for (AgeGroup ageGroup : ageGroupPartition.ageGroupList()) {
-                double weight = vaccineUptakeWeights.getWeight(ageGroup) *
-                        environment.getIndexSize(vaccineIndexKeys.get(ageGroup));
-                cumulativeWeight += weight;
-                if (vaccineCumulativeWeights.size() <= ageGroupIndex) {
-                    vaccineCumulativeWeights.add(cumulativeWeight);
-                } else {
-                    vaccineCumulativeWeights.set(ageGroupIndex, cumulativeWeight);
-                }
-                ageGroupIndex++;
+            Object notVaccinatedStatus;
+            switch (vaccineTypes.get(vaccineId)) {
+                case ONE_DOSE:
+                    notVaccinatedStatus = OneDoseVaccineStatus.NOT_VACCINATED;
+                    break;
+                case TWO_DOSE:
+                    notVaccinatedStatus = TwoDoseVaccineStatus.NOT_VACCINATED;
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected vaccine type: " + vaccineTypes.get(vaccineId));
             }
 
-            // Randomly select age group using the cumulative weights
-            final Optional<PersonId> personId;
-            if (cumulativeWeight == 0) {
-                personId = Optional.empty();
-            } else {
-                double targetWeight = environment.getRandomGeneratorFromId(VaccineRandomId.ID).nextDouble() * cumulativeWeight;
-                ageGroupIndex = 0;
-                while (vaccineCumulativeWeights.get(ageGroupIndex) < targetWeight) {
-                    ageGroupIndex++;
-                }
-                personId = environment.sampleIndex(vaccineIndexKeys.get(ageGroupPartition.getAgeGroupFromIndex(ageGroupIndex)),
-                        VaccineRandomId.ID);
-            }
+
+            final Optional<PersonId> personId = environment.samplePartition(vaccinePartitionKey, PartitionSampler.builder()
+                    .setLabelSet(LabelSet.builder()
+                            .setPropertyLabel(getPropertyIdForVaccine(vaccineId, VaccinePersonProperty.VACCINE_STATUS),
+                                    notVaccinatedStatus).build())
+                    .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {
+                        // We know this labelSetInfo will have a label for this person property
+                        //noinspection OptionalGetWithoutIsPresent
+                        AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
+                        return vaccineUptakeWeights.getWeight(ageGroup);
+                    })
+                    .setRandomNumberGeneratorId(VaccineRandomId.ID)
+                    .build());
 
             if (personId.isPresent()) {
                 // As someone is left to vaccinate, now actually perform this

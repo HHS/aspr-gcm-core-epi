@@ -111,7 +111,7 @@ public class ExponentialSeedingPlugin implements Plugin {
                 FipsCodeDouble seedingRateSpecification = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.INITIAL_SEEDING_RATE_PER_DAY);
 
                 // Create partition TODO: Could be redundant with ContactManager
-                environment.addPopulationPartition(Partition.create()
+                environment.addPartition(Partition.create()
                                 .region(regionId -> seedingRateSpecification.scope().getFipsSubCode(regionId)),
                         SEEDING_PARTITION_KEY);
 
@@ -128,14 +128,15 @@ public class ExponentialSeedingPlugin implements Plugin {
                 // Seeding plans already time-limited so nothing to cancel
 
                 // Remove partition
-                environment.removePopulationPartition(SEEDING_PARTITION_KEY);
+                environment.removePartition(SEEDING_PARTITION_KEY);
 
             } else if (plan.getClass() == SeedingPlan.class) {
                 // Pick random person to infect
                 SeedingPlan seedingPlan = (SeedingPlan) plan;
-                Optional<PersonId> personId = environment.samplePartition(SEEDING_PARTITION_KEY, PartitionSampler.create()
-                        .labelSet(LabelSet.create().region(seedingPlan.fipsCode))
-                        .generator(ExponentialSeedingRandomId.ID));
+                Optional<PersonId> personId = environment.samplePartition(SEEDING_PARTITION_KEY, PartitionSampler.builder()
+                        .setLabelSet(LabelSet.builder().setRegionLabel(seedingPlan.fipsCode).build())
+                        .setRandomNumberGeneratorId(ExponentialSeedingRandomId.ID)
+                        .build());
                 if (personId.isPresent()) {
                     Compartment compartment = environment.getPersonCompartment(personId.get());
                     if (compartment.equals(Compartment.SUSCEPTIBLE)) {
