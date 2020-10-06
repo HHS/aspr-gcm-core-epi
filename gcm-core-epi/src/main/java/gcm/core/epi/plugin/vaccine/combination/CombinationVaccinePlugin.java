@@ -1,6 +1,7 @@
 package gcm.core.epi.plugin.vaccine.combination;
 
 import gcm.components.AbstractComponent;
+import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.plugin.vaccine.onedose.OneDoseVaccineEfficacySpecification;
@@ -10,11 +11,14 @@ import gcm.core.epi.plugin.vaccine.twodose.TwoDoseVaccineEfficacySpecification;
 import gcm.core.epi.plugin.vaccine.twodose.TwoDoseVaccineHelper;
 import gcm.core.epi.plugin.vaccine.twodose.TwoDoseVaccineStatus;
 import gcm.core.epi.population.AgeGroup;
+import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
+import gcm.simulation.Equality;
 import gcm.simulation.Plan;
-import gcm.simulation.partition.LabelSet;
+import gcm.simulation.partition.Filter;
+import gcm.simulation.partition.Partition;
 import gcm.simulation.partition.PartitionSampler;
 import gcm.util.MultiKey;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
@@ -206,6 +210,10 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
         @Override
         public void init(Environment environment) {
 
+            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+                    GlobalProperty.POPULATION_DESCRIPTION);
+            List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
+
             int vaccineId = 0;
             for (VaccineType vaccineType : vaccineTypes) {
                 final double vaccinationRatePerDay = environment.getGlobalPropertyValue(getPropertyIdForVaccine(vaccineId,
@@ -218,7 +226,26 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
                     perVaccineInterVaccinationDelayDistribution.put(vaccineId, interVaccinationDelayDistribution);
 
                     // Random vaccination target indexes
-                    perVaccinePartitionKeys.put(vaccineId, new MultiKey(vaccineId, TO_VACCINATE_PARTITION_KEY));
+                    Object partitionKey = new MultiKey(vaccineId, TO_VACCINATE_PARTITION_KEY);
+                    Object notVaccinatedStatus;
+                    switch (vaccineTypes.get(vaccineId)) {
+                        case ONE_DOSE:
+                            notVaccinatedStatus = OneDoseVaccineStatus.NOT_VACCINATED;
+                            break;
+                        case TWO_DOSE:
+                            notVaccinatedStatus = TwoDoseVaccineStatus.NOT_VACCINATED;
+                            break;
+                        default:
+                            throw new IllegalStateException("Unexpected vaccine type: " + vaccineTypes.get(vaccineId));
+                    }
+                    environment.addPartition(Partition.create()
+                                    // Filter by vaccine status
+                                    .filter(Filter.property(getPropertyIdForVaccine(vaccineId, VaccinePersonProperty.VACCINE_STATUS),
+                                            Equality.EQUAL, notVaccinatedStatus))
+                                    // Partition by age group
+                                    .property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex)),
+                            partitionKey);
+                    perVaccinePartitionKeys.put(vaccineId, partitionKey);
 
                     // Schedule first vaccination event
                     final double vaccinationStartDay = environment.getGlobalPropertyValue(
@@ -266,23 +293,8 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
                     getPropertyIdForVaccine(vaccineId, VaccineGlobalProperty.VACCINE_UPTAKE_WEIGHTS));
             Object vaccinePartitionKey = perVaccinePartitionKeys.get(vaccineId);
 
-            Object notVaccinatedStatus;
-            switch (vaccineTypes.get(vaccineId)) {
-                case ONE_DOSE:
-                    notVaccinatedStatus = OneDoseVaccineStatus.NOT_VACCINATED;
-                    break;
-                case TWO_DOSE:
-                    notVaccinatedStatus = TwoDoseVaccineStatus.NOT_VACCINATED;
-                    break;
-                default:
-                    throw new IllegalStateException("Unexpected vaccine type: " + vaccineTypes.get(vaccineId));
-            }
-
 
             final Optional<PersonId> personId = environment.samplePartition(vaccinePartitionKey, PartitionSampler.builder()
-                    .setLabelSet(LabelSet.builder()
-                            .setPropertyLabel(getPropertyIdForVaccine(vaccineId, VaccinePersonProperty.VACCINE_STATUS),
-                                    notVaccinatedStatus).build())
                     .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {
                         // We know this labelSetInfo will have a label for this person property
                         //noinspection OptionalGetWithoutIsPresent

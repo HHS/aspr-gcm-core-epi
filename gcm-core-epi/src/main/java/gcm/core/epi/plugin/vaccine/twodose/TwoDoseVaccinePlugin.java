@@ -16,8 +16,9 @@ import gcm.scenario.MapOption;
 import gcm.scenario.PersonId;
 import gcm.scenario.RandomNumberGeneratorId;
 import gcm.simulation.Environment;
+import gcm.simulation.Equality;
 import gcm.simulation.Plan;
-import gcm.simulation.partition.LabelSet;
+import gcm.simulation.partition.Filter;
 import gcm.simulation.partition.Partition;
 import gcm.simulation.partition.PartitionSampler;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
@@ -203,6 +204,9 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
                 environment.addPartition(Partition.create()
+                                // Filter by vaccine status
+                                .filter(Filter.property(VaccinePersonProperty.VACCINE_STATUS, Equality.EQUAL,
+                                        TwoDoseVaccineStatus.NOT_VACCINATED))
                                 // Partition by age group
                                 .property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
                                 // Partition by vaccine status
@@ -326,9 +330,6 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
                     GlobalProperty.POPULATION_DESCRIPTION);
 
             final Optional<PersonId> personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
-                    .setLabelSet(LabelSet.builder()
-                            .setPropertyLabel(VaccinePersonProperty.VACCINE_STATUS,TwoDoseVaccineStatus.NOT_VACCINATED)
-                            .build())
                     .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {
                         // We know this labelSetInfo will have a label for this person property
                         //noinspection OptionalGetWithoutIsPresent
