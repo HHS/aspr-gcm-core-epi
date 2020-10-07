@@ -1245,6 +1245,11 @@ public class TestDayOfWeek {
         }
 
         @Override
+        public int getPartitionSize(Object key) {
+            return 0;
+        }
+
+        @Override
         public void removePartition(Object key) {
 
         }

@@ -189,7 +189,7 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
         public void executePlan(Environment environment, Plan plan) {
             if (plan.getClass() == RandomTestingPlan.class) {
                 double infectionTargetingRatio = environment.getGlobalPropertyValue(RandomTestingGlobalProperty.INFECTION_TARGETING_RATIO);
-                int numberInfected = environment.getPartitionSize(INFECTED_PARTITION_KEY, LabelSet.builder().build());
+                int numberInfected = environment.getPartitionSize(INFECTED_PARTITION_KEY);
                 int numberNotInfected = environment.getPopulationCount() - numberInfected;
                 double probabilityTestInfected = numberInfected * infectionTargetingRatio /
                         (numberInfected * infectionTargetingRatio + numberNotInfected);
