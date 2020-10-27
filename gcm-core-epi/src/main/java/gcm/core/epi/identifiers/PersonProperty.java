@@ -6,7 +6,7 @@ import gcm.scenario.MapOption;
 
 public enum PersonProperty implements DefinedPersonProperty {
 
-    AGE_GROUP_INDEX(TypedPropertyDefinition.builder().type(Integer.class).defaultValue(0).mapOption(MapOption.ARRAY).build()),
+    AGE_GROUP_INDEX(TypedPropertyDefinition.builder().type(Integer.class).defaultValue(0).build()),
 
     HAD_INFECTIOUS_CONTACT(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
