@@ -17,6 +17,7 @@ import gcm.scenario.GroupId;
 import gcm.scenario.PersonId;
 import gcm.scenario.RegionId;
 import gcm.simulation.Environment;
+import gcm.simulation.PersonConstructionInfo;
 import gcm.simulation.Plan;
 import gcm.simulation.partition.LabelSet;
 import gcm.simulation.partition.Partition;
@@ -72,23 +73,27 @@ public class PopulationLoader extends AbstractComponent {
         // Iterate over people, adding them to the simulation together with their groups
         for (RegionId regionId : populationDescription.regionByPersonId()) {
             // Add person and set properties
-            PersonId personId = environment.addPerson(regionId, Compartment.SUSCEPTIBLE);
             // This relies on the fact that person ids are assigned sequentially
-            int index = personId.getValue();
-            if (index != environment.getPopulationCount() - 1) {
+            int personIdInt = environment.getPopulationCount();
+            PersonConstructionInfo personConstructionInfo = PersonConstructionInfo.builder()
+                    .setPersonRegionId(regionId)
+                    .setPersonCompartmentId(Compartment.SUSCEPTIBLE)
+                    .setPersonPropertyValue(PersonProperty.AGE_GROUP_INDEX,
+                            populationDescription.ageGroupIndexByPersonId().get(personIdInt))
+                    .build();
+            PersonId personId = environment.addPerson(personConstructionInfo);
+            if (personId.getValue() != personIdInt) {
                 throw new RuntimeException("Person ID assignment expected to be sequential");
             }
-            environment.setPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX,
-                    populationDescription.ageGroupIndexByPersonId().get(index));
 
             // Add groups
-            addPersonToGroupWithType(environment, personId, populationDescription.homeGroupIdByPersonId().get(index),
+            addPersonToGroupWithType(environment, personId, populationDescription.homeGroupIdByPersonId().get(personIdInt),
                     ContactGroupType.HOME, populationDescription.regionByGroupId());
 
-            addPersonToGroupWithType(environment, personId, populationDescription.schoolGroupIdByPersonId().get(index),
+            addPersonToGroupWithType(environment, personId, populationDescription.schoolGroupIdByPersonId().get(personIdInt),
                     ContactGroupType.SCHOOL, populationDescription.regionByGroupId());
 
-            addPersonToGroupWithType(environment, personId, populationDescription.workGroupIdByPersonId().get(index),
+            addPersonToGroupWithType(environment, personId, populationDescription.workGroupIdByPersonId().get(personIdInt),
                     ContactGroupType.WORK, populationDescription.regionByGroupId());
         }
 
