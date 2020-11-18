@@ -3,13 +3,12 @@ package gcm.core.epi.plugin.behavior;
 import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.propertytypes.DayOfWeekSchedule;
+import gcm.core.epi.propertytypes.FipsCodeValue;
 import gcm.core.epi.propertytypes.ImmutableDayOfWeekSchedule;
+import gcm.core.epi.propertytypes.ImmutableFipsCodeValue;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerUtils;
-import gcm.core.epi.util.property.DefinedGlobalProperty;
-import gcm.core.epi.util.property.DefinedGroupProperty;
-import gcm.core.epi.util.property.DefinedRegionProperty;
-import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.core.epi.util.property.*;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
@@ -49,9 +48,16 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
                 return getSampledContactGroupType(environment, environment.getGlobalPropertyValue(
                         SchoolClosureGlobalProperty.SUMMER_CONTACT_SUBSTITUTION_WEIGHTS));
             } else if (schoolClosureInEffect) {
-                // School closure outside of summer
-                return getSampledContactGroupType(environment, environment.getGlobalPropertyValue(
-                        SchoolClosureGlobalProperty.SCHOOL_CLOSED_CONTACT_SUBSTITUTION_WEIGHTS));
+
+                double schoolClosurePropensity = getRegionalPropertyValue(environment, regionId,
+                        SchoolClosureGlobalAndRegionProperty.SCHOOL_CLOSURE_PROPENSITY);
+
+                if (environment.getRandomGeneratorFromId(SchoolClosureRandomId.ID).nextDouble() < schoolClosurePropensity) {
+                    // School closure outside of summer
+                    return getSampledContactGroupType(environment, environment.getGlobalPropertyValue(
+                            SchoolClosureGlobalProperty.SCHOOL_CLOSED_CONTACT_SUBSTITUTION_WEIGHTS));
+                }
+
             } else if (cohortingInEffect) {
                 // Cohorting and school is open
 
@@ -160,12 +166,21 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
 
     @Override
     public Set<DefinedGlobalProperty> getGlobalProperties() {
-        return new HashSet<>(EnumSet.allOf(SchoolClosureGlobalProperty.class));
+
+        Set<DefinedGlobalProperty> globalProperties = new HashSet<>();
+        globalProperties.addAll(EnumSet.allOf(SchoolClosureGlobalProperty.class));
+        globalProperties.addAll(EnumSet.allOf(SchoolClosureGlobalAndRegionProperty.class));
+        return globalProperties;
+
     }
 
     @Override
     public Set<DefinedRegionProperty> getRegionProperties() {
-        return new HashSet<>(EnumSet.allOf(SchoolClosureRegionProperty.class));
+        Set<DefinedRegionProperty> regionProperties = new HashSet<>(EnumSet.allOf(SchoolClosureRegionProperty.class));
+        for (DefinedGlobalAndRegionProperty property : SchoolClosureGlobalAndRegionProperty.values()) {
+            regionProperties.add(property.getRegionProperty());
+        }
+        return regionProperties;
     }
 
     @Override
@@ -176,6 +191,11 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
         TriggerUtils.addBooleanCallback(triggerCallbacks, triggerId, SchoolClosureRegionProperty.SCHOOL_CLOSURE_TRIGGER_START);
         triggerId = environment.getGlobalPropertyValue(SchoolClosureGlobalProperty.SCHOOL_CLOSURE_END);
         TriggerUtils.addBooleanCallback(triggerCallbacks, triggerId, SchoolClosureRegionProperty.SCHOOL_CLOSURE_TRIGGER_END);
+        // Add school closure overrides
+        List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
+                SchoolClosureGlobalProperty.SCHOOL_CLOSURE_TRIGGER_OVERRIDES);
+        addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
+                Arrays.stream(SchoolClosureGlobalAndRegionProperty.values()).collect(Collectors.toSet()), environment);
         // Cohorting
         triggerId = environment.getGlobalPropertyValue(SchoolClosureGlobalProperty.COHORTING_START);
         TriggerUtils.addBooleanCallback(triggerCallbacks, triggerId, SchoolClosureRegionProperty.COHORTING_TRIGGER_START);
@@ -242,6 +262,12 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
 
         SCHOOL_CLOSURE_END(TypedPropertyDefinition.builder()
                 .type(String.class).defaultValue("").isMutable(false).build()),
+
+        SCHOOL_CLOSURE_TRIGGER_OVERRIDES(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<List<TriggeredPropertyOverride>>() {
+                })
+                .defaultValue(new ArrayList<TriggeredPropertyOverride>())
+                .isMutable(false).build()),
 
         COHORTING_START(TypedPropertyDefinition.builder()
                 .type(String.class).defaultValue("").isMutable(false).build()),
@@ -334,6 +360,9 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
                 .type(Boolean.class).defaultValue(false)
                 .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
 
+        SCHOOL_CLOSURE_PROPENSITY(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(1.0).build()),
+
         SUMMER_TRIGGER_START(TypedPropertyDefinition.builder()
                 .type(Boolean.class).defaultValue(false)
                 .timeTrackingPolicy(TimeTrackingPolicy.TRACK_TIME).build()),
@@ -359,6 +388,39 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
         @Override
         public TypedPropertyDefinition getPropertyDefinition() {
             return propertyDefinition;
+        }
+
+    }
+
+    public enum SchoolClosureGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
+
+        SCHOOL_CLOSURE_PROPENSITY(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<FipsCodeValue<Double>>() {
+                })
+                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(1.0)).build(),
+                SchoolClosureRegionProperty.SCHOOL_CLOSURE_PROPENSITY);
+
+        private final TypedPropertyDefinition propertyDefinition;
+        private final DefinedRegionProperty regionProperty;
+
+        SchoolClosureGlobalAndRegionProperty(TypedPropertyDefinition propertyDefinition, DefinedRegionProperty regionProperty) {
+            this.propertyDefinition = propertyDefinition;
+            this.regionProperty = regionProperty;
+        }
+
+        @Override
+        public TypedPropertyDefinition getPropertyDefinition() {
+            return propertyDefinition;
+        }
+
+        @Override
+        public boolean isExternalProperty() {
+            return true;
+        }
+
+        @Override
+        public DefinedRegionProperty getRegionProperty() {
+            return regionProperty;
         }
 
     }
