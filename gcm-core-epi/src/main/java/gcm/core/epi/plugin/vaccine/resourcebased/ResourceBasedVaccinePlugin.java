@@ -226,13 +226,14 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-                environment.addPartition(Partition.create()
+                environment.addPartition(Partition.builder()
                                 // Partition regions by FIPS code
-                                .region(regionId -> vaccinationRatePerDayFipsCodeValues.scope().getFipsSubCode(regionId))
+                                .setRegionFunction(regionId -> vaccinationRatePerDayFipsCodeValues.scope().getFipsSubCode(regionId))
                                 // Partition by age group
-                                .property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                                .setPersonPropertyFunction(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
                                 // Partition by number of doses
-                                .resource(VaccineId.VACCINE_ONE, numberOfDoses -> numberOfDoses),
+                                .setPersonResourceFunction(VaccineId.VACCINE_ONE, numberOfDoses -> numberOfDoses)
+                                .build(),
                         VACCINE_PARTITION_KEY);
 
                 // Schedule vaccine deliveries

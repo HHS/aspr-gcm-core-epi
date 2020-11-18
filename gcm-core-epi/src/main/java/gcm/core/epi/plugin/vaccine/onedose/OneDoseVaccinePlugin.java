@@ -170,12 +170,13 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-                environment.addPartition(Partition.create()
+                environment.addPartition(Partition.builder()
                                 // Filter by vaccine status
-                                .filter(Filter.property(VaccinePersonProperty.VACCINE_STATUS, Equality.EQUAL,
+                                .setFilter(Filter.property(VaccinePersonProperty.VACCINE_STATUS, Equality.EQUAL,
                                         OneDoseVaccineStatus.NOT_VACCINATED))
                                 // Partition by age group
-                                .property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex)),
+                                .setPersonPropertyFunction(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                                .build(),
                         VACCINE_PARTITION_KEY);
 
                 // Schedule first vaccination event

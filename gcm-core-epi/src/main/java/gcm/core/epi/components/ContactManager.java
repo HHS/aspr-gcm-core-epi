@@ -200,15 +200,14 @@ public class ContactManager extends AbstractComponent {
                 radiationTargetDistributions);
 
         // Add partition for radiation flow
-        Partition radiationModelPartition = Partition.create().region(regionId -> regionId);
+        Partition.Builder radiationModelPartitionBuilder = Partition.builder().setRegionFunction(regionId -> regionId);
         if (transmissionStructure.groupBiWeightingFunctionsMap().containsKey(ContactGroupType.GLOBAL)) {
             List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-            radiationModelPartition = radiationModelPartition
-                    // Partition by age group
-                    .with(Partition.create().property(PersonProperty.AGE_GROUP_INDEX,
-                            ageGroupIndex -> ageGroups.get((int) ageGroupIndex)));
+            // Partition by age group
+            radiationModelPartitionBuilder.setPersonPropertyFunction(PersonProperty.AGE_GROUP_INDEX,
+                    ageGroupIndex -> ageGroups.get((int) ageGroupIndex));
         }
-        environment.addPartition(radiationModelPartition, RADIATION_MODEL_PARTITION_KEY);
+        environment.addPartition(radiationModelPartitionBuilder.build(), RADIATION_MODEL_PARTITION_KEY);
 
         // Register to observe the transmission ratio for a person changing (due to behavior)
         environment.observeGlobalPersonPropertyChange(true, PersonProperty.ACTIVITY_LEVEL_CHANGED);

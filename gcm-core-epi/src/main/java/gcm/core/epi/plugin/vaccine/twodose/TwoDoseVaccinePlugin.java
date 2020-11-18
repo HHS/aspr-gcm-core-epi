@@ -203,14 +203,15 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
-                environment.addPartition(Partition.create()
+                environment.addPartition(Partition.builder()
                                 // Filter by vaccine status
-                                .filter(Filter.property(VaccinePersonProperty.VACCINE_STATUS, Equality.EQUAL,
+                                .setFilter(Filter.property(VaccinePersonProperty.VACCINE_STATUS, Equality.EQUAL,
                                         TwoDoseVaccineStatus.NOT_VACCINATED))
                                 // Partition by age group
-                                .property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                                .setPersonPropertyFunction(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
                                 // Partition by vaccine status
-                                .property(VaccinePersonProperty.VACCINE_STATUS, vaccineStatus -> vaccineStatus),
+                                .setPersonPropertyFunction(VaccinePersonProperty.VACCINE_STATUS, vaccineStatus -> vaccineStatus)
+                                .build(),
                         VACCINE_PARTITION_KEY);
 
                 // Schedule first vaccination event
@@ -326,8 +327,6 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
             // Get a random person to vaccinate, if possible, taking into account vaccine uptake weights
             AgeWeights vaccineUptakeWeights = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINE_UPTAKE_WEIGHTS);
-            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
-                    GlobalProperty.POPULATION_DESCRIPTION);
 
             final Optional<PersonId> personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
                     .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {

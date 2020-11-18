@@ -15,7 +15,6 @@ import gcm.scenario.RandomNumberGeneratorId;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
 import gcm.simulation.partition.Filter;
-import gcm.simulation.partition.LabelSet;
 import gcm.simulation.partition.Partition;
 import gcm.simulation.partition.PartitionSampler;
 import org.apache.commons.math3.distribution.BinomialDistribution;
@@ -181,7 +180,7 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
             double startTestingTime = environment.getGlobalPropertyValue(RandomTestingGlobalProperty.TESTING_START_DAY);
             environment.addPlan(new RandomTestingPlan(), startTestingTime);
             // Add index
-            environment.addPartition(Partition.create().filter(Filter.compartment(Compartment.INFECTED)),
+            environment.addPartition(Partition.builder().setFilter(Filter.compartment(Compartment.INFECTED)).build(),
                     INFECTED_PARTITION_KEY);
         }
 

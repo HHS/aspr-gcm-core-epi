@@ -115,7 +115,17 @@ public class TestDayOfWeek {
         }
 
         @Override
+        public GroupId addGroup(GroupConstructionInfo groupConstructionInfo) {
+            return null;
+        }
+
+        @Override
         public PersonId addPerson(RegionId regionId, CompartmentId compartmentId) {
+            return null;
+        }
+
+        @Override
+        public PersonId addPerson(PersonConstructionInfo personConstructionInfo) {
             return null;
         }
 
@@ -131,11 +141,6 @@ public class TestDayOfWeek {
 
         @Override
         public void addPlan(Plan plan, double planTime, Object key) {
-
-        }
-
-        @Override
-        public void addPopulationIndex(Filter filter, Object key) {
 
         }
 
@@ -161,6 +166,11 @@ public class TestDayOfWeek {
 
         @Override
         public BatchId createBatch(MaterialId materialId, double amount) {
+            return null;
+        }
+
+        @Override
+        public BatchId createBatch(BatchConstructionInfo batchConstructionInfo) {
             return null;
         }
 
@@ -390,16 +400,6 @@ public class TestDayOfWeek {
         }
 
         @Override
-        public List<PersonId> getIndexedPeople(Object key) {
-            return null;
-        }
-
-        @Override
-        public int getIndexSize(Object key) {
-            return 0;
-        }
-
-        @Override
         public List<BatchId> getInventoryBatches(MaterialsProducerId materialsProducerId) {
             return null;
         }
@@ -612,26 +612,6 @@ public class TestDayOfWeek {
         @Override
         public RandomGenerator getRandomGeneratorFromId(RandomNumberGeneratorId randomNumberGeneratorId) {
             return null;
-        }
-
-        @Override
-        public Optional<PersonId> sampleIndex(Object key) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> sampleIndex(Object key, RandomNumberGeneratorId randomNumberGeneratorId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> sampleIndex(Object key, PersonId excludedPersonId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PersonId> sampleIndex(Object key, RandomNumberGeneratorId randomNumberGeneratorId, PersonId excludedPersonId) {
-            return Optional.empty();
         }
 
         @Override
@@ -940,16 +920,6 @@ public class TestDayOfWeek {
         }
 
         @Override
-        public boolean personIsInPopulationIndex(PersonId personId, Object key) {
-            return false;
-        }
-
-        @Override
-        public boolean populationIndexExists(Object key) {
-            return false;
-        }
-
-        @Override
         public void removeGroup(GroupId groupId) {
 
         }
@@ -967,11 +937,6 @@ public class TestDayOfWeek {
         @Override
         public <T> Optional<T> removePlan(Object key) {
             return Optional.empty();
-        }
-
-        @Override
-        public void removePopulationIndex(Object key) {
-
         }
 
         @Override
@@ -1136,11 +1101,6 @@ public class TestDayOfWeek {
 
         @Override
         public void observeGroupDepartureByTypeAndPerson(boolean observe, GroupTypeId groupTypeId, PersonId personId) {
-
-        }
-
-        @Override
-        public void observePopulationIndexChange(boolean observe, Object key) {
 
         }
 

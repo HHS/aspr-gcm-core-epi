@@ -111,8 +111,9 @@ public class ExponentialSeedingPlugin implements Plugin {
                 FipsCodeDouble seedingRateSpecification = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.INITIAL_SEEDING_RATE_PER_DAY);
 
                 // Create partition TODO: Could be redundant with ContactManager
-                environment.addPartition(Partition.create()
-                                .region(regionId -> seedingRateSpecification.scope().getFipsSubCode(regionId)),
+                environment.addPartition(Partition.builder()
+                                .setRegionFunction(regionId -> seedingRateSpecification.scope().getFipsSubCode(regionId))
+                                .build(),
                         SEEDING_PARTITION_KEY);
 
                 // Start Seeding

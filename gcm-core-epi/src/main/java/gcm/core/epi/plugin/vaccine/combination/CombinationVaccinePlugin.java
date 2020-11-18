@@ -238,12 +238,13 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
                         default:
                             throw new IllegalStateException("Unexpected vaccine type: " + vaccineTypes.get(vaccineId));
                     }
-                    environment.addPartition(Partition.create()
+                    environment.addPartition(Partition.builder()
                                     // Filter by vaccine status
-                                    .filter(Filter.property(getPropertyIdForVaccine(vaccineId, VaccinePersonProperty.VACCINE_STATUS),
+                                    .setFilter(Filter.property(getPropertyIdForVaccine(vaccineId, VaccinePersonProperty.VACCINE_STATUS),
                                             Equality.EQUAL, notVaccinatedStatus))
                                     // Partition by age group
-                                    .property(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex)),
+                                    .setPersonPropertyFunction(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                                    .build(),
                             partitionKey);
                     perVaccinePartitionKeys.put(vaccineId, partitionKey);
 
