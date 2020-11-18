@@ -1,6 +1,5 @@
 package gcm.core.epi.test.manual.propertytypes;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -8,14 +7,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import gcm.core.epi.util.loading.*;
-import org.junit.Test;
+import gcm.core.epi.util.loading.ImmutablePropertyValueJsonList;
+import gcm.core.epi.util.loading.PropertyValueJsonList;
+import gcm.core.epi.util.loading.PropertyValueJsonListDeserializer;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class TestEmptyStringDeserialization {
 
@@ -34,7 +35,7 @@ public class TestEmptyStringDeserialization {
         objectMapper.registerModule(module);
 
         objectMapper.registerModule(new Jdk8Module());
-        objectMapper.enable(JsonParser.Feature.ALLOW_MISSING_VALUES);
+        //objectMapper.enable(JsonParser.Feature.ALLOW_MISSING_VALUES);
         //objectMapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
 
         PropertyValueJsonList simpleValue = objectMapper.readValue(EMPTY_STRING, new TypeReference<PropertyValueJsonList>() {
@@ -43,12 +44,12 @@ public class TestEmptyStringDeserialization {
 
         Optional<Integer> optionalInteger = objectMapper.readValue(EMPTY_STRING, new TypeReference<Optional<Integer>>() {
         });
-        assertEquals(optionalInteger.isPresent(), false);
+        assertFalse(optionalInteger.isPresent());
 
         Optional<String> optionalString = objectMapper.readValue(EMPTY_STRING, new TypeReference<Optional<String>>() {
         });
         // Will fail
-        assertEquals(optionalString.isPresent(), false);
+        assertFalse(optionalString.isPresent());
 
         Map<String, PropertyValueJsonList> value = objectMapper.readValue(EMPTY_STRING_VALUE, new TypeReference<Map<String, PropertyValueJsonList>>() {
         });

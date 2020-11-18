@@ -6,7 +6,6 @@ import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.ImmutableAgeGroup;
 import gcm.core.epi.population.ImmutableAgeGroupPartition;
-import gcm.scenario.GroupTypeId;
 import gcm.scenario.RegionId;
 import org.immutables.value.Value;
 

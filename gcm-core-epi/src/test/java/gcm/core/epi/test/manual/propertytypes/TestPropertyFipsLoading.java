@@ -12,22 +12,24 @@ import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.ImmutableAgeGroup;
 import gcm.core.epi.population.ImmutableAgeGroupPartition;
-import gcm.core.epi.propertytypes.*;
+import gcm.core.epi.propertytypes.FipsCode;
+import gcm.core.epi.propertytypes.FipsCodeDouble;
+import gcm.core.epi.propertytypes.FipsCodeValue;
+import gcm.core.epi.propertytypes.FipsCodeValueDeserializerModifier;
 import gcm.core.epi.util.loading.AgeGroupStringMapDeserializer;
 import gcm.core.epi.util.loading.CoreEpiBootstrapUtil;
 import gcm.core.epi.util.loading.FipsCodeStringMapDeserializer;
 import gcm.core.epi.util.property.DefinedGlobalAndRegionProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
-import gcm.scenario.PropertyDefinition;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestPropertyFipsLoading {
 
@@ -139,17 +141,17 @@ public class TestPropertyFipsLoading {
                     initialParsedSimpleInput.get(PROPERTY_A.toString()).get(0), PROPERTY_A, null);
             Double secondDoubleValue = simpleParser.readValue(initialParsedSimpleInput.get(PROPERTY_A.toString()).get(1));
 
-            assertEquals(firstDoubleValue.doubleValue(), 1.0, 1e-16);
-            assertEquals(secondDoubleValue.doubleValue(), 2.0, 1e-16);
+            assertEquals(firstDoubleValue, 1.0, 1e-16);
+            assertEquals(secondDoubleValue, 2.0, 1e-16);
 
             Map<String, List<JsonNode>> initialParsedFipsInput = initialReader.readValue(FIPS_INPUT);
             ObjectReader fipsParser = objectMapper.readerFor(FipsCodeDouble.class);
             FipsCodeDouble firstFipsCodeDouble = fipsParser.readValue(initialParsedFipsInput.get(PROPERTY_A.toString()).get(0));
             FipsCodeDouble secondFipsCodeDouble = fipsParser.readValue(initialParsedFipsInput.get(PROPERTY_A.toString()).get(1));
 
-            assertEquals(firstFipsCodeDouble.defaultValue().doubleValue(), 1.0, 1e-16);
-            assertEquals(firstFipsCodeDouble.values().get(FipsCode.of("00001")).doubleValue(), 3.0, 1e-16);
-            assertEquals(secondFipsCodeDouble.defaultValue().doubleValue(), 2.0, 1e-16);
+            assertEquals(firstFipsCodeDouble.defaultValue(), 1.0, 1e-16);
+            assertEquals(firstFipsCodeDouble.values().get(FipsCode.of("00001")), 3.0, 1e-16);
+            assertEquals(secondFipsCodeDouble.defaultValue(), 2.0, 1e-16);
 
             CoreEpiBootstrapUtil.getPropertyValueFromJson(initialParsedSimpleInput.get(PROPERTY_A.toString()).get(0),
                     PROPERTY_A, null);
@@ -191,8 +193,6 @@ public class TestPropertyFipsLoading {
             secondFipsCodeDouble = fipsParser.readValue(initialParsedSimpleInput.get(PROPERTY_A.toString()).get(1));
             assertEquals(secondFipsCodeDouble.defaultValue(), 2.0, 1e-16);
 
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }

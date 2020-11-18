@@ -1,6 +1,5 @@
 package gcm.core.epi.test.manual.propertytypes;
 
-import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;

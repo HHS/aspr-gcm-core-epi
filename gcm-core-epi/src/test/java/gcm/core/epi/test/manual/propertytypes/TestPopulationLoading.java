@@ -9,13 +9,15 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.identifiers.StringRegionId;
-import gcm.core.epi.population.*;
+import gcm.core.epi.population.AgeGroupPartition;
+import gcm.core.epi.population.ImmutablePopulationDescription;
+import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.util.loading.CoreEpiBootstrapUtil;
 import gcm.core.epi.util.loading.PopulationDescriptionFileRecord;
 import gcm.scenario.GroupTypeId;
 import gcm.scenario.RegionId;
 import org.apache.commons.math3.util.Pair;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.openjdk.jol.info.GraphLayout;
 import org.simpleflatmapper.csv.CsvParser;
 import org.simpleflatmapper.util.CloseableIterator;
@@ -550,7 +552,7 @@ public class TestPopulationLoading {
         //System.out.println(GraphLayout.parseInstance(populationDescription.regionByPersonId()).toFootprint());
     }
 
-    private class Counter {
+    private static class Counter {
         private int count = -1;
 
         public int getCount() {

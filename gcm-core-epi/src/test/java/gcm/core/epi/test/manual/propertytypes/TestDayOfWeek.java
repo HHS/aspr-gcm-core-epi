@@ -8,17 +8,19 @@ import gcm.output.OutputItem;
 import gcm.scenario.*;
 import gcm.simulation.*;
 import gcm.simulation.group.GroupSampler;
-import gcm.simulation.partition.*;
+import gcm.simulation.partition.LabelSet;
+import gcm.simulation.partition.Partition;
+import gcm.simulation.partition.PartitionSampler;
 import gcm.util.MemoryPartition;
 import org.apache.commons.math3.random.RandomGenerator;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.DayOfWeek;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestDayOfWeek {
 
@@ -41,67 +43,67 @@ public class TestDayOfWeek {
 
         // Starts on SUNDAY, so false
         assertEquals(getDayOfWeek(environment, 0.0), DayOfWeek.SUNDAY);
-        assertEquals(schedule.isActiveAt(environment, 0.0), false);
+        assertFalse(schedule.isActiveAt(environment, 0.0));
 
         // Time 1.0 is MONDAY, but not past the start offset so false
         assertEquals(getDayOfWeek(environment, 1.0), DayOfWeek.MONDAY);
-        assertEquals(schedule.isActiveAt(environment, 1.0), false);
+        assertFalse(schedule.isActiveAt(environment, 1.0));
 
         // Time 2.9999 is TUESDAY, and not past the start offset so false
         assertEquals(getDayOfWeek(environment, 2.9999), DayOfWeek.TUESDAY);
-        assertEquals(schedule.isActiveAt(environment, 2.9999), false);
+        assertFalse(schedule.isActiveAt(environment, 2.9999));
 
         // Time 3.0 is WEDNESDAY, and past the start offset so true
         assertEquals(getDayOfWeek(environment, 3.0), DayOfWeek.WEDNESDAY);
-        assertEquals(schedule.isActiveAt(environment, 3.0), true);
+        assertTrue(schedule.isActiveAt(environment, 3.0));
 
         // Time 3.9999 is WEDNESDAY, and past the start offset so true
         assertEquals(getDayOfWeek(environment, 3.9999), DayOfWeek.WEDNESDAY);
-        assertEquals(schedule.isActiveAt(environment, 3.9999), true);
+        assertTrue(schedule.isActiveAt(environment, 3.9999));
 
         // Time 4.0 is THURSDAY, past offset, but not active day of week so false
         assertEquals(getDayOfWeek(environment, 4.0), DayOfWeek.THURSDAY);
-        assertEquals(schedule.isActiveAt(environment, 4.0), false);
+        assertFalse(schedule.isActiveAt(environment, 4.0));
 
         // Time 7.9999 is SUNDAY, past offset, but not active day of week so false
         assertEquals(getDayOfWeek(environment, 7.9999), DayOfWeek.SUNDAY);
-        assertEquals(schedule.isActiveAt(environment, 7.9999), false);
+        assertFalse(schedule.isActiveAt(environment, 7.9999));
 
         // Time 8.0 is MONDAY, past offset and still in duration so true
         assertEquals(getDayOfWeek(environment, 8.0), DayOfWeek.MONDAY);
-        assertEquals(schedule.isActiveAt(environment, 8.0), true);
+        assertTrue(schedule.isActiveAt(environment, 8.0));
 
         // Time 9.9999 is TUESDAY, past offset and still in duration so true
         assertEquals(getDayOfWeek(environment, 9.9999), DayOfWeek.TUESDAY);
-        assertEquals(schedule.isActiveAt(environment, 9.9999), true);
+        assertTrue(schedule.isActiveAt(environment, 9.9999));
 
         // Time 10.0 is WEDNESDAY, past offset plus duration so false
         assertEquals(getDayOfWeek(environment, 10.0), DayOfWeek.WEDNESDAY);
-        assertEquals(schedule.isActiveAt(environment, 10.0), false);
+        assertFalse(schedule.isActiveAt(environment, 10.0));
 
         // Time 15.9999 is MONDAY, before restart so false
         assertEquals(getDayOfWeek(environment, 15.9999), DayOfWeek.MONDAY);
-        assertEquals(schedule.isActiveAt(environment, 15.9999), false);
+        assertFalse(schedule.isActiveAt(environment, 15.9999));
 
         // Time 16.0 is TUESDAY, after restart so true
         assertEquals(getDayOfWeek(environment, 16.0), DayOfWeek.TUESDAY);
-        assertEquals(schedule.isActiveAt(environment, 16.0), true);
+        assertTrue(schedule.isActiveAt(environment, 16.0));
 
         // Time 17.0 is WEDNESDAY, after restart so true
         assertEquals(getDayOfWeek(environment, 17.0), DayOfWeek.WEDNESDAY);
-        assertEquals(schedule.isActiveAt(environment, 17.0), true);
+        assertTrue(schedule.isActiveAt(environment, 17.0));
 
         // Time 22.9999 is MONDAY, after restart and within duration so true
         assertEquals(getDayOfWeek(environment, 22.9999), DayOfWeek.MONDAY);
-        assertEquals(schedule.isActiveAt(environment, 22.9999), true);
+        assertTrue(schedule.isActiveAt(environment, 22.9999));
 
-        // Time 23 is MONDAY, after restart but past duration so false
+        // Time 23 is TUESDAY, after restart but past duration so false
         assertEquals(getDayOfWeek(environment, 23.0), DayOfWeek.TUESDAY);
-        assertEquals(schedule.isActiveAt(environment, 23.0), false);
+        assertFalse(schedule.isActiveAt(environment, 23.0));
 
     }
 
-    class DummyEnvironment implements Environment {
+    static class DummyEnvironment implements Environment {
 
         private final DayOfWeek startDayOfWeek;
 
@@ -318,6 +320,7 @@ public class TestDayOfWeek {
         public <T> T getGlobalPropertyValue(GlobalPropertyId globalPropertyId) {
             // Just return day of week start day
             if (globalPropertyId.equals(GlobalProperty.SIMULATION_START_DAY)) {
+                //noinspection unchecked
                 return (T) startDayOfWeek;
             } else {
                 throw new IllegalArgumentException("Dummy method called improperly");

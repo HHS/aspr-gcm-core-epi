@@ -1,7 +1,6 @@
 package gcm.core.epi.test.manual.propertytypes;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import gcm.core.epi.population.AgeGroup;
@@ -9,12 +8,11 @@ import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.ImmutableAgeGroup;
 import gcm.core.epi.population.ImmutableAgeGroupPartition;
 import gcm.core.epi.propertytypes.AgeWeights;
-import gcm.core.epi.propertytypes.Weights;
 import gcm.core.epi.propertytypes.WeightsDeserializerModifier;
 import gcm.core.epi.util.loading.AgeGroupStringMapDeserializer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestAgeLoading {
 
