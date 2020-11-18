@@ -60,6 +60,10 @@ public enum CustomReport implements LoadableReport {
 
     AGGREGATED_REGION_TRANSFER_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
         experimentExecutor.addCustomReport(path, AggregatedRegionTransferReport.class, reportWrapperItem.period(), reportWrapperItem.regionAggregationLevel());
+    }),
+
+    TRIGGER_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
+        experimentExecutor.addCustomReport(path, TriggerReport.class);
     });
 
     private final ReportLoader reportLoader;

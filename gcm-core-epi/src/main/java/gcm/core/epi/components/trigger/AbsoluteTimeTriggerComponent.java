@@ -2,6 +2,7 @@ package gcm.core.epi.components.trigger;
 
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
+import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.trigger.*;
 import gcm.scenario.RegionId;
@@ -50,7 +51,8 @@ public class AbsoluteTimeTriggerComponent extends AbstractComponent {
         }
 
         // Schedule events
-        Set<RegionId> regionIds = environment.getRegionIds();
+        PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
+        Set<RegionId> regionIds = populationDescription.regionIds();
         for (RegionId regionId : regionIds) {
             FipsCode regionScopedFipsCode = trigger.scope().getFipsSubCode(regionId);
             double triggerTime = trigger.times().getOrDefault(regionScopedFipsCode,
@@ -67,9 +69,10 @@ public class AbsoluteTimeTriggerComponent extends AbstractComponent {
     public void executePlan(Environment environment, Plan plan) {
         ToggleRegionPropertyPlan toggleRegionPropertyPlan = (ToggleRegionPropertyPlan) plan;
         RegionId regionId = toggleRegionPropertyPlan.regionId;
+        TriggerId<CompoundTrigger> componentId = environment.getCurrentComponentId();
         // Trigger callbacks
         for (TriggerCallback callback : triggerCallbacks) {
-            callback.trigger(environment, regionId);
+            Trigger.performCallback(componentId, callback, environment, regionId);
         }
     }
 

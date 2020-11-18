@@ -31,8 +31,9 @@ public class CompoundTriggerComponent extends AbstractComponent {
 
     @Override
     public void observeRegionPropertyChange(Environment environment, RegionId regionId, RegionPropertyId regionPropertyId) {
-        for (TriggerCallback triggerCallback : triggerCallbacks) {
-            triggerCallback.trigger(environment, regionId);
+        TriggerId<CompoundTrigger> componentId = environment.getCurrentComponentId();
+        for (TriggerCallback callback : triggerCallbacks) {
+            Trigger.performCallback(componentId, callback, environment, regionId);
         }
     }
 

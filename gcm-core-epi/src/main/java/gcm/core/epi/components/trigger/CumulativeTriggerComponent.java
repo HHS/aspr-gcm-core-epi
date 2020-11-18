@@ -121,10 +121,11 @@ public class CumulativeTriggerComponent extends AbstractComponent {
             // Check if we have crossed the threshold
             double threshold = thresholds.get(fipsCode);
             if (counter.count >= threshold) {
+                TriggerId<CompoundTrigger> componentId = environment.getCurrentComponentId();
                 for (RegionId regionId : getRegionIdsInScope(environment, personRegionId)) {
                     // Trigger callbacks
                     for (TriggerCallback callback : triggerCallbacks) {
-                        callback.trigger(environment, regionId);
+                        Trigger.performCallback(componentId, callback, environment, regionId);
                     }
                 }
                 counterMap.remove(fipsCode);

@@ -193,10 +193,11 @@ public class IncidenceTriggerComponent extends AbstractComponent {
     }
 
     private void triggerRegionProperties(Environment environment, FipsCode fipsCode) {
+        TriggerId<CompoundTrigger> componentId = environment.getCurrentComponentId();
         for (RegionId regionId : fipsCodeRegionMap.get(fipsCode)) {
             // Trigger callbacks
             for (TriggerCallback callback : triggerCallbacks) {
-                callback.trigger(environment, regionId);
+                Trigger.performCallback(componentId, callback, environment, regionId);
             }
         }
         triggerActive.put(fipsCode, true);
