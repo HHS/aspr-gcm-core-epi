@@ -1,7 +1,9 @@
 package gcm.core.epi.plugin.behavior;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.ContactGroupType;
+import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.propertytypes.DayOfWeekSchedule;
 import gcm.core.epi.propertytypes.FipsCodeValue;
 import gcm.core.epi.propertytypes.ImmutableDayOfWeekSchedule;
@@ -13,6 +15,7 @@ import gcm.scenario.*;
 import gcm.simulation.Environment;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.random.RandomAdaptor;
+import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.*;
@@ -22,12 +25,19 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
 
     private static final double COHORT_ONE_FRACTION = 0.5;
 
+    static final GlobalComponentId SCHOOL_CLOSURE_MANAGER_ID = new GlobalComponentId() {
+        @Override
+        public String toString() {
+            return "SCHOOL_CLOSURE_MANAGER_ID";
+        }
+    };
+
     @Override
     public Optional<ContactGroupType> getSubstitutedContactGroup(Environment environment, PersonId personId, ContactGroupType selectedContactGroupType) {
 
         if (selectedContactGroupType == ContactGroupType.SCHOOL) {
             RegionId regionId = environment.getPersonRegion(personId);
-
+            
             // Summer closure
             boolean summerInEffect = TriggerUtils.checkIfTriggerIsInEffect(environment, regionId,
                     SchoolClosureRegionProperty.SUMMER_TRIGGER_START,
@@ -37,6 +47,16 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
             boolean schoolClosureInEffect = TriggerUtils.checkIfTriggerIsInEffect(environment, regionId,
                     SchoolClosureRegionProperty.SCHOOL_CLOSURE_TRIGGER_START,
                     SchoolClosureRegionProperty.SCHOOL_CLOSURE_TRIGGER_END);
+
+            if (schoolClosureInEffect) {
+                GroupId schoolId = environment.getGroupsForGroupTypeAndPerson(ContactGroupType.SCHOOL, personId).get(0);
+
+                float localSchoolClosurePropensity = environment.getGroupPropertyValue(schoolId,
+                        SchoolClosureSchoolProperty.SCHOOL_CLOSURE_PROPENSITY);
+                double schoolClosurePropensity = getRegionalPropertyValue(environment, regionId,
+                        SchoolClosureGlobalAndRegionProperty.SCHOOL_CLOSURE_PROPENSITY);
+                schoolClosureInEffect = schoolClosureInEffect && (localSchoolClosurePropensity <= schoolClosurePropensity);
+            }
 
             // Cohorting
             boolean cohortingInEffect = TriggerUtils.checkIfTriggerIsInEffect(environment, regionId,
@@ -49,14 +69,8 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
                         SchoolClosureGlobalProperty.SUMMER_CONTACT_SUBSTITUTION_WEIGHTS));
             } else if (schoolClosureInEffect) {
 
-                double schoolClosurePropensity = getRegionalPropertyValue(environment, regionId,
-                        SchoolClosureGlobalAndRegionProperty.SCHOOL_CLOSURE_PROPENSITY);
-
-                if (environment.getRandomGeneratorFromId(SchoolClosureRandomId.ID).nextDouble() < schoolClosurePropensity) {
-                    // School closure outside of summer
-                    return getSampledContactGroupType(environment, environment.getGlobalPropertyValue(
-                            SchoolClosureGlobalProperty.SCHOOL_CLOSED_CONTACT_SUBSTITUTION_WEIGHTS));
-                }
+                return getSampledContactGroupType(environment, environment.getGlobalPropertyValue(
+                        SchoolClosureGlobalProperty.SCHOOL_CLOSED_CONTACT_SUBSTITUTION_WEIGHTS));
 
             } else if (cohortingInEffect) {
                 // Cohorting and school is open
@@ -216,6 +230,9 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
     }
 
     private enum SchoolClosureSchoolProperty implements DefinedGroupProperty {
+
+        SCHOOL_CLOSURE_PROPENSITY(TypedPropertyDefinition.builder()
+                .type(Float.class).defaultValue(1.0f).build()),
 
         HAS_ASSIGNED_COHORTS(TypedPropertyDefinition.builder()
                 .type(Boolean.class).defaultValue(false).build());
@@ -423,6 +440,24 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
             return regionProperty;
         }
 
+    }
+
+    public static class SchoolClosureManager extends AbstractComponent {
+
+        @Override
+        public void init(Environment environment) {
+            // Determine at school creation if school will close
+            environment.observeGroupConstructionByType(true, ContactGroupType.SCHOOL);
+        }
+
+        @Override
+        public void observeGroupConstruction(Environment environment, GroupId groupId) {
+            // Only called for schools under construction
+            RandomGenerator schoolClosureRandomGenerator = environment.getRandomGeneratorFromId(SchoolClosureRandomId.ID);
+            // Assign propensity for school closure
+            environment.setGroupPropertyValue(groupId, SchoolClosureSchoolProperty.SCHOOL_CLOSURE_PROPENSITY,
+                    schoolClosureRandomGenerator.nextFloat());
+        }
     }
 
 }

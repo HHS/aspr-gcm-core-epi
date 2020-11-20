@@ -181,6 +181,8 @@ public class CombinationBehaviorPlugin extends BehaviorPlugin {
 
         experimentBuilder.addGlobalComponentId(TeleworkBehaviorPlugin.WORKPLACE_TELEWORK_MANAGER_ID,
                 TeleworkBehaviorPlugin.TeleworkManager.class);
+        experimentBuilder.addGlobalComponentId(SchoolClosureBehaviorPlugin.SCHOOL_CLOSURE_MANAGER_ID,
+                SchoolClosureBehaviorPlugin.SchoolClosureManager.class);
         experimentBuilder.addGlobalComponentId(IsolationHygieneBehaviorPlugin.INFECTION_AWARENESS_MANAGER_ID,
                 IsolationHygieneBehaviorPlugin.InfectionAwarenessManager.class);
         experimentBuilder.addGlobalComponentId(ContactTracingBehaviorPlugin.CONTACT_TRACING_MANAGER_ID,
