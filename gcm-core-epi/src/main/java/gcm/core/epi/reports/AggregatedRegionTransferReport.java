@@ -1,8 +1,7 @@
 package gcm.core.epi.reports;
 
 import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportHeader.ReportHeaderBuilder;
-import gcm.output.reports.ReportItem.ReportItemBuilder;
+import gcm.output.reports.ReportItem;
 import gcm.output.reports.StateChange;
 import gcm.scenario.CompartmentId;
 import gcm.scenario.PersonId;
@@ -51,13 +50,14 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
 
     private ReportHeader getReportHeader() {
         if (reportHeader == null) {
-            ReportHeaderBuilder reportHeaderBuilder = new ReportHeaderBuilder();
+            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
             addTimeFieldHeaders(reportHeaderBuilder);
-            reportHeaderBuilder.add("Compartment");
-            reportHeaderBuilder.add("SourceRegion");
-            reportHeaderBuilder.add("DestinationRegion");
-            reportHeaderBuilder.add("Transfers");
-            reportHeader = reportHeaderBuilder.build();
+            reportHeader = reportHeaderBuilder
+                    .add("Compartment")
+                    .add("SourceRegion")
+                    .add("DestinationRegion")
+                    .add("Transfers")
+                    .build();
         }
         return reportHeader;
     }
@@ -65,7 +65,7 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
     @Override
     protected void flush(ObservableEnvironment observableEnvironment) {
 
-        final ReportItemBuilder reportItemBuilder = new ReportItemBuilder();
+        final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
         for (final CompartmentId compartmentId : compartmentMap.keySet()) {
             final Map<String, Map<String, Counter>> sourceRegionMap = compartmentMap.get(compartmentId);
@@ -78,8 +78,8 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
                         reportItemBuilder.setReportType(getClass());
                         reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
                         reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
-
                         buildTimeFields(reportItemBuilder);
+
                         reportItemBuilder.addValue(compartmentId.toString());
                         reportItemBuilder.addValue(sourceRegionId);
                         reportItemBuilder.addValue(destinationRegionId);

@@ -19,11 +19,12 @@ public class GroupMembershipReport extends AbstractReport {
 
     private ReportHeader getReportHeader() {
         if (reportHeader == null) {
-            ReportHeader.ReportHeaderBuilder reportHeaderBuilder = new ReportHeader.ReportHeaderBuilder();
-            reportHeaderBuilder.add("GroupId");
-            reportHeaderBuilder.add("GroupType");
-            reportHeaderBuilder.add("PersonId");
-            reportHeader = reportHeaderBuilder.build();
+            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
+            reportHeader = reportHeaderBuilder
+                    .add("GroupId")
+                    .add("GroupType")
+                    .add("PersonId")
+                    .build();
         }
         return reportHeader;
     }
@@ -35,7 +36,7 @@ public class GroupMembershipReport extends AbstractReport {
             for (GroupId groupId : groupIds) {
                 List<PersonId> people = observableEnvironment.getPeopleForGroup(groupId);
                 for (PersonId personId : people) {
-                    ReportItem.ReportItemBuilder reportItemBuilder = new ReportItem.ReportItemBuilder();
+                    ReportItem.Builder reportItemBuilder = ReportItem.builder();
                     reportItemBuilder.setReportType(getClass());
                     reportItemBuilder.setReportHeader(getReportHeader());
                     reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());

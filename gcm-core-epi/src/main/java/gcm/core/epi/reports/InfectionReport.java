@@ -24,13 +24,13 @@ public class InfectionReport extends AbstractReport {
 
     private ReportHeader getReportHeader() {
         if (reportHeader == null) {
-            ReportHeader.ReportHeaderBuilder reportHeaderBuilder = new ReportHeader.ReportHeaderBuilder();
-            reportHeaderBuilder.add("Time");
-            reportHeaderBuilder.add("SourcePersonId");
-            reportHeaderBuilder.add("SourcePersonAgeGroup");
-            reportHeaderBuilder.add("TargetPersonId");
-            reportHeaderBuilder.add("TargetPersonAgeGroup");
-            reportHeaderBuilder.add("TransmissionSetting");
+            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder()
+                    .add("Time")
+                    .add("SourcePersonId")
+                    .add("SourcePersonAgeGroup")
+                    .add("TargetPersonId")
+                    .add("TargetPersonAgeGroup")
+                    .add("TransmissionSetting");
             if (showTransmissionAttempts) {
                 reportHeaderBuilder.add("TransmissionOccurred");
             }
@@ -74,7 +74,7 @@ public class InfectionReport extends AbstractReport {
 
         optionalInfectionData.ifPresent(infectionData -> {
             if (infectionData.transmissionOccurred() | showTransmissionAttempts) {
-                final ReportItem.ReportItemBuilder reportItemBuilder = new ReportItem.ReportItemBuilder();
+                final ReportItem.Builder reportItemBuilder = ReportItem.builder();
                 reportItemBuilder.setReportType(getClass());
                 reportItemBuilder.setReportHeader(getReportHeader());
                 reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());

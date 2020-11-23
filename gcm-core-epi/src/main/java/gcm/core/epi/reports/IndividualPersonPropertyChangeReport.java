@@ -21,12 +21,12 @@ public final class IndividualPersonPropertyChangeReport extends AbstractReport {
 
     private ReportHeader getReportHeader() {
         if (reportHeader == null) {
-            ReportHeader.ReportHeaderBuilder reportHeaderBuilder = new ReportHeader.ReportHeaderBuilder();
-            reportHeaderBuilder.add("Time");
-            reportHeaderBuilder.add("PersonId");
-            reportHeaderBuilder.add("Property");
-            reportHeaderBuilder.add("Value");
-            reportHeader = reportHeaderBuilder.build();
+            reportHeader = ReportHeader.builder()
+                    .add("Time")
+                    .add("PersonId")
+                    .add("Property")
+                    .add("Value")
+                    .build();
         }
         return reportHeader;
     }
@@ -40,7 +40,7 @@ public final class IndividualPersonPropertyChangeReport extends AbstractReport {
     public void handlePersonPropertyValueAssignment(ObservableEnvironment observableEnvironment, PersonId personId, PersonPropertyId personPropertyId, Object oldPersonPropertyValue) {
 
         if (personPropertyIds.contains(personPropertyId)) {
-            ReportItem.ReportItemBuilder reportItemBuilder = new ReportItem.ReportItemBuilder();
+            ReportItem.Builder reportItemBuilder = ReportItem.builder();
             reportItemBuilder.setReportType(getClass());
             reportItemBuilder.setReportHeader(getReportHeader());
             reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
@@ -74,7 +74,7 @@ public final class IndividualPersonPropertyChangeReport extends AbstractReport {
 
         for (PersonId personId : observableEnvironment.getPeople()) {
             for (PersonPropertyId personPropertyId : personPropertyIds) {
-                ReportItem.ReportItemBuilder reportItemBuilder = new ReportItem.ReportItemBuilder();
+                ReportItem.Builder reportItemBuilder = ReportItem.builder();
                 reportItemBuilder.setReportType(getClass());
                 reportItemBuilder.setReportHeader(getReportHeader());
                 reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());

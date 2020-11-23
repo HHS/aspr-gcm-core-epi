@@ -28,13 +28,14 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
 
     private ReportHeader getReportHeader() {
         if (reportHeader == null) {
-            ReportHeader.ReportHeaderBuilder reportHeaderBuilder = new ReportHeader.ReportHeaderBuilder();
+            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
             addTimeFieldHeaders(reportHeaderBuilder);
-            reportHeaderBuilder.add("Region");
-            reportHeaderBuilder.add("AgeGroup");
-            reportHeaderBuilder.add("Metric");
-            reportHeaderBuilder.add("Incidence");
-            reportHeader = reportHeaderBuilder.build();
+            reportHeader = reportHeaderBuilder
+                    .add("Region")
+                    .add("AgeGroup")
+                    .add("Metric")
+                    .add("Incidence")
+                    .build();
         }
         return reportHeader;
     }
@@ -88,7 +89,7 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
     @Override
     protected void flush(ObservableEnvironment observableEnvironment) {
 
-        final ReportItem.ReportItemBuilder reportItemBuilder = new ReportItem.ReportItemBuilder();
+        final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
         for (String regionId : counterMap.keySet()) {
             Map<AgeGroup, Map<CounterType, Counter>> ageGroupCounterMap = counterMap.get(regionId);

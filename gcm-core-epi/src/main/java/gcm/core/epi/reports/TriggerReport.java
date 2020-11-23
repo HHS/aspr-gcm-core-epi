@@ -14,15 +14,11 @@ import java.util.Set;
 
 public class TriggerReport extends AbstractReport {
 
-    private static final ReportHeader reportHeader = getReportHeader();
-
-    private static ReportHeader getReportHeader() {
-        ReportHeader.ReportHeaderBuilder reportHeaderBuilder = new ReportHeader.ReportHeaderBuilder();
-        reportHeaderBuilder.add("Time");
-        reportHeaderBuilder.add("Trigger");
-        reportHeaderBuilder.add("Region");
-        return reportHeaderBuilder.build();
-    }
+    private static final ReportHeader reportHeader = ReportHeader.builder()
+            .add("Time")
+            .add("Trigger")
+            .add("Region")
+            .build();
 
     @Override
     public Set<StateChange> getListenedStateChanges() {
@@ -30,15 +26,15 @@ public class TriggerReport extends AbstractReport {
     }
 
     public static ReportItem getReportItemFor(ObservableEnvironment environment, TriggerId<? extends Trigger> triggerId, RegionId regionId) {
-        final ReportItem.ReportItemBuilder reportItemBuilder = new ReportItem.ReportItemBuilder();
-        reportItemBuilder.setReportHeader(reportHeader);
-        reportItemBuilder.setReportType(TriggerReport.class);
-        reportItemBuilder.setScenarioId(environment.getScenarioId());
-        reportItemBuilder.setReplicationId(environment.getReplicationId());
-        reportItemBuilder.addValue(environment.getTime());
-        reportItemBuilder.addValue(triggerId.id());
-        reportItemBuilder.addValue(regionId);
-        return  reportItemBuilder.build();
+        return ReportItem.builder()
+                .setReportHeader(reportHeader)
+                .setReportType(TriggerReport.class)
+                .setScenarioId(environment.getScenarioId())
+                .setReplicationId(environment.getReplicationId())
+                .addValue(environment.getTime())
+                .addValue(triggerId.id())
+                .addValue(regionId)
+                .build();
     }
 
 }

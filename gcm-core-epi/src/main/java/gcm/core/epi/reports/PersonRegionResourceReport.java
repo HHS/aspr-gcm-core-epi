@@ -2,8 +2,7 @@ package gcm.core.epi.reports;
 
 import gcm.output.reports.PersonInfo;
 import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportHeader.ReportHeaderBuilder;
-import gcm.output.reports.ReportItem.ReportItemBuilder;
+import gcm.output.reports.ReportItem;
 import gcm.output.reports.StateChange;
 import gcm.scenario.CompartmentId;
 import gcm.scenario.PersonId;
@@ -64,12 +63,13 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
 
     private ReportHeader getReportHeader() {
         if (reportHeader == null) {
-            ReportHeaderBuilder reportHeaderBuilder = new ReportHeaderBuilder();
+            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
             addTimeFieldHeaders(reportHeaderBuilder);
-            reportHeaderBuilder.add("Region");
-            reportHeaderBuilder.add("Compartment");
-            reportHeaderBuilder.add("Resource");
-            reportHeaderBuilder.add("PeopleWithResource");
+            reportHeaderBuilder
+                    .add("Region")
+                    .add("Compartment")
+                    .add("Resource")
+                    .add("PeopleWithResource");
             if (reportPeopleWithoutResources) {
                 reportHeaderBuilder.add("PeopleWithoutResource");
             }
@@ -88,7 +88,7 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
 
     @Override
     protected void flush(ObservableEnvironment observableEnvironment) {
-        final ReportItemBuilder reportItemBuilder = new ReportItemBuilder();
+        final ReportItem.Builder reportItemBuilder = ReportItem.builder();
         for (final String regionId : regionMap.keySet()) {
             final Map<CompartmentId, Map<ResourceId, Map<InventoryType, Set<PersonId>>>> compartmentMap = regionMap.get(regionId);
             for (final CompartmentId compartmentId : compartmentMap.keySet()) {
@@ -109,7 +109,6 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
                         reportItemBuilder.setReportType(getClass());
                         reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
                         reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
-
                         buildTimeFields(reportItemBuilder);
                         reportItemBuilder.addValue(regionId);
                         reportItemBuilder.addValue(compartmentId.toString());

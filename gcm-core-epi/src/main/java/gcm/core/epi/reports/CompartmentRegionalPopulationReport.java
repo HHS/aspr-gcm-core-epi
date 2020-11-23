@@ -2,8 +2,7 @@ package gcm.core.epi.reports;
 
 import gcm.output.reports.PersonInfo;
 import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportHeader.ReportHeaderBuilder;
-import gcm.output.reports.ReportItem.ReportItemBuilder;
+import gcm.output.reports.ReportItem;
 import gcm.output.reports.StateChange;
 import gcm.scenario.CompartmentId;
 import gcm.scenario.PersonId;
@@ -49,12 +48,13 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
      */
     private ReportHeader getReportHeader() {
         if (reportHeader == null) {
-            ReportHeaderBuilder reportHeaderBuilder = new ReportHeaderBuilder();
+            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
             addTimeFieldHeaders(reportHeaderBuilder);
-            reportHeaderBuilder.add("Region");
-            reportHeaderBuilder.add("Compartment");
-            reportHeaderBuilder.add("PersonCount");
-            reportHeader = reportHeaderBuilder.build();
+            reportHeader = reportHeaderBuilder
+                    .add("Region")
+                    .add("Compartment")
+                    .add("PersonCount")
+                    .build();
         }
         return reportHeader;
 
@@ -71,7 +71,7 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
 
     @Override
     protected void flush(ObservableEnvironment observableEnvironment) {
-        final ReportItemBuilder reportItemBuilder = new ReportItemBuilder();
+        final ReportItem.Builder reportItemBuilder = ReportItem.builder();
         /*
          * Report the population count for all region/compartment pairs that are
          * not empty
@@ -87,6 +87,7 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
                     reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
                     reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
                     buildTimeFields(reportItemBuilder);
+
                     reportItemBuilder.addValue(regionId);
                     reportItemBuilder.addValue(compartmentId.toString());
                     reportItemBuilder.addValue(personCount);

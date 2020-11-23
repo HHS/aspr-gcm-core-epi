@@ -18,15 +18,16 @@ public class IncidenceReport extends RegionAggregationPeriodicReport {
 
     private ReportHeader getReportHeader() {
         if (reportHeader == null) {
-            ReportHeader.ReportHeaderBuilder reportHeaderBuilder = new ReportHeader.ReportHeaderBuilder();
+            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
             addTimeFieldHeaders(reportHeaderBuilder);
-            reportHeaderBuilder.add("Region");
-            reportHeaderBuilder.add("NewInfections");
-            reportHeaderBuilder.add("NewCases");
-            reportHeaderBuilder.add("NewHospitalizationsWithBeds");
-            reportHeaderBuilder.add("NewHospitalizationsWithoutBeds");
-            reportHeaderBuilder.add("NewDeaths");
-            reportHeader = reportHeaderBuilder.build();
+            reportHeader = reportHeaderBuilder
+                    .add("Region")
+                    .add("NewInfections")
+                    .add("NewCases")
+                    .add("NewHospitalizationsWithBeds")
+                    .add("NewHospitalizationsWithoutBeds")
+                    .add("NewDeaths")
+                    .build();
         }
         return reportHeader;
     }
@@ -76,7 +77,7 @@ public class IncidenceReport extends RegionAggregationPeriodicReport {
     @Override
     protected void flush(ObservableEnvironment observableEnvironment) {
 
-        final ReportItem.ReportItemBuilder reportItemBuilder = new ReportItem.ReportItemBuilder();
+        final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
         for (String regionId : regionCounterMap.keySet()) {
             Map<CounterType, Counter> counterMap = regionCounterMap.get(regionId);

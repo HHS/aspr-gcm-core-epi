@@ -47,12 +47,12 @@ public class PopulationReport extends AbstractReport {
         );
 
         // Release report items
-        final ReportItem.ReportItemBuilder reportItemBuilder = new ReportItem.ReportItemBuilder();
-        ReportHeader.ReportHeaderBuilder reportHeaderBuilder = new ReportHeader.ReportHeaderBuilder();
-        reportHeaderBuilder.add("Region");
-        reportHeaderBuilder.add("AgeGroup");
-        reportHeaderBuilder.add("Population");
-        ReportHeader reportHeader = reportHeaderBuilder.build();
+        final ReportItem.Builder reportItemBuilder = ReportItem.builder();
+        ReportHeader reportHeader = ReportHeader.builder()
+                .add("Region")
+                .add("AgeGroup")
+                .add("Population")
+                .build();
         counters.forEach((fipsCode, populationByAge) -> populationByAge.forEach((ageGroup, population) -> {
             reportItemBuilder.setReportHeader(reportHeader);
             reportItemBuilder.setReportType(getClass());
