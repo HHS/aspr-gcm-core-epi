@@ -23,7 +23,9 @@ public interface Trigger {
     }
 
     static void performCallback(TriggerId<? extends Trigger> triggerId, TriggerCallback callback, Environment environment, RegionId regionId) {
-        environment.releaseOutputItem(TriggerReport.getReportItemFor(environment.getObservableEnvironment(), triggerId, regionId));
+        if (environment.isActiveReport(TriggerReport.class)) {
+            environment.releaseOutputItem(TriggerReport.getReportItemFor(environment.getObservableEnvironment(), triggerId, regionId));
+        }
         callback.trigger(environment, regionId);
     }
 
