@@ -228,19 +228,19 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
         FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES(TypedPropertyDefinition.builder()
                 .typeReference(new TypeReference<FipsCodeValue<Double>>() {
                 })
-                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
+                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0).build()).build(),
                 TeleworkRegionProperty.FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES),
 
         FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE(TypedPropertyDefinition.builder()
                 .typeReference(new TypeReference<FipsCodeValue<Double>>() {
                 })
-                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
+                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0).build()).build(),
                 TeleworkRegionProperty.FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE),
 
         TELEWORK_TIME_FRACTION(TypedPropertyDefinition.builder()
                 .typeReference(new TypeReference<FipsCodeValue<Double>>() {
                 })
-                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0)).build(),
+                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(0.0).build()).build(),
                 TeleworkRegionProperty.TELEWORK_TIME_FRACTION),
 
         WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS(TypedPropertyDefinition.builder()

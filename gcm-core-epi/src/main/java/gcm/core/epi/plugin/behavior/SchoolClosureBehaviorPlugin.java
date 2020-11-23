@@ -414,7 +414,7 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
         SCHOOL_CLOSURE_PROPENSITY(TypedPropertyDefinition.builder()
                 .typeReference(new TypeReference<FipsCodeValue<Double>>() {
                 })
-                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(1.0)).build(),
+                .defaultValue(ImmutableFipsCodeValue.builder().defaultValue(1.0).build()).build(),
                 SchoolClosureRegionProperty.SCHOOL_CLOSURE_PROPENSITY);
 
         private final TypedPropertyDefinition propertyDefinition;
