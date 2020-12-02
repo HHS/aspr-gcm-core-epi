@@ -4,6 +4,7 @@ import gcm.core.epi.identifiers.StringRegionId;
 import gcm.scenario.RegionId;
 import org.immutables.value.Value;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -90,7 +91,10 @@ public abstract class PopulationDescription {
     @Value.Derived
     public Map<RegionId, Long> populationByRegion() {
         return regionByPersonId().stream()
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+                .collect(Collectors.groupingBy(Function.identity(),
+                        // Force map order
+                        () -> new LinkedHashMap<>(),
+                        Collectors.counting()));
     }
 
     /*
@@ -100,10 +104,16 @@ public abstract class PopulationDescription {
     public Map<AgeGroup, Double> ageGroupDistribution() {
         Map<AgeGroup, Long> ageGroupCounts = ageGroupIndexByPersonId().stream()
                 .map(ageGroupIndex -> ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex))
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+                .collect(Collectors.groupingBy(Function.identity(),
+                        // Force map order
+                        () -> new LinkedHashMap<>(),
+                        Collectors.counting()));
         return ageGroupCounts.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey,
-                        entry -> (double) entry.getValue() / ageGroupIndexByPersonId().size()));
+                        entry -> (double) entry.getValue() / ageGroupIndexByPersonId().size(),
+                        (key1, key2) -> { throw new RuntimeException("Duplicate keys in threshold map"); },
+                        // Force map ordering
+                        LinkedHashMap::new));
     }
 
     // Use the id above as the string identifier

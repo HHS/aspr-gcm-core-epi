@@ -6,6 +6,8 @@ import gcm.scenario.RegionId;
 import gcm.simulation.Environment;
 import org.immutables.value.Value;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -45,18 +47,27 @@ public abstract class AbstractFipsCodeDouble {
         if (type() == ValueType.NUMBER) {
             Set<FipsCode> fipsCodes = populationDescription.regionIds().stream()
                     .map(scope()::getFipsSubCode)
-                    .collect(Collectors.toSet());
+                    // Force set ordering
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
             thresholdsByFipsCode = fipsCodes.stream()
-                    .collect(toMap(fipsCode -> fipsCode, fipsCode -> values().getOrDefault(fipsCode, defaultValue())));
+                    .collect(toMap(fipsCode -> fipsCode,
+                            fipsCode -> values().getOrDefault(fipsCode, defaultValue()),
+                            (key1, key2) -> { throw new RuntimeException("Duplicate keys in threshold map"); },
+                            // Force map ordering
+                            LinkedHashMap::new));
         } else {
             Map<RegionId, Long> regionPopulations = populationDescription.populationByRegion();
             Map<FipsCode, Long> fipsCodePopulations = populationDescription.regionIds().stream()
                     .collect(Collectors.groupingBy(scope()::getFipsSubCode,
+                            () -> new LinkedHashMap<>(),
                             summingLong(regionId -> regionPopulations.getOrDefault(regionId, 0L))));
             thresholdsByFipsCode = fipsCodePopulations.entrySet().stream()
                     .collect(toMap(Map.Entry::getKey,
                             entry -> entry.getValue().doubleValue() *
-                                    values().getOrDefault(entry.getKey(), defaultValue())));
+                                    values().getOrDefault(entry.getKey(), defaultValue()),
+                            (key1, key2) -> { throw new RuntimeException("Duplicate keys in threshold map"); },
+                            // Force map ordering
+                            LinkedHashMap::new));
         }
         return thresholdsByFipsCode;
     }
