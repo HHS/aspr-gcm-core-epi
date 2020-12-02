@@ -362,7 +362,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                                 Set<PersonId> infectionsInGroupToPrioritize = infectionsFromContact.stream()
                                         .filter(peopleInGroup::contains)
                                         .limit(maxNumberOfContactsToTrace)
-                                        .collect(Collectors.toSet());
+                                        .collect(Collectors.toCollection(LinkedHashSet::new));
 
                                 // Now add additional non-infections
                                 Set<PersonId> additionalContactsToTrace = new HashSet<>();
@@ -370,7 +370,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                                     additionalContactsToTrace = peopleInGroup.stream()
                                             .filter(i -> !infectionsInGroupToPrioritize.contains(i))
                                             .limit(maxNumberOfContactsToTrace - infectionsInGroupToPrioritize.size())
-                                            .collect(Collectors.toSet());
+                                            .collect(Collectors.toCollection(LinkedHashSet::new));
                                 }
                                 infectionsInGroupToPrioritize.addAll(additionalContactsToTrace);
 

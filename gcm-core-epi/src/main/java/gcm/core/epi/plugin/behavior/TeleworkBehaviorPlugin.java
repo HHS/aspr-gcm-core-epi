@@ -126,7 +126,7 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
         List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
                 TeleworkGlobalProperty.TELEWORK_TRIGGER_OVERRIDES);
         addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
-                Arrays.stream(TeleworkGlobalAndRegionProperty.values()).collect(Collectors.toSet()), environment);
+                Arrays.stream(TeleworkGlobalAndRegionProperty.values()).collect(Collectors.toCollection(LinkedHashSet::new)), environment);
         return triggerCallbacks;
     }
 

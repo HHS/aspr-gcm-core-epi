@@ -3,6 +3,8 @@ package gcm.core.epi.propertytypes;
 import gcm.scenario.RegionId;
 import gcm.simulation.Environment;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -43,7 +45,10 @@ public enum FipsScope {
 
     public Map<FipsCode, Set<RegionId>> getFipsCodeRegionMap(Environment environment) {
         return environment.getRegionIds().stream()
-                .collect(Collectors.groupingBy(this::getFipsSubCode, Collectors.toSet()));
+                .collect(Collectors.groupingBy(this::getFipsSubCode,
+                        // Force map order
+                        () -> new LinkedHashMap<>(),
+                        Collectors.toCollection(LinkedHashSet::new)));
     }
 
     public boolean hasBroaderScopeThan(FipsScope scope) {

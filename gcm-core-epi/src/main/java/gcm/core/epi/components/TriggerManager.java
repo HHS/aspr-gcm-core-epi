@@ -44,7 +44,7 @@ public class TriggerManager extends AbstractComponent {
         // Handle triggers that start after other triggers
         Set<Trigger> triggersToAdd = triggerCallbacks.keySet().stream()
                 .filter(x -> x.startingTriggers().size() > 0)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         // TODO: Need to deal with self-referential triggers and loop garbage like that
         while (triggersToAdd.size() > 0) {

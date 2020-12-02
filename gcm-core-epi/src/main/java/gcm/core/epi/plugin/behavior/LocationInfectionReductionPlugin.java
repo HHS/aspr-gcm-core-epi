@@ -78,7 +78,7 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
         List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
                 LocationInfectionReductionGlobalProperty.LOCATION_INFECTION_REDUCTION_TRIGGER_OVERRIDES);
         addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
-                Arrays.stream(LocationInfectionReductionGlobalAndRegionProperty.values()).collect(Collectors.toSet()),
+                Arrays.stream(LocationInfectionReductionGlobalAndRegionProperty.values()).collect(Collectors.toCollection(LinkedHashSet::new)),
                 environment);
         return triggerCallbacks;
     }

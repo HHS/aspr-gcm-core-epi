@@ -11,10 +11,7 @@ import gcm.core.epi.trigger.*;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -45,7 +42,7 @@ public class CumulativeTriggerComponent extends AbstractComponent {
         // Initialize counters
         Set<FipsCode> fipsCodes = environment.getRegionIds().stream()
                 .map(scope::getFipsSubCode)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
         for (FipsCode fipsCode : fipsCodes) {
             counterMap.put(fipsCode, new Counter());
         }
@@ -138,7 +135,7 @@ public class CumulativeTriggerComponent extends AbstractComponent {
         FipsCode regionIdFipsCode = scope.getFipsSubCode(regionId);
         return environment.getRegionIds().stream()
                 .filter(x -> scope.getFipsSubCode(x).equals(regionIdFipsCode))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private final static class Counter {

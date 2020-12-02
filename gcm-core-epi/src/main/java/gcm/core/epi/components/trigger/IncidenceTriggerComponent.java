@@ -12,10 +12,7 @@ import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class IncidenceTriggerComponent extends AbstractComponent {
@@ -51,7 +48,7 @@ public class IncidenceTriggerComponent extends AbstractComponent {
         // Initialize counters
         Set<FipsCode> fipsCodes = environment.getRegionIds().stream()
                 .map(scope::getFipsSubCode)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
         for (FipsCode fipsCode : fipsCodes) {
             counterMap.put(fipsCode, new Counter());
         }

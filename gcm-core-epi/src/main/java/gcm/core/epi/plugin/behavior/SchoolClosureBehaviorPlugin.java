@@ -209,7 +209,7 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
         List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
                 SchoolClosureGlobalProperty.SCHOOL_CLOSURE_TRIGGER_OVERRIDES);
         addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
-                Arrays.stream(SchoolClosureGlobalAndRegionProperty.values()).collect(Collectors.toSet()), environment);
+                Arrays.stream(SchoolClosureGlobalAndRegionProperty.values()).collect(Collectors.toCollection(LinkedHashSet::new)), environment);
         // Cohorting
         triggerId = environment.getGlobalPropertyValue(SchoolClosureGlobalProperty.COHORTING_START);
         TriggerUtils.addBooleanCallback(triggerCallbacks, triggerId, SchoolClosureRegionProperty.COHORTING_TRIGGER_START);
