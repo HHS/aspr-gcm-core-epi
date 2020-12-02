@@ -5,6 +5,7 @@ import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.propertytypes.DayOfWeekSchedule;
 import gcm.core.epi.propertytypes.ImmutableDayOfWeekSchedule;
 import gcm.output.OutputItem;
+import gcm.output.reports.Report;
 import gcm.scenario.*;
 import gcm.simulation.*;
 import gcm.simulation.group.GroupSampler;
@@ -1230,6 +1231,11 @@ public class TestDayOfWeek {
         @Override
         public Optional<PersonId> samplePartition(Object key, PartitionSampler partitionSampler) {
             return Optional.empty();
+        }
+
+        @Override
+        public boolean isActiveReport(Class<? extends Report> reportClass) {
+            return false;
         }
 
         @Override
