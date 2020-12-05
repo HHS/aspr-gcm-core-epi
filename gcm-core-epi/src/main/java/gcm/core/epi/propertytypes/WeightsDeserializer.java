@@ -1,6 +1,7 @@
 package gcm.core.epi.propertytypes;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.ResolvableDeserializer;
@@ -25,6 +26,7 @@ public class WeightsDeserializer extends JsonDeserializer<Weights<?>> implements
     public Weights<?> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
         // Store json to use for second-round parsing
         JsonNode jsonNode = jsonParser.readValueAsTree();
+        ObjectCodec codec = jsonParser.getCodec();
         // If the value is a double then use this as the default value
         if (jsonNode.isDouble()) {
             return ImmutableWeights.builder().defaultValue(jsonNode.doubleValue()).build();
@@ -32,11 +34,13 @@ public class WeightsDeserializer extends JsonDeserializer<Weights<?>> implements
         // Otherwise try to parse it as a Weights<T>
         try {
             jsonParser = new TreeTraversingParser(jsonNode);
+            jsonParser.setCodec(codec);
             jsonParser.nextToken();
             return (ImmutableWeights<?>) defaultDeserializer.deserialize(jsonParser, deserializationContext);
         } catch (IOException e) {
             // Try to parse it as a Map<T, Double>
             jsonParser = new TreeTraversingParser(jsonNode);
+            jsonParser.setCodec(codec);
             jsonParser.nextToken();
             TypeFactory typeFactory = deserializationContext.getTypeFactory();
             // Map<T, Double> type

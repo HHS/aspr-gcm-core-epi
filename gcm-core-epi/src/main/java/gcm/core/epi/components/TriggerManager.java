@@ -2,7 +2,7 @@ package gcm.core.epi.components;
 
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
-import gcm.core.epi.plugin.behavior.BehaviorPlugin;
+import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.trigger.Trigger;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerContainer;
@@ -18,23 +18,31 @@ public class TriggerManager extends AbstractComponent {
     public void init(Environment environment) {
         TriggerContainer triggerContainer = environment.getGlobalPropertyValue(GlobalProperty.TRIGGER_CONTAINER);
         Map<Trigger, Set<TriggerCallback>> triggerCallbacks = new HashMap<>();
-        Optional<BehaviorPlugin> behaviorPlugin = environment.getGlobalPropertyValue(GlobalProperty.BEHAVIOR_PLUGIN);
 
-        // Get triggers and properties from each behavior plugin
-        if (behaviorPlugin.isPresent()) {
-            Map<String, Set<TriggerCallback>> triggerCallbacksForPlugin = behaviorPlugin.get().getTriggerCallbacks(environment);
-            for (Map.Entry<String, Set<TriggerCallback>> triggerCallbackEntry : triggerCallbacksForPlugin.entrySet()) {
-                String triggerName = triggerCallbackEntry.getKey();
-                // Empty string means 'never'
-                if (!triggerName.equals("")) {
-                    TriggerId<Trigger> triggerId = triggerContainer.getId(triggerName);
-                    if (triggerId != null) {
-                        Set<TriggerCallback> triggerCallbackSet = getTriggerCallbacksAndInitialize(environment,
-                                triggerCallbacks, triggerId);
-                        triggerCallbackSet.addAll(triggerCallbackEntry.getValue());
-                    } else {
-                        throw new RuntimeException("TriggerManager cannot find a trigger defined with the name: '" +
-                                triggerName + "'");
+        List<Plugin> plugins = new ArrayList<>();
+        // For now only behavior and vaccine plugins use triggers
+        Optional<Plugin> behaviorPlugin = environment.getGlobalPropertyValue(GlobalProperty.BEHAVIOR_PLUGIN);
+        behaviorPlugin.map(plugins::add);
+        Optional<Plugin> vaccinePlugin = environment.getGlobalPropertyValue(GlobalProperty.VACCINE_PLUGIN);
+        vaccinePlugin.map(plugins::add);
+
+        // Get triggers and properties from each plugin
+        if (plugins.size() > 0) {
+            for (Plugin plugin : plugins) {
+                Map<String, Set<TriggerCallback>> triggerCallbacksForPlugin = plugin.getTriggerCallbacks(environment);
+                for (Map.Entry<String, Set<TriggerCallback>> triggerCallbackEntry : triggerCallbacksForPlugin.entrySet()) {
+                    String triggerName = triggerCallbackEntry.getKey();
+                    // Empty string means 'never'
+                    if (!triggerName.equals("")) {
+                        TriggerId<Trigger> triggerId = triggerContainer.getId(triggerName);
+                        if (triggerId != null) {
+                            Set<TriggerCallback> triggerCallbackSet = getTriggerCallbacksAndInitialize(environment,
+                                    triggerCallbacks, triggerId);
+                            triggerCallbackSet.addAll(triggerCallbackEntry.getValue());
+                        } else {
+                            throw new RuntimeException("TriggerManager cannot find a trigger defined with the name: '" +
+                                    triggerName + "'");
+                        }
                     }
                 }
             }

@@ -2,7 +2,6 @@ package gcm.core.epi.identifiers;
 
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
-import gcm.scenario.MapOption;
 
 public enum PersonProperty implements DefinedPersonProperty {
 

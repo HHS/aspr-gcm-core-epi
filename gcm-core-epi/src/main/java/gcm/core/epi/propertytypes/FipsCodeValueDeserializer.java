@@ -1,6 +1,7 @@
 package gcm.core.epi.propertytypes;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.ResolvableDeserializer;
@@ -29,14 +30,19 @@ public class FipsCodeValueDeserializer extends JsonDeserializer<ImmutableFipsCod
     public ImmutableFipsCodeValue<?> deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
         // Store json to use for second-round parsing
         JsonNode jsonNode = jsonParser.readValueAsTree();
+        ObjectCodec codec = jsonParser.getCodec();
         try {
             jsonParser = new TreeTraversingParser(jsonNode);
+            jsonParser.setCodec(codec);
             jsonParser.nextToken();
             return (ImmutableFipsCodeValue<?>) defaultDeserializer.deserialize(jsonParser, deserializationContext);
         } catch (IOException e) {
             jsonParser = new TreeTraversingParser(jsonNode);
+            jsonParser.setCodec(codec);
             jsonParser.nextToken();
-            return ImmutableFipsCodeValue.builder().defaultValue(deserializationContext.findRootValueDeserializer(valueType).deserialize(jsonParser, deserializationContext)).build();
+            return ImmutableFipsCodeValue.builder()
+                    .defaultValue(deserializationContext.findRootValueDeserializer(valueType).deserialize(jsonParser, deserializationContext))
+                    .build();
         }
     }
 

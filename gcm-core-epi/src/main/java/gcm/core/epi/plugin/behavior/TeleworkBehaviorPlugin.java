@@ -3,6 +3,7 @@ package gcm.core.epi.plugin.behavior;
 import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.ContactGroupType;
+import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.propertytypes.FipsCodeValue;
 import gcm.core.epi.propertytypes.ImmutableFipsCodeValue;
 import gcm.core.epi.trigger.TriggerCallback;
@@ -38,9 +39,9 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
             GroupId workplaceId = environment.getGroupsForGroupTypeAndPerson(ContactGroupType.WORK, personId).get(0);
             float workplaceTeleworkPropensity = environment.getGroupPropertyValue(workplaceId,
                     TeleworkWorkProperty.TELEWORK_PROPENSITY);
-            double fractionOfWorkplacesTeleworking = getRegionalPropertyValue(environment, regionId,
+            double fractionOfWorkplacesTeleworking = Plugin.getRegionalPropertyValue(environment, regionId,
                     TeleworkGlobalAndRegionProperty.FRACTION_OF_WORKPLACES_WITH_TELEWORK_EMPLOYEES);
-            double fractionOfEmployeesTeleworking = getRegionalPropertyValue(environment, regionId,
+            double fractionOfEmployeesTeleworking = Plugin.getRegionalPropertyValue(environment, regionId,
                     TeleworkGlobalAndRegionProperty.FRACTION_OF_EMPLOYEES_WHO_TELEWORK_WHEN_ABLE);
             // Telework only if workplace and person are teleworking
             return (fractionOfWorkplacesTeleworking > 1 - workplaceTeleworkPropensity &&
@@ -55,12 +56,12 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
         if (selectedContactGroupType == ContactGroupType.WORK) {
             if (isPersonTeleworkAble(environment, personId)) {
                 RegionId regionId = environment.getPersonRegion(personId);
-                double teleworkTimeFraction = getRegionalPropertyValue(environment, regionId,
+                double teleworkTimeFraction = Plugin.getRegionalPropertyValue(environment, regionId,
                         TeleworkGlobalAndRegionProperty.TELEWORK_TIME_FRACTION);
                 if (environment.getRandomGeneratorFromId(TeleworkRandomId.ID).nextDouble() <
                         teleworkTimeFraction) {
                     // Substitute workplace contacts
-                    Map<ContactGroupType, Double> teleworkContactSubstitutionWeights = getRegionalPropertyValue(environment, regionId,
+                    Map<ContactGroupType, Double> teleworkContactSubstitutionWeights = Plugin.getRegionalPropertyValue(environment, regionId,
                             TeleworkGlobalAndRegionProperty.WORKPLACE_TELEWORK_CONTACT_SUBSTITUTION_WEIGHTS);
                     List<Pair<ContactGroupType, Double>> teleworkContactSubstitutionWeightsList = teleworkContactSubstitutionWeights
                             .entrySet()
@@ -125,7 +126,7 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
         // Then add trigger property overrides
         List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
                 TeleworkGlobalProperty.TELEWORK_TRIGGER_OVERRIDES);
-        addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
+        Plugin.addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
                 Arrays.stream(TeleworkGlobalAndRegionProperty.values()).collect(Collectors.toCollection(LinkedHashSet::new)), environment);
         return triggerCallbacks;
     }
@@ -136,7 +137,7 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
         if (contactSetting == ContactGroupType.WORK) {
             if (isPersonTeleworkAble(environment, personId)) {
                 RegionId regionId = environment.getPersonRegion(personId);
-                double teleworkTimeFraction = getRegionalPropertyValue(environment, regionId,
+                double teleworkTimeFraction = Plugin.getRegionalPropertyValue(environment, regionId,
                         TeleworkGlobalAndRegionProperty.TELEWORK_TIME_FRACTION);
                 return 1.0 - teleworkTimeFraction;
             }

@@ -3,7 +3,7 @@ package gcm.core.epi.plugin.behavior;
 import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.ContactGroupType;
-import gcm.core.epi.population.AgeGroup;
+import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.propertytypes.DayOfWeekSchedule;
 import gcm.core.epi.propertytypes.FipsCodeValue;
 import gcm.core.epi.propertytypes.ImmutableDayOfWeekSchedule;
@@ -53,7 +53,7 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
 
                 float localSchoolClosurePropensity = environment.getGroupPropertyValue(schoolId,
                         SchoolClosureSchoolProperty.SCHOOL_CLOSURE_PROPENSITY);
-                double schoolClosurePropensity = getRegionalPropertyValue(environment, regionId,
+                double schoolClosurePropensity = Plugin.getRegionalPropertyValue(environment, regionId,
                         SchoolClosureGlobalAndRegionProperty.SCHOOL_CLOSURE_PROPENSITY);
                 schoolClosureInEffect = schoolClosureInEffect && (localSchoolClosurePropensity <= schoolClosurePropensity);
             }
@@ -208,7 +208,7 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
         // Add school closure overrides
         List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
                 SchoolClosureGlobalProperty.SCHOOL_CLOSURE_TRIGGER_OVERRIDES);
-        addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
+        Plugin.addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
                 Arrays.stream(SchoolClosureGlobalAndRegionProperty.values()).collect(Collectors.toCollection(LinkedHashSet::new)), environment);
         // Cohorting
         triggerId = environment.getGlobalPropertyValue(SchoolClosureGlobalProperty.COHORTING_START);

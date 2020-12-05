@@ -2,6 +2,7 @@ package gcm.core.epi.plugin.behavior;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.core.epi.identifiers.ContactGroupType;
+import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.Util;
 import gcm.core.epi.propertytypes.FipsCodeValue;
@@ -47,7 +48,7 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
             // We are in the timeframe when infections should be reduced
             AgeGroup ageGroup = Util.getAgeGroupForPerson(environment, personId);
             Map<AgeGroup, Map<ContactGroupType, Double>> infectionReductionByAgeAndLocationMap =
-                    getRegionalPropertyValue(environment, regionId,
+                    Plugin.getRegionalPropertyValue(environment, regionId,
                             LocationInfectionReductionGlobalAndRegionProperty.LOCATION_INFECTION_REDUCTION);
             Map<ContactGroupType, Double> infectionReductionByLocationMap = infectionReductionByAgeAndLocationMap
                     .getOrDefault(ageGroup, new HashMap<>());
@@ -77,7 +78,7 @@ public class LocationInfectionReductionPlugin extends BehaviorPlugin {
         // Then add trigger property overrides
         List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
                 LocationInfectionReductionGlobalProperty.LOCATION_INFECTION_REDUCTION_TRIGGER_OVERRIDES);
-        addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
+        Plugin.addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
                 Arrays.stream(LocationInfectionReductionGlobalAndRegionProperty.values()).collect(Collectors.toCollection(LinkedHashSet::new)),
                 environment);
         return triggerCallbacks;

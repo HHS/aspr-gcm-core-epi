@@ -1,6 +1,7 @@
 package gcm.core.epi.propertytypes;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -23,12 +24,15 @@ public class FipsCodeDoubleDeserializer extends JsonDeserializer<FipsCodeDouble>
     public ImmutableFipsCodeDouble deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
         // Store json to use for second-round parsing
         JsonNode jsonNode = jsonParser.readValueAsTree();
+        ObjectCodec codec = jsonParser.getCodec();
         try {
             jsonParser = new TreeTraversingParser(jsonNode);
+            jsonParser.setCodec(codec);
             jsonParser.nextToken();
             return (ImmutableFipsCodeDouble) defaultDeserializer.deserialize(jsonParser, deserializationContext);
         } catch (IOException e) {
             jsonParser = new TreeTraversingParser(jsonNode);
+            jsonParser.setCodec(codec);
             jsonParser.nextToken();
             return ImmutableFipsCodeDouble.builder()
                     .defaultValue(deserializationContext.readValue(jsonParser, Double.class)).build();

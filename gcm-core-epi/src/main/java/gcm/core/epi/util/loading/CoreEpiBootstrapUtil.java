@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
@@ -14,8 +15,10 @@ import gcm.core.epi.Runner;
 import gcm.core.epi.identifiers.*;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.population.*;
+import gcm.core.epi.propertytypes.CombinedDeserializerModifier;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsCodeValueDeserializerModifier;
+import gcm.core.epi.propertytypes.WeightsDeserializerModifier;
 import gcm.core.epi.reports.CustomReport;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedProperty;
@@ -261,8 +264,12 @@ public class CoreEpiBootstrapUtil {
         SimpleModule deserializationModule = new SimpleModule();
         deserializationModule.addKeyDeserializer(AgeGroup.class, new AgeGroupStringMapDeserializer(ageGroupPartition));
         deserializationModule.addKeyDeserializer(FipsCode.class, new FipsCodeStringMapDeserializer());
+        List<BeanDeserializerModifier> modifiers = new ArrayList<>();
         // Add dynamic mapping for FipsCodeValue<T> and FipsCodeDouble objects
-        deserializationModule.setDeserializerModifier(new FipsCodeValueDeserializerModifier());
+        modifiers.add(new FipsCodeValueDeserializerModifier());
+        // Add dynamic mapping for Weights<T> and AgeWeights objects
+        modifiers.add(new WeightsDeserializerModifier());
+        deserializationModule.setDeserializerModifier(new CombinedDeserializerModifier(modifiers));
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory())
                 .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
                 .registerModule(new Jdk8Module())

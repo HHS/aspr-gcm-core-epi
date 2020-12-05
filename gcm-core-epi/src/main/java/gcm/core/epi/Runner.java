@@ -3,6 +3,7 @@ package gcm.core.epi;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -11,8 +12,10 @@ import gcm.core.epi.identifiers.*;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
+import gcm.core.epi.propertytypes.CombinedDeserializerModifier;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsCodeValueDeserializerModifier;
+import gcm.core.epi.propertytypes.WeightsDeserializerModifier;
 import gcm.core.epi.trigger.ImmutableTriggerId;
 import gcm.core.epi.trigger.Trigger;
 import gcm.core.epi.trigger.TriggerContainer;
@@ -93,8 +96,12 @@ public class Runner {
         SimpleModule deserializationModule = new SimpleModule();
         deserializationModule.addKeyDeserializer(AgeGroup.class, new AgeGroupStringMapDeserializer(ageGroupPartition));
         deserializationModule.addKeyDeserializer(FipsCode.class, new FipsCodeStringMapDeserializer());
+        List<BeanDeserializerModifier> modifiers = new ArrayList<>();
         // Add dynamic mapping for FipsCodeValue<T> and FipsCodeDouble objects
-        deserializationModule.setDeserializerModifier(new FipsCodeValueDeserializerModifier());
+        modifiers.add(new FipsCodeValueDeserializerModifier());
+        // Add dynamic mapping for Weights<T> and AgeWeights objects
+        modifiers.add(new WeightsDeserializerModifier());
+        deserializationModule.setDeserializerModifier(new CombinedDeserializerModifier(modifiers));
         // Register module in objectMapper
         objectMapper.registerModule(deserializationModule);
 

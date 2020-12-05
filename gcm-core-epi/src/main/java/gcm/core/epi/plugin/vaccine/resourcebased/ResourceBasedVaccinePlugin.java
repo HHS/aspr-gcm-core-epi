@@ -4,13 +4,17 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
+import gcm.core.epi.plugin.Plugin;
+import gcm.core.epi.plugin.TriggerOverrideValidator;
+import gcm.core.epi.plugin.behavior.TriggeredPropertyOverride;
 import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.*;
-import gcm.core.epi.util.property.DefinedGlobalProperty;
-import gcm.core.epi.util.property.DefinedResourceProperty;
-import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.core.epi.trigger.AbsoluteTimeTrigger;
+import gcm.core.epi.trigger.ImmutableAbsoluteTimeTrigger;
+import gcm.core.epi.trigger.TriggerCallback;
+import gcm.core.epi.util.property.*;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
@@ -22,12 +26,21 @@ import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
     @Override
     public Set<DefinedGlobalProperty> getGlobalProperties() {
-        return new HashSet<>(EnumSet.allOf(VaccineGlobalProperty.class));
+        Set<DefinedGlobalProperty> globalProperties = new HashSet<>();
+        globalProperties.addAll(EnumSet.allOf(VaccineGlobalProperty.class));
+        globalProperties.addAll(EnumSet.allOf(VaccineGlobalAndRegionProperty.class));
+        return globalProperties;
+    }
+
+    @Override
+    public Set<DefinedRegionProperty> getRegionProperties() {
+        return new HashSet<>(EnumSet.allOf(VaccineRegionProperty.class));
     }
 
     @Override
@@ -129,9 +142,11 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 .type(FipsCodeDouble.class).defaultValue(ImmutableFipsCodeDouble.builder().build())
                 .isMutable(false).build()),
 
-        VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
-                .type(AgeWeights.class)
-                .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build());
+        VACCINE_TRIGGER_OVERRIDES(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<List<TriggeredPropertyOverride>>() {
+                })
+                .defaultValue(new ArrayList<TriggeredPropertyOverride>())
+                .isMutable(false).build());
 
         private final TypedPropertyDefinition propertyDefinition;
 
@@ -148,6 +163,62 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         public boolean isExternalProperty() {
             return true;
         }
+    }
+
+    public enum VaccineGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
+
+        VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<FipsCodeValue<AgeWeights>>() {
+                })
+                .type(AgeWeights.class)
+                .defaultValue(ImmutableFipsCodeValue.builder()
+                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+                        .build())
+                .build(),
+                VaccineRegionProperty.VACCINE_UPTAKE_WEIGHTS);
+
+        private final TypedPropertyDefinition propertyDefinition;
+        private final DefinedRegionProperty regionProperty;
+
+        VaccineGlobalAndRegionProperty(TypedPropertyDefinition propertyDefinition, DefinedRegionProperty regionProperty) {
+            this.propertyDefinition = propertyDefinition;
+            this.regionProperty = regionProperty;
+        }
+
+        @Override
+        public TypedPropertyDefinition getPropertyDefinition() {
+            return propertyDefinition;
+        }
+
+        @Override
+        public boolean isExternalProperty() {
+            return true;
+        }
+
+        @Override
+        public DefinedRegionProperty getRegionProperty() {
+            return regionProperty;
+        }
+
+    }
+
+    public enum VaccineRegionProperty implements DefinedRegionProperty {
+
+        VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
+                .type(AgeWeights.class)
+                .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build());
+
+        private final TypedPropertyDefinition propertyDefinition;
+
+        VaccineRegionProperty(TypedPropertyDefinition propertyDefinition) {
+            this.propertyDefinition = propertyDefinition;
+        }
+
+        @Override
+        public TypedPropertyDefinition getPropertyDefinition() {
+            return propertyDefinition;
+        }
+
     }
 
     enum VaccineId implements ResourceId {
@@ -181,6 +252,31 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
             return propertyDefinition;
         }
 
+    }
+
+    @Override
+    public Map<String, Set<TriggerCallback>> getTriggerCallbacks(Environment environment) {
+        Map<String, Set<TriggerCallback>> triggerCallbacks = new HashMap<>();
+        Map<DefinedGlobalAndRegionProperty, TriggerOverrideValidator> validators = new HashMap<>();
+        validators.put(VaccineGlobalAndRegionProperty.VACCINE_UPTAKE_WEIGHTS,
+                (env, triggerId, value) -> {
+                    FipsCodeDouble vaccinationRateFipsCodeValue = env.getGlobalPropertyValue(
+                            VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
+                    if (!triggerId.trigger().getClass().equals(ImmutableAbsoluteTimeTrigger.class)) {
+                        throw new RuntimeException("Vaccine uptake weight overrides only support absolute time triggers");
+                    }
+                    AbsoluteTimeTrigger trigger = (AbsoluteTimeTrigger) triggerId.trigger();
+                    if (!trigger.scope().hasBroaderScopeThan(vaccinationRateFipsCodeValue.scope())) {
+                        throw new RuntimeException("Vaccine uptake weight trigger can not have narrower scope than vaccination rate");
+                    }
+                });
+        // Trigger property overrides
+        List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
+                VaccineGlobalProperty.VACCINE_TRIGGER_OVERRIDES);
+        Plugin.addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
+                Arrays.stream(VaccineGlobalAndRegionProperty.values()).collect(Collectors.toCollection(LinkedHashSet::new)),
+                validators, environment);
+        return triggerCallbacks;
     }
 
     public static class VaccineManager extends AbstractComponent {
@@ -332,10 +428,10 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
             if (hasResource) {
                 // Get a random person to vaccinate, if possible, taking into account vaccine uptake weights
-                AgeWeights vaccineUptakeWeights = environment.getGlobalPropertyValue(
-                        VaccineGlobalProperty.VACCINE_UPTAKE_WEIGHTS);
-                PopulationDescription populationDescription = environment.getGlobalPropertyValue(
-                        GlobalProperty.POPULATION_DESCRIPTION);
+                AgeWeights vaccineUptakeWeights = Plugin.getRegionalPropertyValue(environment,
+                        // Can use any region in the fips code as all will have the same value
+                        fipsCodeRegionMap.get(fipsCode).iterator().next(),
+                        VaccineGlobalAndRegionProperty.VACCINE_UPTAKE_WEIGHTS);
 
                 final Optional<PersonId> personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
                         .setLabelSet(LabelSet.builder()
