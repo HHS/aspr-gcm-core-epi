@@ -111,7 +111,9 @@ public abstract class PopulationDescription {
         return ageGroupCounts.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         entry -> (double) entry.getValue() / ageGroupIndexByPersonId().size(),
-                        (key1, key2) -> { throw new RuntimeException("Duplicate keys in threshold map"); },
+                        (key1, key2) -> {
+                            throw new RuntimeException("Duplicate keys in threshold map");
+                        },
                         // Force map ordering
                         LinkedHashMap::new));
     }

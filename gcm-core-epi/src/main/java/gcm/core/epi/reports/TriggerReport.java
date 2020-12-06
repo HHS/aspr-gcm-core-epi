@@ -20,11 +20,6 @@ public class TriggerReport extends AbstractReport {
             .add("Region")
             .build();
 
-    @Override
-    public Set<StateChange> getListenedStateChanges() {
-        return new HashSet<>();
-    }
-
     public static ReportItem getReportItemFor(ObservableEnvironment environment, TriggerId<? extends Trigger> triggerId, RegionId regionId) {
         return ReportItem.builder()
                 .setReportHeader(reportHeader)
@@ -35,6 +30,11 @@ public class TriggerReport extends AbstractReport {
                 .addValue(triggerId.id())
                 .addValue(regionId)
                 .build();
+    }
+
+    @Override
+    public Set<StateChange> getListenedStateChanges() {
+        return new HashSet<>();
     }
 
 }

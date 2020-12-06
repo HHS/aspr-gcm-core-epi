@@ -23,21 +23,20 @@ import java.util.stream.Collectors;
 
 public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
 
-    private static final double COHORT_ONE_FRACTION = 0.5;
-
     static final GlobalComponentId SCHOOL_CLOSURE_MANAGER_ID = new GlobalComponentId() {
         @Override
         public String toString() {
             return "SCHOOL_CLOSURE_MANAGER_ID";
         }
     };
+    private static final double COHORT_ONE_FRACTION = 0.5;
 
     @Override
     public Optional<ContactGroupType> getSubstitutedContactGroup(Environment environment, PersonId personId, ContactGroupType selectedContactGroupType) {
 
         if (selectedContactGroupType == ContactGroupType.SCHOOL) {
             RegionId regionId = environment.getPersonRegion(personId);
-            
+
             // Summer closure
             boolean summerInEffect = TriggerUtils.checkIfTriggerIsInEffect(environment, regionId,
                     SchoolClosureRegionProperty.SUMMER_TRIGGER_START,

@@ -113,6 +113,31 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         return vEP * getEffectivenessFunctionValue(environment, personId);
     }
 
+    @Override
+    public Map<String, Set<TriggerCallback>> getTriggerCallbacks(Environment environment) {
+        Map<String, Set<TriggerCallback>> triggerCallbacks = new HashMap<>();
+        Map<DefinedGlobalAndRegionProperty, TriggerOverrideValidator> validators = new HashMap<>();
+        validators.put(VaccineGlobalAndRegionProperty.VACCINE_UPTAKE_WEIGHTS,
+                (env, triggerId, value) -> {
+                    FipsCodeDouble vaccinationRateFipsCodeValue = env.getGlobalPropertyValue(
+                            VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
+                    if (!triggerId.trigger().getClass().equals(ImmutableAbsoluteTimeTrigger.class)) {
+                        throw new RuntimeException("Vaccine uptake weight overrides only support absolute time triggers");
+                    }
+                    AbsoluteTimeTrigger trigger = (AbsoluteTimeTrigger) triggerId.trigger();
+                    if (!trigger.scope().hasBroaderScopeThan(vaccinationRateFipsCodeValue.scope())) {
+                        throw new RuntimeException("Vaccine uptake weight trigger can not have narrower scope than vaccination rate");
+                    }
+                });
+        // Trigger property overrides
+        List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
+                VaccineGlobalProperty.VACCINE_TRIGGER_OVERRIDES);
+        Plugin.addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
+                Arrays.stream(VaccineGlobalAndRegionProperty.values()).collect(Collectors.toCollection(LinkedHashSet::new)),
+                validators, environment);
+        return triggerCallbacks;
+    }
+
     /*
         The global properties added to the simulation by this plugin
      */
@@ -252,31 +277,6 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
             return propertyDefinition;
         }
 
-    }
-
-    @Override
-    public Map<String, Set<TriggerCallback>> getTriggerCallbacks(Environment environment) {
-        Map<String, Set<TriggerCallback>> triggerCallbacks = new HashMap<>();
-        Map<DefinedGlobalAndRegionProperty, TriggerOverrideValidator> validators = new HashMap<>();
-        validators.put(VaccineGlobalAndRegionProperty.VACCINE_UPTAKE_WEIGHTS,
-                (env, triggerId, value) -> {
-                    FipsCodeDouble vaccinationRateFipsCodeValue = env.getGlobalPropertyValue(
-                            VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
-                    if (!triggerId.trigger().getClass().equals(ImmutableAbsoluteTimeTrigger.class)) {
-                        throw new RuntimeException("Vaccine uptake weight overrides only support absolute time triggers");
-                    }
-                    AbsoluteTimeTrigger trigger = (AbsoluteTimeTrigger) triggerId.trigger();
-                    if (!trigger.scope().hasBroaderScopeThan(vaccinationRateFipsCodeValue.scope())) {
-                        throw new RuntimeException("Vaccine uptake weight trigger can not have narrower scope than vaccination rate");
-                    }
-                });
-        // Trigger property overrides
-        List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
-                VaccineGlobalProperty.VACCINE_TRIGGER_OVERRIDES);
-        Plugin.addTriggerOverrideCallbacks(triggerCallbacks, triggeredPropertyOverrides,
-                Arrays.stream(VaccineGlobalAndRegionProperty.values()).collect(Collectors.toCollection(LinkedHashSet::new)),
-                validators, environment);
-        return triggerCallbacks;
     }
 
     public static class VaccineManager extends AbstractComponent {

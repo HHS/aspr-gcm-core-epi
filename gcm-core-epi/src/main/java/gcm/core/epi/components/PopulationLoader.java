@@ -253,10 +253,10 @@ public class PopulationLoader extends AbstractComponent {
                                     Optional<PersonId> targetPersonId = environment.samplePartition(
                                             initialInfectionPartitionKey, PartitionSampler.builder()
                                                     .setLabelSet(LabelSet.builder()
-                                                        .setRegionLabel(key)
+                                                            .setRegionLabel(key)
                                                             // Only use those in the susceptible compartment
-                                                        .setCompartmentLabel(true)
-                                                        .build())
+                                                            .setCompartmentLabel(true)
+                                                            .build())
                                                     .setRandomNumberGeneratorId(RandomId.INITIAL_INFECTIONS)
                                                     .build());
                                     // Will only infect if there are susceptible people that remain

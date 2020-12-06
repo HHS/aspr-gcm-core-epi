@@ -64,7 +64,9 @@ public abstract class IncidenceTrigger extends AbstractFipsCodeDouble implements
             thresholdsByFipsCode = fipsCodes.stream()
                     .collect(toMap(fipsCode -> fipsCode,
                             fipsCode -> cutoffs().getOrDefault(fipsCode, defaultCutoff()),
-                            (key1, key2) -> { throw new RuntimeException("Duplicate keys in threshold map"); },
+                            (key1, key2) -> {
+                                throw new RuntimeException("Duplicate keys in threshold map");
+                            },
                             // Force map ordering
                             LinkedHashMap::new));
         } else {
@@ -77,7 +79,9 @@ public abstract class IncidenceTrigger extends AbstractFipsCodeDouble implements
                     .collect(toMap(Map.Entry::getKey,
                             entry -> entry.getValue().doubleValue() *
                                     cutoffs().getOrDefault(entry.getKey(), defaultCutoff()),
-                            (key1, key2) -> { throw new RuntimeException("Duplicate keys in threshold map"); },
+                            (key1, key2) -> {
+                                throw new RuntimeException("Duplicate keys in threshold map");
+                            },
                             // Force map ordering
                             LinkedHashMap::new));
         }

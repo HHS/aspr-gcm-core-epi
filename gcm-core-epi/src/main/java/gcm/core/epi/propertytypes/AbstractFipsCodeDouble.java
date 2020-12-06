@@ -52,7 +52,9 @@ public abstract class AbstractFipsCodeDouble {
             thresholdsByFipsCode = fipsCodes.stream()
                     .collect(toMap(fipsCode -> fipsCode,
                             fipsCode -> values().getOrDefault(fipsCode, defaultValue()),
-                            (key1, key2) -> { throw new RuntimeException("Duplicate keys in threshold map"); },
+                            (key1, key2) -> {
+                                throw new RuntimeException("Duplicate keys in threshold map");
+                            },
                             // Force map ordering
                             LinkedHashMap::new));
         } else {
@@ -65,7 +67,9 @@ public abstract class AbstractFipsCodeDouble {
                     .collect(toMap(Map.Entry::getKey,
                             entry -> entry.getValue().doubleValue() *
                                     values().getOrDefault(entry.getKey(), defaultValue()),
-                            (key1, key2) -> { throw new RuntimeException("Duplicate keys in threshold map"); },
+                            (key1, key2) -> {
+                                throw new RuntimeException("Duplicate keys in threshold map");
+                            },
                             // Force map ordering
                             LinkedHashMap::new));
         }
