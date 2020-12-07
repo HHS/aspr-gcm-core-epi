@@ -1,5 +1,7 @@
 package gcm.core.epi.propertytypes;
 
+import gcm.core.epi.identifiers.GlobalProperty;
+import gcm.core.epi.population.PopulationDescription;
 import gcm.scenario.RegionId;
 import gcm.simulation.Environment;
 
@@ -44,7 +46,9 @@ public enum FipsScope {
     }
 
     public Map<FipsCode, Set<RegionId>> getFipsCodeRegionMap(Environment environment) {
-        return environment.getRegionIds().stream()
+        // Restrict to region ids being used in the simulation
+        PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
+        return populationDescription.regionIds().stream()
                 .collect(Collectors.groupingBy(this::getFipsSubCode,
                         // Force map order
                         () -> new LinkedHashMap<>(),
