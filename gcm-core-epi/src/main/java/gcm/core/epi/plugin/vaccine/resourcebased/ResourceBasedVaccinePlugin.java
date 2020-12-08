@@ -75,18 +75,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 //                    VaccineProperty.EFFECTIVENESS_FUNCTION);
             EffectivenessFunction effectivenessFunction = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.EFFECTIVENESS_FUNCTION);
-            if (relativeTime < effectivenessFunction.initialDelay()) {
-                return 0.0;
-            } else if (relativeTime < effectivenessFunction.peakTime()) {
-                return (relativeTime - effectivenessFunction.initialDelay()) /
-                        (effectivenessFunction.peakTime() - effectivenessFunction.initialDelay());
-            } else if (relativeTime < effectivenessFunction.peakTime() + effectivenessFunction.peakDuration()) {
-                return 1.0;
-            } else {
-                double decayRate = Math.log(2) / effectivenessFunction.afterPeakHalfLife();
-                return Math.exp(-decayRate *
-                        (relativeTime - effectivenessFunction.peakTime() - effectivenessFunction.peakDuration()));
-            }
+            return effectivenessFunction.getValue(relativeTime);
         } else {
             return 0.0;
         }
