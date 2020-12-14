@@ -242,10 +242,6 @@ public class TestDayOfWeek {
             return null;
         }
 
-        @Override
-        public MapOption getCompartmentMapOption() {
-            return null;
-        }
 
         @Override
         public int getCompartmentPopulationCount(CompartmentId compartmentId) {
@@ -620,11 +616,6 @@ public class TestDayOfWeek {
 
         @Override
         public Set<RegionId> getRegionIds() {
-            return null;
-        }
-
-        @Override
-        public MapOption getRegionMapOption() {
             return null;
         }
 
