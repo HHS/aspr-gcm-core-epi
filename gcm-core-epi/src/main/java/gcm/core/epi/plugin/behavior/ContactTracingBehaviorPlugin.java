@@ -16,8 +16,11 @@ import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
+import gcm.simulation.partition.LabelSet;
+import gcm.simulation.partition.Partition;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -29,6 +32,10 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
             return "CONTACT_TRACING_MANAGER_ID";
         }
     };
+
+    private static final Object GLOBAL_INFECTION_SOURCE_PARTITION_KEY = new Object();
+
+    private static final Object NON_GLOBAL_INFECTION_SOURCE_PARTITION_KEY = new Object();
 
     @Override
     public Set<DefinedPersonProperty> getPersonProperties() {
@@ -121,12 +128,12 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
         // Will track infectious contacts in the GLOBAL setting
         GLOBAL_INFECTION_SOURCE_PERSON_ID(TypedPropertyDefinition.builder()
-                .type(Integer.class).defaultValue(-1).mapOption(MapOption.ARRAY).build()),
+                .type(Integer.class).defaultValue(-1).build()),
 
         // Track infectious contacts outside of GLOBAL setting.
         // This is used when CONTACT_TRACING_MAX_CONTACTS_TO_TRACE is limited
         NON_GLOBAL_INFECTION_SOURCE_PERSON_ID(TypedPropertyDefinition.builder()
-                .type(Integer.class).defaultValue(-1).mapOption(MapOption.ARRAY).build());
+                .type(Integer.class).defaultValue(-1).build());
 
         final TypedPropertyDefinition propertyDefinition;
 
@@ -241,6 +248,17 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
 
             // Are we ever possibly doing any contact tracing anywhere? If not, don't bother initializing anything else
             if (maximumInfectionsToTrace.values().stream().anyMatch(value -> value != 0)) {
+                // Create partitions
+                environment.addPartition(Partition.builder()
+                                .setPersonPropertyFunction(ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID,
+                                        Function.identity())
+                                .build(),
+                        GLOBAL_INFECTION_SOURCE_PARTITION_KEY);
+                environment.addPartition(Partition.builder()
+                                .setPersonPropertyFunction(ContactTracingPersonProperty.NON_GLOBAL_INFECTION_SOURCE_PERSON_ID,
+                                        Function.identity())
+                                .build(),
+                        NON_GLOBAL_INFECTION_SOURCE_PARTITION_KEY);
                 // Begin observing
                 setObservationStatus(environment, true);
             }
@@ -325,8 +343,11 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                             // This logic is predicated on infections stopping at this point in time.
                             // It will take longer to identify these people, but we don't expect new infections.
                             //TODO: If identified cases don't shelter & continue infecting people, then this logic is flawed.
-                            infectionsFromContact = environment.getPeopleWithPropertyValue(
-                                    ContactTracingPersonProperty.NON_GLOBAL_INFECTION_SOURCE_PERSON_ID, personId.getValue());
+                            infectionsFromContact = environment.getPartitionPeople(NON_GLOBAL_INFECTION_SOURCE_PARTITION_KEY,
+                                    LabelSet.builder()
+                                            .setPropertyLabel(ContactTracingPersonProperty.NON_GLOBAL_INFECTION_SOURCE_PERSON_ID,
+                                                    personId.getValue())
+                                            .build());
                         }
 
                         for (ContactGroupType contactGroupType : contactGroupTypes) {
@@ -339,8 +360,11 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                                 peopleInGroup = environment.getPeopleForGroup(groupId);
                             } else {
                                 // Get global infections
-                                peopleInGroup = environment.getPeopleWithPropertyValue(
-                                        ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID, personId.getValue());
+                                peopleInGroup = environment.getPartitionPeople(GLOBAL_INFECTION_SOURCE_PARTITION_KEY,
+                                        LabelSet.builder()
+                                                .setPropertyLabel(ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID,
+                                                        personId.getValue())
+                                                .build());
 
                                 // Add additional random people if needed
                                 // Using a set means we don't care about grabbing the same person twice

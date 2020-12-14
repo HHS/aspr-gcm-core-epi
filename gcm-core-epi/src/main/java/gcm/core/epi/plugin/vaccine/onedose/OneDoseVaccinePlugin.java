@@ -12,7 +12,6 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.ExperimentBuilder;
-import gcm.scenario.MapOption;
 import gcm.scenario.PersonId;
 import gcm.scenario.RandomNumberGeneratorId;
 import gcm.simulation.Environment;
@@ -87,7 +86,7 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
         VACCINE_STATUS(TypedPropertyDefinition.builder()
                 .type(OneDoseVaccineStatus.class)
                 .defaultValue(OneDoseVaccineStatus.NOT_VACCINATED)
-                .mapOption(MapOption.ARRAY).build());
+                .build());
 
         private final TypedPropertyDefinition propertyDefinition;
 

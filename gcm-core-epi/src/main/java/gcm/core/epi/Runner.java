@@ -27,7 +27,6 @@ import gcm.experiment.Experiment;
 import gcm.experiment.ExperimentExecutor;
 import gcm.output.simstate.NIOProfileItemHandler;
 import gcm.scenario.ExperimentBuilder;
-import gcm.scenario.MapOption;
 import gcm.scenario.RegionId;
 
 import java.io.IOException;
@@ -86,8 +85,6 @@ public class Runner {
         for (final RegionFileRecord regionFileRecord : regionFileRecords) {
             experimentBuilder.addRegionId(StringRegionId.of(regionFileRecord.id()), Region.class);
         }
-        // Index region assignment
-        experimentBuilder.setRegionMapOption(MapOption.ARRAY);
 
         // Determine age groups
         AgeGroupPartition ageGroupPartition = CoreEpiBootstrapUtil.loadAgeGroupsFromFile(inputPath.resolve(configuration.ageGroups()));
@@ -109,7 +106,6 @@ public class Runner {
         for (final Compartment compartment : Compartment.values()) {
             experimentBuilder.addCompartmentId(compartment, compartment.getComponentClass());
         }
-        experimentBuilder.setCompartmentMapOption(MapOption.ARRAY);
 
         // Add group type ids
         for (final ContactGroupType contactGroupType : ContactGroupType.values()) {

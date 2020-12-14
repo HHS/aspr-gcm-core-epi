@@ -3,7 +3,6 @@ package gcm.core.epi.util.property;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import gcm.scenario.MapOption;
 import gcm.scenario.PropertyDefinition;
 import gcm.scenario.TimeTrackingPolicy;
 import org.immutables.value.Value;
@@ -34,11 +33,6 @@ public abstract class TypedPropertyDefinition {
     abstract @Nullable Object defaultValue();
 
     @Value.Default
-    MapOption mapOption() {
-        return MapOption.NONE;
-    }
-
-    @Value.Default
     TimeTrackingPolicy timeTrackingPolicy() {
         return TimeTrackingPolicy.DO_NOT_TRACK_TIME;
     }
@@ -54,7 +48,6 @@ public abstract class TypedPropertyDefinition {
         // Can set all fields aside from default value
         PropertyDefinition.Builder builder = PropertyDefinition.builder()
                 .setType(javaType().getRawClass())
-                .setMapOption(mapOption())
                 .setTimeTrackingPolicy(timeTrackingPolicy())
                 .setPropertyValueMutability(isMutable());
 
