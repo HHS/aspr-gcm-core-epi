@@ -6,9 +6,11 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.*;
+import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.HospitalData;
 import gcm.core.epi.population.ImmutableHospitalData;
 import gcm.core.epi.population.PopulationDescription;
+import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
@@ -69,17 +71,23 @@ public class PopulationLoader extends AbstractComponent {
     public void executePlan(Environment environment, Plan plan) {
         PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                 GlobalProperty.POPULATION_DESCRIPTION);
+        AgeWeights fractionHighRisk = environment.getGlobalPropertyValue(GlobalProperty.FRACTION_HIGH_RISK);
 
         // Iterate over people, adding them to the simulation together with their groups
         for (RegionId regionId : populationDescription.regionByPersonId()) {
             // Add person and set properties
             // This relies on the fact that person ids are assigned sequentially
             int personIdInt = environment.getPopulationCount();
+            int ageGroupIndex = populationDescription.ageGroupIndexByPersonId().get(personIdInt);
+            AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
+            double fractionHighRiskForAgeGroup = fractionHighRisk.getWeight(ageGroup);
             PersonConstructionInfo personConstructionInfo = PersonConstructionInfo.builder()
                     .setPersonRegionId(regionId)
                     .setPersonCompartmentId(Compartment.SUSCEPTIBLE)
-                    .setPersonPropertyValue(PersonProperty.AGE_GROUP_INDEX,
-                            populationDescription.ageGroupIndexByPersonId().get(personIdInt))
+                    .setPersonPropertyValue(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex)
+                    .setPersonPropertyValue(PersonProperty.IS_HIGH_RISK,
+                            environment.getRandomGeneratorFromId(RandomId.HIGH_RISK_FRACTION)
+                                    .nextDouble() < fractionHighRiskForAgeGroup)
                     .build();
             PersonId personId = environment.addPerson(personConstructionInfo);
             if (personId.getValue() != personIdInt) {

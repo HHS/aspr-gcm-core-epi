@@ -5,6 +5,7 @@ import gcm.core.epi.identifiers.*;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.HospitalData;
 import gcm.core.epi.population.PopulationDescription;
+import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.util.distributions.GammaHelper;
 import gcm.scenario.PersonId;
 import gcm.scenario.PersonPropertyId;
@@ -116,14 +117,27 @@ public class HospitalizationManager extends AbstractComponent {
             if (isSymptomatic) {
                 PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                         GlobalProperty.POPULATION_DESCRIPTION);
-                Integer ageGroupIndex = environment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
+                int ageGroupIndex = environment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
                 AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
                 // Determine if person will be a hospitalization severity case
                 Map<AgeGroup, Double> caseHospitalizationRatios = environment.getGlobalPropertyValue(
                         GlobalProperty.CASE_HOSPITALIZATION_RATIO);
-                Double caseHospitalizationRatio = caseHospitalizationRatios.getOrDefault(ageGroup, 0.0);
+                double caseHospitalizationRatio = caseHospitalizationRatios.getOrDefault(ageGroup, 0.0);
+                // Deal with high risk impact
+                AgeWeights fractionHighRisk = environment.getGlobalPropertyValue(
+                        GlobalProperty.FRACTION_HIGH_RISK);
+                double fractionHighRiskForAgeGroup = fractionHighRisk.getWeight(ageGroup);
+                AgeWeights highRiskMultiplier = environment.getGlobalPropertyValue(
+                        GlobalProperty.HIGH_RISK_HOSPITALIZATION_DEATH_MULTIPLIER);
+                double highRiskMultiplierForAgeGroup = highRiskMultiplier.getWeight(ageGroup);
+                boolean isHighRisk = environment.getPersonPropertyValue(personId, PersonProperty.IS_HIGH_RISK);
+                double adjustedCaseHospitalizationRatio = caseHospitalizationRatio /
+                        (fractionHighRiskForAgeGroup * highRiskMultiplierForAgeGroup +
+                                (1.0 - fractionHighRiskForAgeGroup)) *
+                        (isHighRisk ? highRiskMultiplierForAgeGroup : 1.0);
 
-                if (environment.getRandomGeneratorFromId(RandomId.HOSPITALIZATION_MANAGER).nextDouble() <= caseHospitalizationRatio) {
+                if (environment.getRandomGeneratorFromId(RandomId.HOSPITALIZATION_MANAGER).nextDouble() <=
+                        adjustedCaseHospitalizationRatio) {
 
                     // Declare that they had severe enough illness to warrant hospitalization
                     environment.setPersonPropertyValue(personId, PersonProperty.EVER_HAD_SEVERE_ILLNESS, true);
@@ -135,8 +149,8 @@ public class HospitalizationManager extends AbstractComponent {
                             GlobalProperty.HOSPITALIZATION_DELAY_SD);
 
                     // Age-group specific values
-                    Double hospitalizationDelayMean = hospitalizationDelayMeans.get(ageGroup);
-                    Double hospitalizationDelaySD = hospitalizationDelaySDs.get(ageGroup);
+                    double hospitalizationDelayMean = hospitalizationDelayMeans.get(ageGroup);
+                    double hospitalizationDelaySD = hospitalizationDelaySDs.get(ageGroup);
 
                     RealDistribution hospitalDelayDistribution = new GammaDistribution(
                             environment.getRandomGeneratorFromId(RandomId.HOSPITALIZATION_MANAGER),

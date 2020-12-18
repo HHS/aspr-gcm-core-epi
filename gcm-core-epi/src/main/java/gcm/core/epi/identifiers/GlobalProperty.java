@@ -138,6 +138,16 @@ public enum GlobalProperty implements DefinedGlobalProperty {
             })
             .defaultValue(new HashMap<>()).isMutable(false).build()),
 
+    FRACTION_HIGH_RISK(TypedPropertyDefinition.builder()
+            .type(AgeWeights.class)
+            .defaultValue(ImmutableAgeWeights.builder().defaultValue(0.0).build())
+            .build()),
+
+    HIGH_RISK_HOSPITALIZATION_DEATH_MULTIPLIER(TypedPropertyDefinition.builder()
+            .type(AgeWeights.class)
+            .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+            .build()),
+
     INFECTION_PLUGIN(TypedPropertyDefinition.builder()
             .type(InfectionPlugin.class).defaultValue(new ExponentialPeriodInfectionPlugin()).build(), false),
 

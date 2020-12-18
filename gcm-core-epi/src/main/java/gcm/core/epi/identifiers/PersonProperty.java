@@ -21,6 +21,8 @@ public enum PersonProperty implements DefinedPersonProperty {
 
     IS_DEAD(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
+    IS_HIGH_RISK(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
+
     ACTIVITY_LEVEL_CHANGED(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
     IMMUNITY_WANED(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
