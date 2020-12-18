@@ -26,6 +26,7 @@ import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ResourceBasedVaccinePlugin implements VaccinePlugin {
@@ -106,18 +107,19 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
     public Map<String, Set<TriggerCallback>> getTriggerCallbacks(Environment environment) {
         Map<String, Set<TriggerCallback>> triggerCallbacks = new HashMap<>();
         Map<DefinedGlobalAndRegionProperty, TriggerOverrideValidator> validators = new HashMap<>();
-        validators.put(VaccineGlobalAndRegionProperty.VACCINE_UPTAKE_WEIGHTS,
-                (env, triggerId, value) -> {
-                    FipsCodeDouble vaccinationRateFipsCodeValue = env.getGlobalPropertyValue(
-                            VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
-                    if (!triggerId.trigger().getClass().equals(ImmutableAbsoluteTimeTrigger.class)) {
-                        throw new RuntimeException("Vaccine uptake weight overrides only support absolute time triggers");
-                    }
-                    AbsoluteTimeTrigger trigger = (AbsoluteTimeTrigger) triggerId.trigger();
-                    if (!trigger.scope().hasBroaderScopeThan(vaccinationRateFipsCodeValue.scope())) {
-                        throw new RuntimeException("Vaccine uptake weight trigger can not have narrower scope than vaccination rate");
-                    }
-                });
+        TriggerOverrideValidator uptakeValidator = (env, triggerId, value) -> {
+            FipsCodeDouble vaccinationRateFipsCodeValue = env.getGlobalPropertyValue(
+                    VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
+            if (!triggerId.trigger().getClass().equals(ImmutableAbsoluteTimeTrigger.class)) {
+                throw new RuntimeException("Vaccine uptake weight overrides only support absolute time triggers");
+            }
+            AbsoluteTimeTrigger trigger = (AbsoluteTimeTrigger) triggerId.trigger();
+            if (!trigger.scope().hasBroaderScopeThan(vaccinationRateFipsCodeValue.scope())) {
+                throw new RuntimeException("Vaccine uptake weight trigger can not have narrower scope than vaccination rate");
+            }
+        };
+        validators.put(VaccineGlobalAndRegionProperty.VACCINE_UPTAKE_WEIGHTS, uptakeValidator);
+        validators.put(VaccineGlobalAndRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS, uptakeValidator);
         // Trigger property overrides
         List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
                 VaccineGlobalProperty.VACCINE_TRIGGER_OVERRIDES);
@@ -189,7 +191,17 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                         .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
                         .build())
                 .build(),
-                VaccineRegionProperty.VACCINE_UPTAKE_WEIGHTS);
+                VaccineRegionProperty.VACCINE_UPTAKE_WEIGHTS),
+
+        VACCINE_HIGH_RISK_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<FipsCodeValue<AgeWeights>>() {
+        })
+                .type(AgeWeights.class)
+                .defaultValue(ImmutableFipsCodeValue.builder()
+                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+                .build())
+                .build(),
+        VaccineRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
 
         private final TypedPropertyDefinition propertyDefinition;
         private final DefinedRegionProperty regionProperty;
@@ -219,6 +231,10 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
     public enum VaccineRegionProperty implements DefinedRegionProperty {
 
         VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
+                .type(AgeWeights.class)
+                .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build()),
+
+        VACCINE_HIGH_RISK_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
                 .type(AgeWeights.class)
                 .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build()).build());
 
@@ -316,6 +332,8 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                                 .setRegionFunction(regionId -> vaccinationRatePerDayFipsCodeValues.scope().getFipsSubCode(regionId))
                                 // Partition by age group
                                 .setPersonPropertyFunction(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                                // Partition by risk status
+                                .setPersonPropertyFunction(PersonProperty.IS_HIGH_RISK, Function.identity())
                                 // Partition by number of doses
                                 .setPersonResourceFunction(VaccineId.VACCINE_ONE, numberOfDoses -> numberOfDoses)
                                 .build(),
@@ -417,10 +435,12 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
             if (hasResource) {
                 // Get a random person to vaccinate, if possible, taking into account vaccine uptake weights
+                // Can use any region in the fips code as all will have the same value
+                RegionId exemplarRegion = fipsCodeRegionMap.get(fipsCode).iterator().next();
                 AgeWeights vaccineUptakeWeights = Plugin.getRegionalPropertyValue(environment,
-                        // Can use any region in the fips code as all will have the same value
-                        fipsCodeRegionMap.get(fipsCode).iterator().next(),
-                        VaccineGlobalAndRegionProperty.VACCINE_UPTAKE_WEIGHTS);
+                        exemplarRegion, VaccineGlobalAndRegionProperty.VACCINE_UPTAKE_WEIGHTS);
+                AgeWeights vaccineHighRiskUptakeWeights = Plugin.getRegionalPropertyValue(environment,
+                        exemplarRegion,VaccineGlobalAndRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
 
                 final Optional<PersonId> personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
                         .setLabelSet(LabelSet.builder()
@@ -432,7 +452,10 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                             // We know this labelSetInfo will have a label for this person property
                             //noinspection OptionalGetWithoutIsPresent
                             AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
-                            return vaccineUptakeWeights.getWeight(ageGroup);
+                            //noinspection OptionalGetWithoutIsPresent
+                            boolean isHighRisk = (boolean) labelSetInfo.getPersonPropertyLabel(PersonProperty.IS_HIGH_RISK).get();
+                            return vaccineUptakeWeights.getWeight(ageGroup) *
+                                    (isHighRisk ? vaccineHighRiskUptakeWeights.getWeight(ageGroup) : 1.0);
                         })
                         .setRandomNumberGeneratorId(VaccineRandomId.ID)
                         .build());
