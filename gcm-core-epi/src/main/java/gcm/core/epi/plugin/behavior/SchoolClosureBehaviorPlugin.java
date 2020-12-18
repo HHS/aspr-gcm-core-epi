@@ -54,7 +54,7 @@ public class SchoolClosureBehaviorPlugin extends BehaviorPlugin {
                         SchoolClosureSchoolProperty.SCHOOL_CLOSURE_PROPENSITY);
                 double schoolClosurePropensity = Plugin.getRegionalPropertyValue(environment, regionId,
                         SchoolClosureGlobalAndRegionProperty.SCHOOL_CLOSURE_PROPENSITY);
-                schoolClosureInEffect = schoolClosureInEffect && (localSchoolClosurePropensity <= schoolClosurePropensity);
+                schoolClosureInEffect = localSchoolClosurePropensity <= schoolClosurePropensity;
             }
 
             // Cohorting
