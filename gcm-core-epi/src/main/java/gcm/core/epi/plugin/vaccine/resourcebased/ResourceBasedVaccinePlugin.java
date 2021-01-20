@@ -195,13 +195,13 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
         VACCINE_HIGH_RISK_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
                 .typeReference(new TypeReference<FipsCodeValue<AgeWeights>>() {
-        })
+                })
                 .type(AgeWeights.class)
                 .defaultValue(ImmutableFipsCodeValue.builder()
                         .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
-                .build())
+                        .build())
                 .build(),
-        VaccineRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
+                VaccineRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
 
         private final TypedPropertyDefinition propertyDefinition;
         private final DefinedRegionProperty regionProperty;
@@ -440,7 +440,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 AgeWeights vaccineUptakeWeights = Plugin.getRegionalPropertyValue(environment,
                         exemplarRegion, VaccineGlobalAndRegionProperty.VACCINE_UPTAKE_WEIGHTS);
                 AgeWeights vaccineHighRiskUptakeWeights = Plugin.getRegionalPropertyValue(environment,
-                        exemplarRegion,VaccineGlobalAndRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
+                        exemplarRegion, VaccineGlobalAndRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
 
                 final Optional<PersonId> personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
                         .setLabelSet(LabelSet.builder()

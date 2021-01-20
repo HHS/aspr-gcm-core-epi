@@ -284,7 +284,7 @@ public class ContactManager extends AbstractComponent {
                 environment.removePlan(personId);
             }
         } else if (personPropertyId.equals(PersonProperty.ACTIVITY_LEVEL_CHANGED)) {
-            Optional<InfectiousContactPlan> infectiousContactPlan = environment.getPlan(personPropertyId);
+            Optional<InfectiousContactPlan> infectiousContactPlan = environment.getPlan(personId);
             if (infectiousContactPlan.isPresent()) {
                 double scheduledTransmissionRatio = infectiousContactPlan.get().transmissionRatio;
                 double currentTransmissionRatio = getTransmissionRatio(environment, personId);
@@ -313,6 +313,11 @@ public class ContactManager extends AbstractComponent {
         double relativeActivityLevelFromBehavior = behaviorPlugin.map(
                 plugin -> plugin.getRelativeActivityLevel(environment, personId)
         ).orElse(1.0);
+        // Transmission
+        Optional<TransmissionPlugin> transmissionPlugin = environment.getGlobalPropertyValue(GlobalProperty.TRANSMISSION_PLUGIN);
+        double relativeTransmissibilityFromPlugin = transmissionPlugin.map(
+                plugin -> plugin.getRelativeTransmissibility(environment, personId)
+        ).orElse(1.0);
         // Age
         PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                 GlobalProperty.POPULATION_DESCRIPTION);
@@ -329,7 +334,7 @@ public class ContactManager extends AbstractComponent {
         double relativeTransmissibilityFromSymptomaticStatus = willBeSymptomatic ?
                 symptomaticTransmissibility : asymptomaticInfectiousness * symptomaticTransmissibility;
 
-        return transmissionRatios.get(ageGroup) * relativeActivityLevelFromBehavior *
+        return transmissionRatios.get(ageGroup) * relativeActivityLevelFromBehavior * relativeTransmissibilityFromPlugin *
                 relativeTransmissibilityFromSymptomaticStatus;
     }
 

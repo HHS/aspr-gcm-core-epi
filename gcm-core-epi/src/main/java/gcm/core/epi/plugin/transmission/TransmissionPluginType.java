@@ -2,7 +2,9 @@ package gcm.core.epi.plugin.transmission;
 
 public enum TransmissionPluginType {
 
-    SEASONAL(SeasonalTransmissionPlugin.class);
+    SEASONAL(SeasonalTransmissionPlugin.class),
+
+    VARIANT(VariantTransmissionPlugin.class);
 
     private final Class<? extends TransmissionPlugin> pluginClass;
 
