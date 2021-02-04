@@ -1,4 +1,4 @@
-package gcm.core.epi.test.manual;
+package gcm.core.epi.test.manual.vaccine;
 
 import gcm.core.epi.plugin.vaccine.resourcebased.EfficacyFunction;
 import gcm.core.epi.plugin.vaccine.resourcebased.ImmutableEfficacyFunction;

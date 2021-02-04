@@ -24,6 +24,7 @@ import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -244,6 +245,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         private final Map<VaccineAdministratorId, VaccineAdministrator> vaccineAdministratorMap = new HashMap<>();
         // Map for Vaccines by id
         private final Map<VaccineId, VaccineDefinition> vaccineDefinitionMap = new HashMap<>();
+        // Map from Vaccine ID to index in the VACCINE_DEFINITION global property
+        private final Map<VaccineId, Integer> vaccineIndexMap = new HashMap<>();
 
         @Override
         public void init(Environment environment) {
@@ -257,9 +260,11 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             // Store vaccine definitions by ID and add storage for each administrator
             List<VaccineDefinition> vaccineDefinitions = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINE_DEFINITIONS);
+            AtomicInteger indexCounter = new AtomicInteger(0);
             vaccineDefinitions.forEach(
                     vaccineDefinition -> {
                         vaccineDefinitionMap.put(vaccineDefinition.id(), vaccineDefinition);
+                        vaccineIndexMap.put(vaccineDefinition.id(), indexCounter.getAndIncrement());
                         vaccineAdministrators.forEach(
                                 vaccineAdministrator -> {
                                     Map<VaccineId, VaccineDoseFipsContainer> vaccineDoseFipsContainerMap =
@@ -497,7 +502,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                     vaccineDeliveries.get(vaccineAdministratorId).get(vaccineId).removeDoseFrom(fipsCode);
                     environment.addResourceToRegion(VaccineResourceId.VACCINE, regionId, 1);
                     environment.transferResourceToPerson(VaccineResourceId.VACCINE, personId.get(), 1);
-                    environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.VACCINE_INDEX, vaccineId.ordinal());
+                    environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.VACCINE_INDEX,
+                            vaccineIndexMap.get(vaccineId));
 
                     // Determine if person will return for second dose and schedule
                     if (vaccineDefinition.type() == VaccineDefinition.DoseType.TWO_DOSE &&
