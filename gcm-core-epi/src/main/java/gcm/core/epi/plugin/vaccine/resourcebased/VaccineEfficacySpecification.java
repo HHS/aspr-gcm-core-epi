@@ -5,8 +5,8 @@ import org.immutables.value.Value;
 @Value.Immutable
 public abstract class VaccineEfficacySpecification {
 
-    EffectivenessFunction effectivenessFunction() {
-        return ImmutableEffectivenessFunction.builder().build();
+    EfficacyFunction effectivenessFunction() {
+        return ImmutableEfficacyFunction.builder().build();
     }
 
     double vES() {

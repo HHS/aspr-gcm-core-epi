@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface VaccinePlugin extends Plugin {
 
     /*
-        Unique ID for the single global component added by all vaccine modules
+        Unique ID for the single global component added by all vaccine plugins
      */
     GlobalComponentId VACCINE_MANAGER_IDENTIFIER = new GlobalComponentId() {
     };
@@ -52,7 +52,7 @@ public interface VaccinePlugin extends Plugin {
     }
 
     /*
-
+        The random generator ID used by all vaccine plugins
      */
     enum VaccineRandomId implements RandomNumberGeneratorId {
         ID

@@ -60,7 +60,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
-    public Map<ResourceId, Set<DefinedResourceProperty>> getResourceProperties() {
+    public Map<ResourceId, Set<DefinedResourceProperty>> getResourcesAndProperties() {
         Map<ResourceId, Set<DefinedResourceProperty>> resourcePropertyMap =
                 new HashMap<>();
         // Vaccine properties
@@ -68,15 +68,15 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         return resourcePropertyMap;
     }
 
-    private double getEffectivenessFunctionValue(Environment environment, PersonId personId) {
+    private double getEfficacyFunctionValue(Environment environment, PersonId personId) {
         if (environment.getPersonResourceLevel(personId, VaccineId.VACCINE_ONE) > 0) {
             double vaccinationTime = environment.getPersonResourceTime(personId, VaccineId.VACCINE_ONE);
             double relativeTime = environment.getTime() - vaccinationTime;
-//            EffectivenessFunction effectivenessFunction = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE,
-//                    VaccineProperty.EFFECTIVENESS_FUNCTION);
-            EffectivenessFunction effectivenessFunction = environment.getGlobalPropertyValue(
-                    VaccineGlobalProperty.EFFECTIVENESS_FUNCTION);
-            return effectivenessFunction.getValue(relativeTime);
+//            EffectivenessFunction efficacyFunction = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE,
+//                    VaccineProperty.EFFICACY_FUNCTION);
+            EfficacyFunction efficacyFunction = environment.getGlobalPropertyValue(
+                    VaccineGlobalProperty.EFFICACY_FUNCTION);
+            return efficacyFunction.getValue(relativeTime);
         } else {
             return 0.0;
         }
@@ -86,21 +86,21 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
     public double getVES(Environment environment, PersonId personId) {
 //        double vES = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_S);
         double vES = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_S);
-        return vES * getEffectivenessFunctionValue(environment, personId);
+        return vES * getEfficacyFunctionValue(environment, personId);
     }
 
     @Override
     public double getVEI(Environment environment, PersonId personId) {
 //        double vEI = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_I);
         double vEI = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_I);
-        return vEI * getEffectivenessFunctionValue(environment, personId);
+        return vEI * getEfficacyFunctionValue(environment, personId);
     }
 
     @Override
     public double getVEP(Environment environment, PersonId personId) {
 //        double vEP = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_P);
         double vEP = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_P);
-        return vEP * getEffectivenessFunctionValue(environment, personId);
+        return vEP * getEfficacyFunctionValue(environment, personId);
     }
 
     @Override
@@ -143,8 +143,8 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         VE_P(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
                 .isMutable(false).build()),
 
-        EFFECTIVENESS_FUNCTION(TypedPropertyDefinition.builder().type(EffectivenessFunction.class)
-                .defaultValue(ImmutableEffectivenessFunction.builder().build()).build()),
+        EFFICACY_FUNCTION(TypedPropertyDefinition.builder().type(EfficacyFunction.class)
+                .defaultValue(ImmutableEfficacyFunction.builder().build()).build()),
 
         VACCINE_DELIVERIES(TypedPropertyDefinition.builder()
                 .typeReference(new TypeReference<Map<Double, FipsCodeDouble>>() {
@@ -268,8 +268,8 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         VE_P(TypedPropertyDefinition.builder().type(Double.class).defaultValue(0.0)
                 .isMutable(false).build()),
 
-        EFFECTIVENESS_FUNCTION(TypedPropertyDefinition.builder().type(EffectivenessFunction.class)
-                .defaultValue(ImmutableEffectivenessFunction.builder().build()).build());
+        EFFICACY_FUNCTION(TypedPropertyDefinition.builder().type(EfficacyFunction.class)
+                .defaultValue(ImmutableEfficacyFunction.builder().build()).build());
 
         final TypedPropertyDefinition propertyDefinition;
 

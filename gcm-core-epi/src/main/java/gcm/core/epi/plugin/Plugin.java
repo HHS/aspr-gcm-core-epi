@@ -134,7 +134,7 @@ public interface Plugin {
     /*
         Gets the resources and properties that need to be added to the simulation
      */
-    default Map<ResourceId, Set<DefinedResourceProperty>> getResourceProperties() {
+    default Map<ResourceId, Set<DefinedResourceProperty>> getResourcesAndProperties() {
         return new HashMap<>();
     }
 
@@ -179,7 +179,7 @@ public interface Plugin {
             }
         }
 
-        for (Map.Entry<ResourceId, Set<DefinedResourceProperty>> entry : getResourceProperties().entrySet()) {
+        for (Map.Entry<ResourceId, Set<DefinedResourceProperty>> entry : getResourcesAndProperties().entrySet()) {
             ResourceId resourceId = entry.getKey();
             experimentBuilder.addResource(resourceId);
             for (DefinedResourceProperty resourceProperty : entry.getValue()) {

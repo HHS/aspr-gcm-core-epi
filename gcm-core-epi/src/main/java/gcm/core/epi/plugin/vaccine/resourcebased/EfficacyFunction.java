@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonDeserialize(as = ImmutableEffectivenessFunction.class)
-public abstract class EffectivenessFunction {
+@JsonDeserialize(as = ImmutableEfficacyFunction.class)
+public abstract class EfficacyFunction {
 
     @Value.Default
     double initialDelay() {

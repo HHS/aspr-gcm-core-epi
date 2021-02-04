@@ -79,7 +79,7 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
     }
 
     /*
-        The person properties added to the simulation by this module
+        The person properties added to the simulation by this plugin
      */
     public enum VaccinePersonProperty implements DefinedPersonProperty {
 
@@ -102,7 +102,7 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
     }
 
     /*
-        The global properties added to the simulation by this module
+        The global properties added to the simulation by this plugin
      */
     public enum VaccineGlobalProperty implements DefinedGlobalProperty {
 
