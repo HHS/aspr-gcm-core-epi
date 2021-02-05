@@ -90,9 +90,7 @@ public abstract class VaccineDefinition {
                             * relativeEfficacyOfFirstDose();
                 }
                 if (doses == 2) {
-                    return efficacyTypeMultiplier * Math.max(firstDoseEfficacyFunction().getValue(timeSinceLastDose) *
-                                    relativeEfficacyOfFirstDose(),
-                            secondDoseEfficacyFunction().getValue(timeSinceLastDose));
+                    return efficacyTypeMultiplier * secondDoseEfficacyFunction().getValue(timeSinceLastDose);
                 }
                 throw new RuntimeException("Unhandled number of doses");
             default:
