@@ -333,6 +333,27 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                 .build(),
                         VACCINE_PARTITION_KEY);
 
+                // Normalize vaccine administrator allocation
+                Map<VaccineId, Map<VaccineAdministratorId, Double>> vaccineAdministratorAllocation =
+                        environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION);
+                for (VaccineId vaccineId : vaccineAdministratorAllocation.keySet()) {
+                    Map<VaccineAdministratorId, Double> vaccineAllocation = vaccineAdministratorAllocation.get(vaccineId);
+                    // If no allocation is given assume equal weighting
+                    if (vaccineAllocation.isEmpty()) {
+                        vaccineAdministrators.forEach(vaccineAdministrator ->
+                                vaccineAllocation.put(vaccineAdministrator.id(), 1.0));
+                    }
+                    final double vaccineAllocationTotal = vaccineAllocation.values().stream()
+                            .mapToDouble(x -> x).sum();
+                    for (VaccineAdministratorId vaccineAdministratorId : vaccineAllocation.keySet()) {
+                        vaccineAllocation.put(vaccineAdministratorId,
+                                vaccineAllocation.get(vaccineAdministratorId) / vaccineAllocationTotal);
+                    }
+                }
+                environment.setGlobalPropertyValue(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION,
+                        vaccineAdministratorAllocation);
+
+
                 // Schedule vaccine deliveries
                 Map<Double, Map<VaccineId, FipsCodeDouble>> vaccineDeliveries = environment.getGlobalPropertyValue(
                         VaccineGlobalProperty.VACCINE_DELIVERIES);
