@@ -64,6 +64,10 @@ public enum CustomReport implements LoadableReport {
 
     TRIGGER_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
         experimentExecutor.addCustomReport(path, TriggerReport.class);
+    }),
+
+    DETAILED_RESOURCE_VACCINATION_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
+        experimentExecutor.addCustomReport(path, DetailedResourceVaccinationReport.class, reportWrapperItem.period(), reportWrapperItem.regionAggregationLevel());
     });
 
     private final ReportLoader reportLoader;

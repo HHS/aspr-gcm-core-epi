@@ -9,7 +9,11 @@ import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.*;
-import gcm.core.epi.util.property.*;
+import gcm.core.epi.reports.DetailedResourceVaccinationReport;
+import gcm.core.epi.util.property.DefinedGlobalProperty;
+import gcm.core.epi.util.property.DefinedPersonProperty;
+import gcm.core.epi.util.property.DefinedResourceProperty;
+import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
@@ -154,7 +158,13 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 .typeReference(new TypeReference<List<TriggeredPropertyOverride>>() {
                 })
                 .defaultValue(new ArrayList<TriggeredPropertyOverride>())
-                .isMutable(false).build());
+                .isMutable(false).build()),
+
+        MOST_RECENT_VACCINATION_DATA(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Optional<DetailedResourceVaccinationData>>() {
+                })
+                .defaultValue(Optional.empty())
+                .build());
 
         private final TypedPropertyDefinition propertyDefinition;
 
@@ -271,6 +281,10 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                             vaccineDeliveries.computeIfAbsent(vaccineAdministrator.id(),
                                                     x -> new HashMap<>());
                                     vaccineDoseFipsContainerMap.put(vaccineDefinition.id(), new VaccineDoseFipsContainer());
+                                    Map<VaccineId, ArrayDeque<PersonId>> secondDosePriorityMapForAdministrator =
+                                            secondDosePriorityMap.computeIfAbsent(vaccineAdministrator.id(),
+                                                    x -> new HashMap<>());
+                                    secondDosePriorityMapForAdministrator.put(vaccineDefinition.id(), new ArrayDeque<>());
                                 }
                         );
                     }
@@ -336,8 +350,9 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 // Normalize vaccine administrator allocation
                 Map<VaccineId, Map<VaccineAdministratorId, Double>> vaccineAdministratorAllocation =
                         environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION);
-                for (VaccineId vaccineId : vaccineAdministratorAllocation.keySet()) {
-                    Map<VaccineAdministratorId, Double> vaccineAllocation = vaccineAdministratorAllocation.get(vaccineId);
+                for (VaccineId vaccineId : vaccineDefinitionMap.keySet()) {
+                    Map<VaccineAdministratorId, Double> vaccineAllocation = vaccineAdministratorAllocation.computeIfAbsent(
+                            vaccineId, x -> new LinkedHashMap<>());
                     // If no allocation is given assume equal weighting
                     if (vaccineAllocation.isEmpty()) {
                         vaccineAdministrators.forEach(vaccineAdministrator ->
@@ -379,7 +394,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             for (Map.Entry<VaccineAdministratorId, Map<FipsCode, RealDistribution>> entry :
                     interVaccinationDelayDistribution.entrySet()) {
                 if (entry.getValue().containsKey(fipsCode) &&
-                        !environment.getPlan(fipsCode).isPresent() &&
+                        !environment.getPlan(new MultiKey(entry.getKey(), fipsCode)).isPresent() &&
                         environment.getTime() >= vaccinationStartDay) {
                     toggleFipsCodePersonArrivalObservation(environment, fipsCode, false);
                     vaccinateAndScheduleNext(environment, entry.getKey(), fipsCode);
@@ -444,8 +459,16 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 }
             } else if (plan.getClass() == SecondDoseQueuePlan.class) {
                 SecondDoseQueuePlan secondDoseQueuePlan = (SecondDoseQueuePlan) plan;
-                secondDosePriorityMap.get(secondDoseQueuePlan.vaccineAdministratorId).get(secondDoseQueuePlan.vaccineId)
+                VaccineAdministratorId vaccineAdministratorId = secondDoseQueuePlan.vaccineAdministratorId;
+                secondDosePriorityMap.get(vaccineAdministratorId).get(secondDoseQueuePlan.vaccineId)
                         .addLast(secondDoseQueuePlan.personId);
+                // Restart vaccination if needed
+                RegionId regionId = environment.getPersonRegion(secondDoseQueuePlan.personId);
+                FipsCode fipsCode = administrationScope.getFipsSubCode(regionId);
+                MultiKey multiKey = new MultiKey(vaccineAdministratorId, fipsCode);
+                if (!environment.getPlan(multiKey).isPresent()) {
+                    vaccinateAndScheduleNext(environment, vaccineAdministratorId, fipsCode);
+                }
             } else {
                 throw new RuntimeException("Unhandled Vaccine Plan");
             }
@@ -453,14 +476,20 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
         private void vaccinateAndScheduleNext(Environment environment, VaccineAdministratorId vaccineAdministratorId, FipsCode fipsCode) {
             // First check that at least some vaccine is available in the FIPS hierarchy
-            Optional<FipsCode> fipsCodeWithResource = Optional.of(fipsCode);
-            List<Pair<VaccineId, Double>> regimensByType = vaccineDeliveries
-                    .computeIfAbsent(vaccineAdministratorId, x -> new LinkedHashMap<>())
-                    .entrySet().stream()
-                    .map(entry -> new Pair<>(entry.getKey(), (double) entry.getValue().getDosesAvailableTo(fipsCode) /
-                            vaccineDefinitionMap.get(entry.getKey()).dosesPerRegimen()))
-                    .collect(Collectors.toList());
-            final boolean hasResource = regimensByType.stream().anyMatch(x -> x.getSecond() > 0);
+            Map<VaccineId, VaccineDoseFipsContainer> vaccineDeliveriesForAdministrator = vaccineDeliveries
+                    .computeIfAbsent(vaccineAdministratorId, x -> new LinkedHashMap<>());
+            Map<VaccineId, Double> regimensByType = vaccineDeliveriesForAdministrator.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            entry -> (double) entry.getValue().getDosesAvailableTo(fipsCode) /
+                                    vaccineDefinitionMap.get(entry.getKey()).dosesPerRegimen(),
+                            (key1, key2) -> {
+                                throw new RuntimeException("Duplicate keys in threshold map");
+                            },
+                            // Force map ordering
+                            LinkedHashMap::new)
+                    );
+            final boolean hasResource = regimensByType.values().stream().anyMatch(x -> x > 0.0);
 
             if (hasResource) {
                 VaccineAdministrator vaccineAdministrator = vaccineAdministratorMap.get(vaccineAdministratorId);
@@ -477,18 +506,22 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 AgeWeights vaccineHighRiskUptakeWeights = vaccineAdministrator.vaccineHighRiskUptakeWeights();
 
                 // First select which type of vaccine to use
+                List<Pair<VaccineId, Double>> regimensByTypeForSampling = regimensByType.entrySet().stream()
+                    .map(entry -> new Pair<>(entry.getKey(), entry.getValue()))
+                    .collect(Collectors.toList());
                 VaccineId vaccineId = new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(VaccineRandomId.ID),
-                        regimensByType).sample();
+                        regimensByTypeForSampling).sample();
                 VaccineDefinition vaccineDefinition = vaccineDefinitionMap.get(vaccineId);
 
                 // Next select the person to vaccinate
                 final Optional<PersonId> personId;
+                boolean nobodyToVaccinate = false;
                 // If this is a two-dose vaccine need to choose between vaccinating a new person and giving the second dose
                 //  We randomly proportionally allocate effort taking into account the fraction that will return for a second dose
                 if (vaccineDefinition.type() == VaccineDefinition.DoseType.TWO_DOSE &&
                         (environment.getRandomGeneratorFromId(VaccineRandomId.ID).nextDouble() <
-                                vaccineAdministrator.fractionReturnForSecondDose() /
-                                        (1 + vaccineAdministrator.fractionReturnForSecondDose()))) {
+                                (vaccineAdministrator.fractionReturnForSecondDose() /
+                                        (1.0 + vaccineAdministrator.fractionReturnForSecondDose())))) {
                     // Vaccinate a person with a second dose if needed
                     ArrayDeque<PersonId> secondDosePriority = secondDosePriorityMap.get(vaccineAdministratorId).get(vaccineId);
                     if (secondDosePriority.isEmpty()) {
@@ -497,56 +530,89 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         personId = Optional.of(secondDosePriority.removeFirst());
                     }
                 } else {
-                    // Need to select a person to give the new dose to
-                    personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
-                            .setLabelSet(LabelSet.builder()
-                                    .setRegionLabel(fipsCode)
-                                    // Be careful to use long and not int 0
-                                    .setResourceLabel(VaccineResourceId.VACCINE, 0L)
-                                    .build())
-                            .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {
-                                // We know this labelSetInfo will have a label for this person property
-                                //noinspection OptionalGetWithoutIsPresent
-                                AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
-                                //noinspection OptionalGetWithoutIsPresent
-                                boolean isHighRisk = (boolean) labelSetInfo.getPersonPropertyLabel(PersonProperty.IS_HIGH_RISK).get();
-                                return vaccineUptakeWeights.getWeight(ageGroup) *
-                                        (isHighRisk ? vaccineHighRiskUptakeWeights.getWeight(ageGroup) : 1.0);
-                            })
-                            .setRandomNumberGeneratorId(VaccineRandomId.ID)
-                            .build());
+                    // Check to make sure not all of the available doses are in reserve
+                    double regimensInReserve = vaccineDeliveriesForAdministrator.get(vaccineId).getReservedDosesFor(fipsCode);
+                    if (regimensByType.get(vaccineId) > regimensInReserve) {
+                        // Need to select a person to give the new dose to
+                        personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
+                                .setLabelSet(LabelSet.builder()
+                                        .setRegionLabel(fipsCode)
+                                        // Be careful to use long and not int 0
+                                        .setResourceLabel(VaccineResourceId.VACCINE, 0L)
+                                        .build())
+                                .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {
+                                    // We know this labelSetInfo will have a label for this person property
+                                    //noinspection OptionalGetWithoutIsPresent
+                                    AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
+                                    //noinspection OptionalGetWithoutIsPresent
+                                    boolean isHighRisk = (boolean) labelSetInfo.getPersonPropertyLabel(PersonProperty.IS_HIGH_RISK).get();
+                                    return vaccineUptakeWeights.getWeight(ageGroup) *
+                                            (isHighRisk ? vaccineHighRiskUptakeWeights.getWeight(ageGroup) : 1.0);
+                                })
+                                .setRandomNumberGeneratorId(VaccineRandomId.ID)
+                                .build());
+                        if (!personId.isPresent() && secondDosePriorityMap.get(vaccineAdministratorId).get(vaccineId).isEmpty()) {
+                            nobodyToVaccinate = true;
+                        }
+                    } else {
+                        personId = Optional.empty();
+                    }
                 }
 
                 if (personId.isPresent()) {
                     // Vaccinate the person, delivering vaccine to the appropriate region just in time
                     RegionId regionId = environment.getPersonRegion(personId.get());
-                    vaccineDeliveries.get(vaccineAdministratorId).get(vaccineId).removeDoseFrom(fipsCode);
+                    boolean isSecondDose = environment.getPersonResourceLevel(personId.get(),
+                            VaccineResourceId.VACCINE) > 0L;
+                    boolean useReserve = vaccineAdministrator.reserveSecondDoses() && isSecondDose;
+                    VaccineDoseFipsContainer vaccineDoseFipsContainer = vaccineDeliveries
+                            .get(vaccineAdministratorId).get(vaccineId);
+                    vaccineDoseFipsContainer.removeDoseFrom(fipsCode, useReserve);
                     environment.addResourceToRegion(VaccineResourceId.VACCINE, regionId, 1);
                     environment.transferResourceToPerson(VaccineResourceId.VACCINE, personId.get(), 1);
-                    environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.VACCINE_INDEX,
-                            vaccineIndexMap.get(vaccineId));
-
-                    // Determine if person will return for second dose and schedule
-                    if (vaccineDefinition.type() == VaccineDefinition.DoseType.TWO_DOSE &&
-                            (environment.getRandomGeneratorFromId(VaccineRandomId.ID).nextDouble() <
-                                    vaccineAdministrator.fractionReturnForSecondDose())) {
-                        double secondDoseDelay = vaccineDefinition.secondDoseDelay();
-                        if (secondDoseDelay > 0) {
-                            environment.addPlan(new SecondDoseQueuePlan(vaccineAdministratorId, personId.get(), vaccineId),
-                                    environment.getTime() + secondDoseDelay);
-                        } else {
-                            secondDosePriorityMap.get(vaccineAdministratorId).get(vaccineId).addLast(personId.get());
+                    // Reporting data
+                    environment.setGlobalPropertyValue(VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA,
+                            Optional.of(
+                                    ImmutableDetailedResourceVaccinationData.builder()
+                                            .regionId(regionId)
+                                            .vaccineAdministratorId(vaccineAdministratorId)
+                                            .vaccineId(vaccineId)
+                                            .doseType(isSecondDose ? DetailedResourceVaccinationData.DoseType.SECOND_DOSE :
+                                                    DetailedResourceVaccinationData.DoseType.FIRST_DOSE)
+                                            .build()
+                            ));
+                    if (!isSecondDose) {
+                        environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.VACCINE_INDEX,
+                                vaccineIndexMap.get(vaccineId));
+                        // Determine if person will return for second dose and schedule
+                        if (vaccineDefinition.type() == VaccineDefinition.DoseType.TWO_DOSE &&
+                                (environment.getRandomGeneratorFromId(VaccineRandomId.ID).nextDouble() <
+                                        vaccineAdministrator.fractionReturnForSecondDose())) {
+                            double secondDoseDelay = vaccineDefinition.secondDoseDelay();
+                            if (secondDoseDelay > 0) {
+                                environment.addPlan(new SecondDoseQueuePlan(vaccineAdministratorId, personId.get(), vaccineId),
+                                        environment.getTime() + secondDoseDelay);
+                            } else {
+                                secondDosePriorityMap.get(vaccineAdministratorId).get(vaccineId).addLast(personId.get());
+                            }
+                            // Reserve second doses if applicable
+                            if (vaccineAdministrator.reserveSecondDoses()) {
+                                vaccineDoseFipsContainer.reserveDoseIfPossible(fipsCode);
+                            }
                         }
                     }
 
+                }
+
+                if (nobodyToVaccinate) {
+                    // Nobody left to vaccinate for now, so register to observe new arrivals
+                    toggleFipsCodePersonArrivalObservation(environment, fipsCode, true);
+                } else {
                     // Schedule next vaccination
                     final double vaccinationTime = environment.getTime() +
                             interVaccinationDelayDistribution.get(vaccineAdministratorId).get(fipsCode).sample();
                     environment.addPlan(new VaccinationPlan(vaccineAdministratorId, fipsCode), vaccinationTime,
                             new MultiKey(vaccineAdministratorId, fipsCode));
-                } else {
-                    // Nobody left to vaccinate for now, so register to observe new arrivals
-                    toggleFipsCodePersonArrivalObservation(environment, fipsCode, true);
                 }
             }
             // No vaccine available, so pause vaccinating for now and wait for vaccine delivery
