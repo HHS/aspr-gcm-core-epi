@@ -8,8 +8,8 @@ import gcm.core.epi.propertytypes.ImmutableFipsCodeDouble;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonDeserialize(as = ImmutableVaccineAdministrator.class)
-public abstract class VaccineAdministrator {
+@JsonDeserialize(as = ImmutableVaccineAdministratorDefinition.class)
+public abstract class VaccineAdministratorDefinition {
 
     public abstract VaccineAdministratorId id();
 

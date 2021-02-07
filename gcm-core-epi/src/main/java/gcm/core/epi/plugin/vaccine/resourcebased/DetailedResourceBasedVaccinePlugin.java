@@ -9,7 +9,6 @@ import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.*;
-import gcm.core.epi.reports.DetailedResourceVaccinationReport;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.DefinedResourceProperty;
@@ -28,6 +27,7 @@ import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -56,17 +56,17 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
     @Override
     public double getVES(Environment environment, PersonId personId) {
-        return  getEfficacyFunctionValue(environment, personId, VaccineDefinition.EfficacyType.VE_S);
+        return getEfficacyFunctionValue(environment, personId, VaccineDefinition.EfficacyType.VE_S);
     }
 
     @Override
     public double getVEI(Environment environment, PersonId personId) {
-        return  getEfficacyFunctionValue(environment, personId, VaccineDefinition.EfficacyType.VE_I);
+        return getEfficacyFunctionValue(environment, personId, VaccineDefinition.EfficacyType.VE_I);
     }
 
     @Override
     public double getVEP(Environment environment, PersonId personId) {
-        return  getEfficacyFunctionValue(environment, personId, VaccineDefinition.EfficacyType.VE_P);
+        return getEfficacyFunctionValue(environment, personId, VaccineDefinition.EfficacyType.VE_P);
     }
 
     private double getEfficacyFunctionValue(Environment environment, PersonId personId, VaccineDefinition.EfficacyType efficacyType) {
@@ -84,6 +84,23 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         } else {
             return 0.0;
         }
+    }
+
+    @Override
+    public Map<ResourceId, Set<DefinedResourceProperty>> getResourcesAndProperties() {
+        Map<ResourceId, Set<DefinedResourceProperty>> resourcePropertyMap =
+                new HashMap<>();
+        // Vaccine has no properties
+        resourcePropertyMap.put(VaccineResourceId.VACCINE, new HashSet<>());
+        return resourcePropertyMap;
+    }
+
+    @Override
+    public void load(ExperimentBuilder experimentBuilder) {
+        VaccinePlugin.super.load(experimentBuilder);
+        // Track when last dose of vaccine was received
+        experimentBuilder.setResourceTimeTracking(VaccineResourceId.VACCINE, TimeTrackingPolicy.TRACK_TIME);
+        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, VaccineManager.class);
     }
 
     public enum VaccinePersonProperty implements DefinedPersonProperty {
@@ -104,20 +121,58 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
     }
 
-    @Override
-    public Map<ResourceId, Set<DefinedResourceProperty>> getResourcesAndProperties() {
-        Map<ResourceId, Set<DefinedResourceProperty>> resourcePropertyMap =
-                new HashMap<>();
-        // Vaccine has no properties
-        resourcePropertyMap.put(VaccineResourceId.VACCINE, new HashSet<>());
-        return resourcePropertyMap;
-    }
-
     enum VaccineResourceId implements ResourceId {
 
         VACCINE
 
     }
+
+//    public enum VaccineGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
+//
+//        VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
+//                .typeReference(new TypeReference<FipsCodeValue<AgeWeights>>() {
+//                })
+//                .type(AgeWeights.class)
+//                .defaultValue(ImmutableFipsCodeValue.builder()
+//                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+//                        .build())
+//                .build(),
+//                VaccineRegionProperty.VACCINE_UPTAKE_WEIGHTS),
+//
+//        VACCINE_HIGH_RISK_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
+//                .typeReference(new TypeReference<FipsCodeValue<AgeWeights>>() {
+//                })
+//                .type(AgeWeights.class)
+//                .defaultValue(ImmutableFipsCodeValue.builder()
+//                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+//                        .build())
+//                .build(),
+//                VaccineRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
+//
+//        private final TypedPropertyDefinition propertyDefinition;
+//        private final DefinedRegionProperty regionProperty;
+//
+//        VaccineGlobalAndRegionProperty(TypedPropertyDefinition propertyDefinition, DefinedRegionProperty regionProperty) {
+//            this.propertyDefinition = propertyDefinition;
+//            this.regionProperty = regionProperty;
+//        }
+//
+//        @Override
+//        public TypedPropertyDefinition getPropertyDefinition() {
+//            return propertyDefinition;
+//        }
+//
+//        @Override
+//        public boolean isExternalProperty() {
+//            return true;
+//        }
+//
+//        @Override
+//        public DefinedRegionProperty getRegionProperty() {
+//            return regionProperty;
+//        }
+//
+//    }
 
     /*
         The global properties added to the simulation by this plugin
@@ -131,7 +186,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 .isMutable(false).build()),
 
         VACCINE_ADMINISTRATORS(TypedPropertyDefinition.builder()
-                .typeReference(new TypeReference<List<VaccineAdministrator>>() {
+                .typeReference(new TypeReference<List<VaccineAdministratorDefinition>>() {
                 })
                 .defaultValue(new ArrayList<>())
                 .build()),
@@ -183,61 +238,6 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         }
     }
 
-//    public enum VaccineGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
-//
-//        VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
-//                .typeReference(new TypeReference<FipsCodeValue<AgeWeights>>() {
-//                })
-//                .type(AgeWeights.class)
-//                .defaultValue(ImmutableFipsCodeValue.builder()
-//                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
-//                        .build())
-//                .build(),
-//                VaccineRegionProperty.VACCINE_UPTAKE_WEIGHTS),
-//
-//        VACCINE_HIGH_RISK_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
-//                .typeReference(new TypeReference<FipsCodeValue<AgeWeights>>() {
-//                })
-//                .type(AgeWeights.class)
-//                .defaultValue(ImmutableFipsCodeValue.builder()
-//                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
-//                        .build())
-//                .build(),
-//                VaccineRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
-//
-//        private final TypedPropertyDefinition propertyDefinition;
-//        private final DefinedRegionProperty regionProperty;
-//
-//        VaccineGlobalAndRegionProperty(TypedPropertyDefinition propertyDefinition, DefinedRegionProperty regionProperty) {
-//            this.propertyDefinition = propertyDefinition;
-//            this.regionProperty = regionProperty;
-//        }
-//
-//        @Override
-//        public TypedPropertyDefinition getPropertyDefinition() {
-//            return propertyDefinition;
-//        }
-//
-//        @Override
-//        public boolean isExternalProperty() {
-//            return true;
-//        }
-//
-//        @Override
-//        public DefinedRegionProperty getRegionProperty() {
-//            return regionProperty;
-//        }
-//
-//    }
-
-    @Override
-    public void load(ExperimentBuilder experimentBuilder) {
-        VaccinePlugin.super.load(experimentBuilder);
-        // Track when last dose of vaccine was received
-        experimentBuilder.setResourceTimeTracking(VaccineResourceId.VACCINE, TimeTrackingPolicy.TRACK_TIME);
-        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, VaccineManager.class);
-    }
-
     public static class VaccineManager extends AbstractComponent {
 
         // Key for vaccine partition
@@ -246,25 +246,27 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         private final Map<VaccineAdministratorId, Map<VaccineId, VaccineDoseFipsContainer>> vaccineDeliveries = new HashMap<>();
         // Random distributions for vaccine delays
         private final Map<VaccineAdministratorId, Map<FipsCode, RealDistribution>> interVaccinationDelayDistribution = new LinkedHashMap<>();
-        // Map giving regions in a given FipsCode - note all VaccineAdministrators must share a scope
-        private Map<FipsCode, Set<RegionId>> fipsCodeRegionMap;
-        private FipsScope administrationScope;
         // Map holding prioritized people for second doses by VaccineAdministrator
         private final Map<VaccineAdministratorId, Map<VaccineId, ArrayDeque<PersonId>>> secondDosePriorityMap = new HashMap<>();
+        // Map indicating the set of FipsCodes in what at the moment there are no more people to whom to give first doses
+        private final Map<VaccineAdministratorId, Set<FipsCode>> fipsCodesWithNoFirstDosesPeople = new HashMap<>();
         // Map for VaccineAdministrators by id
-        private final Map<VaccineAdministratorId, VaccineAdministrator> vaccineAdministratorMap = new HashMap<>();
+        private final Map<VaccineAdministratorId, VaccineAdministratorDefinition> vaccineAdministratorMap = new HashMap<>();
         // Map for Vaccines by id
         private final Map<VaccineId, VaccineDefinition> vaccineDefinitionMap = new HashMap<>();
         // Map from Vaccine ID to index in the VACCINE_DEFINITION global property
         private final Map<VaccineId, Integer> vaccineIndexMap = new HashMap<>();
+        // Map giving regions in a given FipsCode - note all VaccineAdministrators must share a scope
+        private Map<FipsCode, Set<RegionId>> fipsCodeRegionMap;
+        private FipsScope administrationScope;
 
         @Override
         public void init(Environment environment) {
             // Store vaccine administrators by ID
-            List<VaccineAdministrator> vaccineAdministrators = environment.getGlobalPropertyValue(
+            List<VaccineAdministratorDefinition> vaccineAdministratorDefinitions = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINE_ADMINISTRATORS);
-            vaccineAdministrators.forEach(
-                    vaccineAdministrator -> vaccineAdministratorMap.put(vaccineAdministrator.id(), vaccineAdministrator)
+            vaccineAdministratorDefinitions.forEach(
+                    vaccineAdministratorDefinition -> vaccineAdministratorMap.put(vaccineAdministratorDefinition.id(), vaccineAdministratorDefinition)
             );
 
             // Store vaccine definitions by ID and add storage for each administrator
@@ -275,14 +277,14 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                     vaccineDefinition -> {
                         vaccineDefinitionMap.put(vaccineDefinition.id(), vaccineDefinition);
                         vaccineIndexMap.put(vaccineDefinition.id(), indexCounter.getAndIncrement());
-                        vaccineAdministrators.forEach(
-                                vaccineAdministrator -> {
+                        vaccineAdministratorDefinitions.forEach(
+                                vaccineAdministratorDefinition -> {
                                     Map<VaccineId, VaccineDoseFipsContainer> vaccineDoseFipsContainerMap =
-                                            vaccineDeliveries.computeIfAbsent(vaccineAdministrator.id(),
+                                            vaccineDeliveries.computeIfAbsent(vaccineAdministratorDefinition.id(),
                                                     x -> new HashMap<>());
                                     vaccineDoseFipsContainerMap.put(vaccineDefinition.id(), new VaccineDoseFipsContainer());
                                     Map<VaccineId, ArrayDeque<PersonId>> secondDosePriorityMapForAdministrator =
-                                            secondDosePriorityMap.computeIfAbsent(vaccineAdministrator.id(),
+                                            secondDosePriorityMap.computeIfAbsent(vaccineAdministratorDefinition.id(),
                                                     x -> new HashMap<>());
                                     secondDosePriorityMapForAdministrator.put(vaccineDefinition.id(), new ArrayDeque<>());
                                 }
@@ -295,8 +297,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                     VaccineGlobalProperty.VACCINATION_START_DAY);
             boolean usingVaccine = false;
 
-            for (VaccineAdministrator vaccineAdministrator : vaccineAdministrators) {
-                Map<FipsCode, Double> vaccinationRatePerDayByFipsCode = vaccineAdministrator
+            for (VaccineAdministratorDefinition vaccineAdministratorDefinition : vaccineAdministratorDefinitions) {
+                Map<FipsCode, Double> vaccinationRatePerDayByFipsCode = vaccineAdministratorDefinition
                         .vaccinationRatePerDay().getFipsCodeValues(environment);
 
                 Map<FipsCode, RealDistribution> interVaccinationDelayDistributionForAdministrator = new HashMap<>();
@@ -311,17 +313,17 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                 1 / vaccinationRatePerDay));
 
                         // Schedule first vaccination event
-                        environment.addPlan(new VaccinationPlan(vaccineAdministrator.id(), fipsCode), vaccinationStartDay,
-                                new MultiKey(vaccineAdministrator.id(), fipsCode));
+                        environment.addPlan(new VaccinationPlan(vaccineAdministratorDefinition.id(), fipsCode), vaccinationStartDay,
+                                new MultiKey(vaccineAdministratorDefinition.id(), fipsCode));
                     }
                 }
-                interVaccinationDelayDistribution.put(vaccineAdministrator.id(), interVaccinationDelayDistributionForAdministrator);
+                interVaccinationDelayDistribution.put(vaccineAdministratorDefinition.id(), interVaccinationDelayDistributionForAdministrator);
             }
 
             if (usingVaccine) {
 
                 // Check all administrators have the same scope
-                List<FipsScope> scopes = vaccineAdministrators.stream()
+                List<FipsScope> scopes = vaccineAdministratorDefinitions.stream()
                         .map(x -> x.vaccinationRatePerDay().scope())
                         .distinct()
                         .collect(Collectors.toList());
@@ -355,15 +357,13 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                             vaccineId, x -> new LinkedHashMap<>());
                     // If no allocation is given assume equal weighting
                     if (vaccineAllocation.isEmpty()) {
-                        vaccineAdministrators.forEach(vaccineAdministrator ->
-                                vaccineAllocation.put(vaccineAdministrator.id(), 1.0));
+                        vaccineAdministratorDefinitions.forEach(vaccineAdministratorDefinition ->
+                                vaccineAllocation.put(vaccineAdministratorDefinition.id(), 1.0));
                     }
                     final double vaccineAllocationTotal = vaccineAllocation.values().stream()
                             .mapToDouble(x -> x).sum();
-                    for (VaccineAdministratorId vaccineAdministratorId : vaccineAllocation.keySet()) {
-                        vaccineAllocation.put(vaccineAdministratorId,
-                                vaccineAllocation.get(vaccineAdministratorId) / vaccineAllocationTotal);
-                    }
+                    vaccineAllocation.replaceAll(
+                            (i, v) -> vaccineAllocation.get(i) / vaccineAllocationTotal);
                 }
                 environment.setGlobalPropertyValue(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION,
                         vaccineAdministratorAllocation);
@@ -397,6 +397,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         !environment.getPlan(new MultiKey(entry.getKey(), fipsCode)).isPresent() &&
                         environment.getTime() >= vaccinationStartDay) {
                     toggleFipsCodePersonArrivalObservation(environment, fipsCode, false);
+                    fipsCodesWithNoFirstDosesPeople.get(entry.getKey()).remove(fipsCode);
                     vaccinateAndScheduleNext(environment, entry.getKey(), fipsCode);
                 }
             }
@@ -421,7 +422,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                     (fipsCode, doubleNewDoses) -> {
                                         for (VaccineAdministratorId vaccineAdministratorId : vaccineAdministratorMap.keySet()) {
                                             long newDoses = Math.round(doubleNewDoses * administratorAllocation
-                                                            .getOrDefault(vaccineAdministratorId, 0.0));
+                                                    .getOrDefault(vaccineAdministratorId, 0.0));
                                             if (newDoses > 0) {
                                                 // Ignore finer scope for vaccine deliveries than the vaccination administration scope
                                                 if (!fipsCode.scope().hasBroaderScopeThan(administrationScope)) {
@@ -476,9 +477,25 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
         private void vaccinateAndScheduleNext(Environment environment, VaccineAdministratorId vaccineAdministratorId, FipsCode fipsCode) {
             // First check that at least some vaccine is available in the FIPS hierarchy
+            // We will ignore vaccines for which there is nobody to use that vaccine
+            final AtomicBoolean someoneToGiveFirstDosesTo = new AtomicBoolean(!fipsCodesWithNoFirstDosesPeople
+                    .computeIfAbsent(vaccineAdministratorId, x -> new HashSet<>())
+                    .contains(fipsCode));
+            Map<VaccineId, Boolean> someoneToGiveSecondDosesTo = vaccineDefinitionMap.keySet().stream()
+                    .collect(Collectors.toMap(
+                            Function.identity(),
+                            vaccineId ->
+                                    !secondDosePriorityMap
+                                            .computeIfAbsent(vaccineAdministratorId, x -> new HashMap<>())
+                                            .computeIfAbsent(vaccineId, x -> new ArrayDeque<>())
+                                            .isEmpty()
+
+                    ));
             Map<VaccineId, VaccineDoseFipsContainer> vaccineDeliveriesForAdministrator = vaccineDeliveries
                     .computeIfAbsent(vaccineAdministratorId, x -> new LinkedHashMap<>());
             Map<VaccineId, Double> regimensByType = vaccineDeliveriesForAdministrator.entrySet().stream()
+                    // Skip if one dose and nobody to vaccinate or two dose and nobody for either first or second dose
+                    .filter(entry -> someoneToGiveFirstDosesTo.get() || someoneToGiveSecondDosesTo.get(entry.getKey()))
                     .collect(Collectors.toMap(
                             Map.Entry::getKey,
                             entry -> (double) entry.getValue().getDosesAvailableTo(fipsCode) /
@@ -492,7 +509,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             final boolean hasResource = regimensByType.values().stream().anyMatch(x -> x > 0.0);
 
             if (hasResource) {
-                VaccineAdministrator vaccineAdministrator = vaccineAdministratorMap.get(vaccineAdministratorId);
+                VaccineAdministratorDefinition vaccineAdministratorDefinition = vaccineAdministratorMap.get(vaccineAdministratorId);
                 // Get a random person to vaccinate, if possible, taking into account vaccine uptake weights
 //                TODO: Trigger overrides for vaccine uptake weights
 //                // Can use any region in the fips code as all will have the same value
@@ -502,26 +519,25 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 //                AgeWeights vaccineHighRiskUptakeWeights = Plugin.getRegionalPropertyValue(environment,
 //                        exemplarRegion, VaccineGlobalAndRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
 
-                AgeWeights vaccineUptakeWeights = vaccineAdministrator.vaccineUptakeWeights();
-                AgeWeights vaccineHighRiskUptakeWeights = vaccineAdministrator.vaccineHighRiskUptakeWeights();
+                AgeWeights vaccineUptakeWeights = vaccineAdministratorDefinition.vaccineUptakeWeights();
+                AgeWeights vaccineHighRiskUptakeWeights = vaccineAdministratorDefinition.vaccineHighRiskUptakeWeights();
 
                 // First select which type of vaccine to use
                 List<Pair<VaccineId, Double>> regimensByTypeForSampling = regimensByType.entrySet().stream()
-                    .map(entry -> new Pair<>(entry.getKey(), entry.getValue()))
-                    .collect(Collectors.toList());
+                        .map(entry -> new Pair<>(entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toList());
                 VaccineId vaccineId = new EnumeratedDistribution<>(environment.getRandomGeneratorFromId(VaccineRandomId.ID),
                         regimensByTypeForSampling).sample();
                 VaccineDefinition vaccineDefinition = vaccineDefinitionMap.get(vaccineId);
 
                 // Next select the person to vaccinate
                 final Optional<PersonId> personId;
-                boolean nobodyToVaccinate = false;
                 // If this is a two-dose vaccine need to choose between vaccinating a new person and giving the second dose
                 //  We randomly proportionally allocate effort taking into account the fraction that will return for a second dose
-                if (vaccineDefinition.type() == VaccineDefinition.DoseType.TWO_DOSE &&
+                if (!someoneToGiveFirstDosesTo.get() || (vaccineDefinition.type() == VaccineDefinition.DoseType.TWO_DOSE &&
                         (environment.getRandomGeneratorFromId(VaccineRandomId.ID).nextDouble() <
-                                (vaccineAdministrator.fractionReturnForSecondDose() /
-                                        (1.0 + vaccineAdministrator.fractionReturnForSecondDose())))) {
+                                (vaccineAdministratorDefinition.fractionReturnForSecondDose() /
+                                        (1.0 + vaccineAdministratorDefinition.fractionReturnForSecondDose()))))) {
                     // Vaccinate a person with a second dose if needed
                     ArrayDeque<PersonId> secondDosePriority = secondDosePriorityMap.get(vaccineAdministratorId).get(vaccineId);
                     if (secondDosePriority.isEmpty()) {
@@ -551,8 +567,10 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                 })
                                 .setRandomNumberGeneratorId(VaccineRandomId.ID)
                                 .build());
-                        if (!personId.isPresent() && secondDosePriorityMap.get(vaccineAdministratorId).get(vaccineId).isEmpty()) {
-                            nobodyToVaccinate = true;
+                        if (!personId.isPresent()) {
+                            // Note that there are no more people to whom to give first doses
+                            fipsCodesWithNoFirstDosesPeople.get(vaccineAdministratorId).add(fipsCode);
+                            someoneToGiveFirstDosesTo.set(false);
                         }
                     } else {
                         personId = Optional.empty();
@@ -564,7 +582,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                     RegionId regionId = environment.getPersonRegion(personId.get());
                     boolean isSecondDose = environment.getPersonResourceLevel(personId.get(),
                             VaccineResourceId.VACCINE) > 0L;
-                    boolean useReserve = vaccineAdministrator.reserveSecondDoses() && isSecondDose;
+                    boolean useReserve = vaccineAdministratorDefinition.reserveSecondDoses() && isSecondDose;
                     VaccineDoseFipsContainer vaccineDoseFipsContainer = vaccineDeliveries
                             .get(vaccineAdministratorId).get(vaccineId);
                     vaccineDoseFipsContainer.removeDoseFrom(fipsCode, useReserve);
@@ -587,7 +605,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         // Determine if person will return for second dose and schedule
                         if (vaccineDefinition.type() == VaccineDefinition.DoseType.TWO_DOSE &&
                                 (environment.getRandomGeneratorFromId(VaccineRandomId.ID).nextDouble() <
-                                        vaccineAdministrator.fractionReturnForSecondDose())) {
+                                        vaccineAdministratorDefinition.fractionReturnForSecondDose())) {
                             double secondDoseDelay = vaccineDefinition.secondDoseDelay();
                             if (secondDoseDelay > 0) {
                                 environment.addPlan(new SecondDoseQueuePlan(vaccineAdministratorId, personId.get(), vaccineId),
@@ -596,7 +614,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                 secondDosePriorityMap.get(vaccineAdministratorId).get(vaccineId).addLast(personId.get());
                             }
                             // Reserve second doses if applicable
-                            if (vaccineAdministrator.reserveSecondDoses()) {
+                            if (vaccineAdministratorDefinition.reserveSecondDoses()) {
                                 vaccineDoseFipsContainer.reserveDoseIfPossible(fipsCode);
                             }
                         }
@@ -604,16 +622,19 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
                 }
 
-                if (nobodyToVaccinate) {
-                    // Nobody left to vaccinate for now, so register to observe new arrivals
+                if (!someoneToGiveFirstDosesTo.get()) {
+                    // Nobody left to give first doses to for now, so register to observe new arrivals
                     toggleFipsCodePersonArrivalObservation(environment, fipsCode, true);
-                } else {
+                }
+
+                if (someoneToGiveFirstDosesTo.get() || someoneToGiveSecondDosesTo.containsValue(true)) {
                     // Schedule next vaccination
                     final double vaccinationTime = environment.getTime() +
                             interVaccinationDelayDistribution.get(vaccineAdministratorId).get(fipsCode).sample();
                     environment.addPlan(new VaccinationPlan(vaccineAdministratorId, fipsCode), vaccinationTime,
                             new MultiKey(vaccineAdministratorId, fipsCode));
                 }
+
             }
             // No vaccine available, so pause vaccinating for now and wait for vaccine delivery
         }
