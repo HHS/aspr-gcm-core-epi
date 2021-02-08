@@ -547,7 +547,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                     }
                 } else {
                     // Check to make sure not all of the available doses are in reserve
-                    double regimensInReserve = vaccineDeliveriesForAdministrator.get(vaccineId).getReservedDosesFor(fipsCode);
+                    double regimensInReserve = (double) vaccineDeliveriesForAdministrator.get(vaccineId)
+                            .getReservedDosesFor(fipsCode) / vaccineDefinition.dosesPerRegimen();
                     if (regimensByType.get(vaccineId) > regimensInReserve) {
                         // Need to select a person to give the new dose to
                         personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
