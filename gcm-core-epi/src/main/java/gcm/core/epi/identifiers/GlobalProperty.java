@@ -13,6 +13,10 @@ import gcm.core.epi.propertytypes.*;
 import gcm.core.epi.trigger.TriggerContainer;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.core.epi.variants.ImmutableVariantsDescription;
+import gcm.core.epi.variants.ImmutableWaningImmunityFunction;
+import gcm.core.epi.variants.VariantsDescription;
+import gcm.core.epi.variants.WaningImmunityFunction;
 import gcm.scenario.RegionId;
 import gcm.scenario.RegionPropertyId;
 import gcm.util.geolocator.GeoLocator;
@@ -191,22 +195,15 @@ public enum GlobalProperty implements DefinedGlobalProperty {
             })
             .defaultValue(new EnumMap<ContactGroupType, Double>(ContactGroupType.class)).build(), false),
 
-    IMMUNITY_WANES_TIME_MEAN(TypedPropertyDefinition.builder()
-            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
+    VARIANTS_DESCRIPTION(TypedPropertyDefinition.builder()
+            .type(VariantsDescription.class)
+            .defaultValue(ImmutableVariantsDescription.builder().build()).build()),
 
-    IMMUNITY_WANES_TIME_SD(TypedPropertyDefinition.builder()
-            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
+    WANING_IMMUNITY_FUNCTION(TypedPropertyDefinition.builder()
+            .type(WaningImmunityFunction.class)
+            .defaultValue(ImmutableWaningImmunityFunction.builder().build()).build()),
 
-    IMMUNITY_WANES_PROBABILITY(TypedPropertyDefinition.builder()
-            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
-
-    IMMUNITY_WANES_DECREASED_PROBABILITY_FROM_SEVERE_ILLNESS(TypedPropertyDefinition.builder()
-            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
-
-    IMMUNITY_WANES_INCREASED_PROBABILITY_FROM_ASYMPTOMATIC(TypedPropertyDefinition.builder()
-            .type(Double.class).defaultValue(0.0).isMutable(false).build()),
-
-    IMMUNITY_WANES_RESIDUAL_IMMUNITY(TypedPropertyDefinition.builder()
+    WANING_IMMUNITY_DISEASE_PROTECTION(TypedPropertyDefinition.builder()
             .type(Double.class).defaultValue(0.0).isMutable(false).build());
 
     private final TypedPropertyDefinition propertyDefinition;

@@ -13,6 +13,9 @@ import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.propertytypes.DayOfWeekSchedule;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.propertytypes.TransmissionStructure;
+import gcm.core.epi.variants.VariantDefinition;
+import gcm.core.epi.variants.VariantsDescription;
+import gcm.core.epi.variants.WaningImmunityFunction;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
@@ -333,9 +336,14 @@ public class ContactManager extends AbstractComponent {
         double symptomaticTransmissibility = 1 / (fractionSymptomatic + (1 - fractionSymptomatic) * asymptomaticInfectiousness);
         double relativeTransmissibilityFromSymptomaticStatus = willBeSymptomatic ?
                 symptomaticTransmissibility : asymptomaticInfectiousness * symptomaticTransmissibility;
+        // Strain
+        VariantsDescription variantsDescription = environment.getGlobalPropertyValue(GlobalProperty.VARIANTS_DESCRIPTION);
+        int strainIndex = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1);
+        VariantDefinition variantDefinition = variantsDescription.getVariantDefinition(strainIndex);
+        double relativeTransmissibilityFromStrain = variantDefinition.relativeTransmissibility();
 
         return transmissionRatios.get(ageGroup) * relativeActivityLevelFromBehavior * relativeTransmissibilityFromPlugin *
-                relativeTransmissibilityFromSymptomaticStatus;
+                relativeTransmissibilityFromSymptomaticStatus * relativeTransmissibilityFromStrain;
     }
 
     @Override
@@ -422,20 +430,21 @@ public class ContactManager extends AbstractComponent {
                         .transmissionSetting(contactGroupType)
                         .transmissionOccurred(false);
 
-                // If the contact target is susceptible, then mark them as having an infectious contact
+                // If the contact target is susceptible, then mark them as having an infectious contact if they are not protected
                 if (targetPersonId.isPresent()) {
 
                     Compartment contactCompartment = environment.getPersonCompartment(targetPersonId.get());
 
                     if (contactCompartment == Compartment.SUSCEPTIBLE) {
 
-                        // TODO: Re-incorporate antiviral and potentially other plugins
+                        // TODO: Re-incorporate antiviral plugin(s)
                         double probabilityAntiviralsFail = 1.0;
 
-                        // What is their residual immunity (if any)?
-                        double residualImmunity = (boolean) environment.getPersonPropertyValue(targetPersonId.get(), PersonProperty.IMMUNITY_WANED) ?
-                                environment.getGlobalPropertyValue(GlobalProperty.IMMUNITY_WANES_RESIDUAL_IMMUNITY) :
-                                0.0;
+                        // What is their transmission probability from prior immunity?
+                        int sourceStrainIndex = environment.getPersonPropertyValue(sourcePersonId,
+                                PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1);
+                        double infectionProbabilityFromImmunity = getInfectionProbability(environment, targetPersonId.get(),
+                                sourceStrainIndex);
 
                         // Vaccine effect via plugin
                         Optional<VaccinePlugin> vaccinePlugin =
@@ -450,7 +459,7 @@ public class ContactManager extends AbstractComponent {
                         Optional<BehaviorPlugin> behaviorPlugin =
                                 environment.getGlobalPropertyValue(GlobalProperty.BEHAVIOR_PLUGIN);
                         final ContactGroupType contactSetting = getContactSetting(contactGroupType);
-                        double infectionProbability = behaviorPlugin
+                        double infectionProbabilityFromBehavior = behaviorPlugin
                                 .map(plugin -> plugin.getInfectionProbability(environment, contactSetting, targetPersonId.get()))
                                 .orElse(1.0);
 
@@ -463,10 +472,9 @@ public class ContactManager extends AbstractComponent {
 
                         // Randomly draw to determine if vaccine and/or antivirals prevent the transmission
                         if (environment.getRandomGeneratorFromId(RandomId.CONTACT_MANAGER).nextDouble() <=
-                                probabilityVaccineFails * probabilityAntiviralsFail *
-                                        (1.0 - residualImmunity) *
-                                        infectionProbability * infectionProbabilityFromTransmissionPlugin) {
-                            environment.setPersonPropertyValue(targetPersonId.get(), PersonProperty.HAD_INFECTIOUS_CONTACT, true);
+                                probabilityVaccineFails * probabilityAntiviralsFail * infectionProbabilityFromBehavior *
+                                        infectionProbabilityFromImmunity * infectionProbabilityFromTransmissionPlugin) {
+                            infectPerson(environment, targetPersonId.get(), sourceStrainIndex);
                             // Flag that the infection occurred
                             infectionDataBuilder.transmissionOccurred(true);
                         }
@@ -485,6 +493,51 @@ public class ContactManager extends AbstractComponent {
         // Schedule the next random infectious contact
         scheduleRandomInfectiousContact(environment, sourcePersonId);
 
+    }
+
+    private double getInfectionProbability(Environment environment, PersonId targetPersonId, int sourceStrainIndex) {
+        VariantsDescription variantsDescription = environment.getGlobalPropertyValue(GlobalProperty.VARIANTS_DESCRIPTION);
+        WaningImmunityFunction waningImmunityFunction = environment.getGlobalPropertyValue(GlobalProperty.WANING_IMMUNITY_FUNCTION);
+        double infectionProbability = 1.0;
+        int targetStrainIndex;
+        float recoveryTime;
+        // Strain 1
+        targetStrainIndex = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1);
+        recoveryTime = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_1);
+        infectionProbability *= variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex) *
+                waningImmunityFunction.getInfectionProbability(recoveryTime - environment.getTime());
+        // Strain 2
+        targetStrainIndex = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_2);
+        recoveryTime = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_2);
+        infectionProbability *= variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex) *
+                waningImmunityFunction.getInfectionProbability(recoveryTime - environment.getTime());
+        // Strain 3
+        targetStrainIndex = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_3);
+        recoveryTime = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_3);
+        infectionProbability *= variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex) *
+                waningImmunityFunction.getInfectionProbability(recoveryTime - environment.getTime());
+
+        return infectionProbability;
+    }
+
+    private void infectPerson(Environment environment, PersonId personId, int strainIndex) {
+        environment.setPersonPropertyValue(personId, PersonProperty.HAD_INFECTIOUS_CONTACT, true);
+        // Shift history data
+        int priorStrainIndex;
+        float priorRecoveryTime;
+        // Strain 2 => 3
+        priorStrainIndex = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_2);
+        priorRecoveryTime = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_2);
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_3, priorStrainIndex);
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_3, priorRecoveryTime);
+        // Strain 1 => 2
+        priorStrainIndex = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1);
+        priorRecoveryTime = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_1);
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_2, priorStrainIndex);
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_2, priorRecoveryTime);
+        // Set current infection strain
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1, strainIndex);
+        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_1, -1.0f);
     }
 
     private Optional<ContactGroupType> getContactGroupType(Environment environment, PersonId sourcePersonId) {

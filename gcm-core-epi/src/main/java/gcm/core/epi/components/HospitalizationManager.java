@@ -7,6 +7,8 @@ import gcm.core.epi.population.HospitalData;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.util.distributions.GammaHelper;
+import gcm.core.epi.variants.VariantDefinition;
+import gcm.core.epi.variants.VariantsDescription;
 import gcm.scenario.PersonId;
 import gcm.scenario.PersonPropertyId;
 import gcm.scenario.RegionId;
@@ -131,7 +133,13 @@ public class HospitalizationManager extends AbstractComponent {
                         GlobalProperty.HIGH_RISK_HOSPITALIZATION_DEATH_MULTIPLIER);
                 double highRiskMultiplierForAgeGroup = highRiskMultiplier.getWeight(ageGroup);
                 boolean isHighRisk = environment.getPersonPropertyValue(personId, PersonProperty.IS_HIGH_RISK);
-                double adjustedCaseHospitalizationRatio = caseHospitalizationRatio /
+                // Strain impact
+                VariantsDescription variantsDescription = environment.getGlobalPropertyValue(GlobalProperty.VARIANTS_DESCRIPTION);
+                int strainIndex = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1);
+                VariantDefinition variantDefinition = variantsDescription.getVariantDefinition(strainIndex);
+                double relativeSeverityFromStrain = variantDefinition.relativeSeverity();
+
+                double adjustedCaseHospitalizationRatio = caseHospitalizationRatio * relativeSeverityFromStrain /
                         (fractionHighRiskForAgeGroup * highRiskMultiplierForAgeGroup +
                                 (1.0 - fractionHighRiskForAgeGroup)) *
                         (isHighRisk ? highRiskMultiplierForAgeGroup : 1.0);

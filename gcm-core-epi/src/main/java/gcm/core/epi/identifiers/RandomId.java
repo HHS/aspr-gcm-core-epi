@@ -14,8 +14,6 @@ public enum RandomId implements RandomNumberGeneratorId {
 
     HIGH_RISK_FRACTION,
 
-    HOSPITAL_WORKPLACE_ASSIGNMENT,
-
-    RECOVERED_COMPARTMENT
+    HOSPITAL_WORKPLACE_ASSIGNMENT
 
 }

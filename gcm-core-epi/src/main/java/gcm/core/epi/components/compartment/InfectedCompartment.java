@@ -29,6 +29,13 @@ public class InfectedCompartment extends DiseaseCompartment {
     @Override
     public void observeCompartmentPersonArrival(final Environment environment, final PersonId personId) {
 
+        // Handle seeded infections that have no strain assigned
+        int strainIndex = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1);
+        if (strainIndex == -1) {
+            strainIndex = 0;
+            environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1, strainIndex);
+        }
+
         // Get disease course data from infection plugin
         InfectionPlugin infectionPlugin = environment.getGlobalPropertyValue(GlobalProperty.INFECTION_PLUGIN);
         DiseaseCourseData diseaseCourseData = infectionPlugin.getDiseaseCourseData(environment, personId);
@@ -38,17 +45,23 @@ public class InfectedCompartment extends DiseaseCompartment {
                 environment.getTime() + diseaseCourseData.infectiousOnsetTime());
 
         // Determine if person should be symptomatic
+        // Age effect
         AgeWeights fractionSymptomatic = environment.getGlobalPropertyValue(GlobalProperty.FRACTION_SYMPTOMATIC);
         PopulationDescription populationDescription = environment.getGlobalPropertyValue(
                 GlobalProperty.POPULATION_DESCRIPTION);
+        Integer ageGroupIndex = environment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
+        AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
+        // Immunity effect
+        float recoveryTime = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_2);
+        double probabilityImmunityFails = recoveryTime < 0 ? 1.0 :
+                environment.getGlobalPropertyValue(GlobalProperty.WANING_IMMUNITY_DISEASE_PROTECTION);
+        // Vaccine effect
         Optional<VaccinePlugin> vaccinePlugin = environment.getGlobalPropertyValue(GlobalProperty.VACCINE_PLUGIN);
         final double probabilityVaccineFails = vaccinePlugin
                 .map(plugin -> 1.0 - plugin.getVEP(environment, personId))
                 .orElse(1.0);
-        Integer ageGroupIndex = environment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
-        AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
         final boolean willBeSymptomatic = environment.getRandomGeneratorFromId(RandomId.INFECTED_COMPARTMENT).nextDouble() <=
-                fractionSymptomatic.getWeight(ageGroup) * probabilityVaccineFails;
+                fractionSymptomatic.getWeight(ageGroup) * probabilityImmunityFails * probabilityVaccineFails;
         if (willBeSymptomatic) {
             environment.setPersonPropertyValue(personId, PersonProperty.WILL_BE_SYMPTOMATIC, true);
             environment.addPlan(new SymptomOnsetPlan(personId),
@@ -57,7 +70,7 @@ public class InfectedCompartment extends DiseaseCompartment {
         // Implicitly by default environment.setPersonPropertyValue(personId, PersonProperty.WILL_BE_SYMPTOMATIC, false);
 
         // Schedule onset of recovery
-        environment.addPlan(new CompartmentChangePlan(personId, Compartment.RECOVERED),
+        environment.addPlan(new CompartmentChangePlan(personId, Compartment.SUSCEPTIBLE),
                 environment.getTime() + diseaseCourseData.recoveryTime());
 
     }
@@ -91,6 +104,7 @@ public class InfectedCompartment extends DiseaseCompartment {
              */
             PersonId personId = ((CompartmentChangePlan) plan).personId;
             environment.setPersonPropertyValue(personId, PersonProperty.IS_INFECTIOUS, false);
+            environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_1, (float) environment.getTime());
             handleSymptomsOnRecovery(environment, personId);
             // Actually perform compartment change
             super.executePlan(environment, plan);
