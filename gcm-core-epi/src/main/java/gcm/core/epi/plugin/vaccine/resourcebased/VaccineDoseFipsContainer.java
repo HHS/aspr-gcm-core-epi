@@ -20,7 +20,7 @@ public class VaccineDoseFipsContainer {
         long doses = dosesByFipsCode.getOrDefault(fipsCode, 0L) +
                 doseReserve.getOrDefault(fipsCode, 0L);
         Optional<FipsCode> nextFipsCodeInHierarchy = getNextFipsCodeInHierarchy(fipsCode);
-        while(nextFipsCodeInHierarchy.isPresent()) {
+        while (nextFipsCodeInHierarchy.isPresent()) {
             doses += dosesByFipsCode.getOrDefault(nextFipsCodeInHierarchy.get(), 0L);
             nextFipsCodeInHierarchy = getNextFipsCodeInHierarchy(nextFipsCodeInHierarchy.get());
         }
@@ -32,7 +32,7 @@ public class VaccineDoseFipsContainer {
     }
 
     public void deliverDosesTo(FipsCode fipsCode, long doses) {
-        long currentDoses = dosesByFipsCode.getOrDefault(fipsCode,0L);
+        long currentDoses = dosesByFipsCode.getOrDefault(fipsCode, 0L);
         dosesByFipsCode.put(fipsCode, currentDoses + doses);
     }
 

@@ -9,12 +9,12 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableVaccineId.class)
 public interface VaccineId extends ResourceId {
 
-    @Value.Parameter
-    String id();
-
     @JsonCreator
     static VaccineId of(String id) {
         return ImmutableVaccineId.of(id);
     }
+
+    @Value.Parameter
+    String id();
 
 }

@@ -7,23 +7,13 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableVaccineDefinition.class)
 public abstract class VaccineDefinition {
 
-    enum DoseType {
-        ONE_DOSE,
-        TWO_DOSE
-    }
-
-    enum EfficacyType {
-        VE_S,
-        VE_I,
-        VE_P
-    }
-
     public abstract VaccineId id();
 
     @Value.Default
     public DoseType type() {
         return DoseType.ONE_DOSE;
     }
+
     @Value.Default
     EfficacyFunction firstDoseEfficacyFunction() {
         return ImmutableEfficacyFunction.builder().build();
@@ -43,7 +33,9 @@ public abstract class VaccineDefinition {
 
     // Only used for TWO_DOSE type
     @Value.Default
-    double secondDoseDelay() { return 0.0; }
+    double secondDoseDelay() {
+        return 0.0;
+    }
 
     @Value.Default
     double vES() {
@@ -100,10 +92,24 @@ public abstract class VaccineDefinition {
 
     public int dosesPerRegimen() {
         switch (type()) {
-            case ONE_DOSE: return 1;
-            case TWO_DOSE: return 2;
-            default: throw new RuntimeException("Unhandled dose type");
+            case ONE_DOSE:
+                return 1;
+            case TWO_DOSE:
+                return 2;
+            default:
+                throw new RuntimeException("Unhandled dose type");
         }
+    }
+
+    enum DoseType {
+        ONE_DOSE,
+        TWO_DOSE
+    }
+
+    enum EfficacyType {
+        VE_S,
+        VE_I,
+        VE_P
     }
 
 }

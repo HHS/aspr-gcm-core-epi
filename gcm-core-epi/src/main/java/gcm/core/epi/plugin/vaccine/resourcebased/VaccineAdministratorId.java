@@ -8,12 +8,12 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableVaccineAdministratorId.class)
 public interface VaccineAdministratorId {
 
-    @Value.Parameter
-    String id ();
-
     @JsonCreator
     static VaccineAdministratorId of(String id) {
         return ImmutableVaccineAdministratorId.of(id);
     }
+
+    @Value.Parameter
+    String id();
 
 }

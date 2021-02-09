@@ -82,7 +82,7 @@ public interface Plugin {
                             // Get the property value - we know the property has type FipsCodeValue<T>
                             //noinspection unchecked
                             FipsCodeValue<?> overrideValue = (FipsCodeValue<?>) CoreEpiBootstrapUtil.getPropertyValueFromJson(valueJson,
-                                    property, ageGroupPartition);
+                                    property.getPropertyDefinition().overrideJavaType(), ageGroupPartition);
                             if (validators.containsKey(property)) {
                                 // Throw an exception if this is an invalid property value
                                 validators.get(property).validate(environment, triggerId, overrideValue);

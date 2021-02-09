@@ -1,14 +1,21 @@
 package gcm.core.epi.plugin.vaccine.resourcebased;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.plugin.behavior.TriggeredPropertyOverride;
 import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
+import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.PopulationDescription;
-import gcm.core.epi.propertytypes.*;
+import gcm.core.epi.propertytypes.AgeWeights;
+import gcm.core.epi.propertytypes.FipsCode;
+import gcm.core.epi.propertytypes.FipsCodeDouble;
+import gcm.core.epi.propertytypes.FipsScope;
+import gcm.core.epi.trigger.*;
+import gcm.core.epi.util.loading.CoreEpiBootstrapUtil;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.DefinedResourceProperty;
@@ -26,6 +33,7 @@ import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.util.Pair;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -103,6 +111,60 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, VaccineManager.class);
     }
 
+    @Override
+    public Map<String, Set<TriggerCallback>> getTriggerCallbacks(Environment environment) {
+        Map<String, Set<TriggerCallback>> triggerCallbacks = new HashMap<>();
+        // The following code is very similar to the Plugin overrides but has been modified to only use a single Global Property
+        List<TriggeredPropertyOverride> triggeredPropertyOverrides = environment.getGlobalPropertyValue(
+                VaccineGlobalProperty.VACCINE_TRIGGER_OVERRIDES);
+        for (TriggeredPropertyOverride override : triggeredPropertyOverrides) {
+            String triggerStringId = override.trigger();
+            // Get the trigger for validation
+            TriggerContainer triggerContainer = environment.getGlobalPropertyValue(GlobalProperty.TRIGGER_CONTAINER);
+            TriggerId<Trigger> triggerId = triggerContainer.getId(triggerStringId);
+            if (triggerId == null) {
+                throw new RuntimeException("Override trigger id is invalid: " + triggerStringId);
+            }
+            if (!triggerId.trigger().getClass().equals(ImmutableAbsoluteTimeTrigger.class)) {
+                throw new RuntimeException("Detailed resource-based vaccine overrides only support absolute time triggers");
+            }
+            AbsoluteTimeTrigger trigger = (AbsoluteTimeTrigger) triggerId.trigger();
+            if (!(trigger.scope() == FipsScope.NATION)) {
+                throw new RuntimeException("Detailed resource-based vaccine overrides can only be NATIONAL scope");
+            }
+            // Parse the values and setup callbacks
+            PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
+            AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
+            Map<String, JsonNode> propertyOverrides = override.overrides();
+            propertyOverrides.forEach(
+                    (propertyIdString, valueJson) -> {
+                        final VaccineGlobalProperty overrideProperty;
+                        if (propertyIdString.equals(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_SETTINGS.toString())) {
+                            overrideProperty = VaccineGlobalProperty.VACCINE_ADMINISTRATOR_SETTINGS;
+                        } else if (propertyIdString.equals(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION.toString())) {
+                            overrideProperty = VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION_OVERRIDES;
+                        } else {
+                            throw new RuntimeException("Unhandled override property");
+                        }
+                        try {
+                            Object overrideValue = CoreEpiBootstrapUtil.getPropertyValueFromJson(valueJson,
+                                    overrideProperty.getPropertyDefinition().overrideJavaType(), ageGroupPartition);
+                            TriggerUtils.addCallback(triggerCallbacks, triggerStringId, (env, regionId) -> {
+                                // Only set global property once for each callback by checking current value
+                                Object currentValue = environment.getGlobalPropertyValue(overrideProperty);
+                                if (!overrideValue.equals(currentValue)) {
+                                    environment.setGlobalPropertyValue(overrideProperty, overrideValue);
+                                }
+                            });
+                        } catch (IOException e) {
+                            throw new RuntimeException("Property override value cannot be parsed from: " + valueJson);
+                        }
+                    }
+            );
+        }
+        return triggerCallbacks;
+    }
+
     public enum VaccinePersonProperty implements DefinedPersonProperty {
 
         VACCINE_INDEX(TypedPropertyDefinition.builder()
@@ -127,53 +189,6 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
     }
 
-//    public enum VaccineGlobalAndRegionProperty implements DefinedGlobalAndRegionProperty {
-//
-//        VACCINE_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
-//                .typeReference(new TypeReference<FipsCodeValue<AgeWeights>>() {
-//                })
-//                .type(AgeWeights.class)
-//                .defaultValue(ImmutableFipsCodeValue.builder()
-//                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
-//                        .build())
-//                .build(),
-//                VaccineRegionProperty.VACCINE_UPTAKE_WEIGHTS),
-//
-//        VACCINE_HIGH_RISK_UPTAKE_WEIGHTS(TypedPropertyDefinition.builder()
-//                .typeReference(new TypeReference<FipsCodeValue<AgeWeights>>() {
-//                })
-//                .type(AgeWeights.class)
-//                .defaultValue(ImmutableFipsCodeValue.builder()
-//                        .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
-//                        .build())
-//                .build(),
-//                VaccineRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
-//
-//        private final TypedPropertyDefinition propertyDefinition;
-//        private final DefinedRegionProperty regionProperty;
-//
-//        VaccineGlobalAndRegionProperty(TypedPropertyDefinition propertyDefinition, DefinedRegionProperty regionProperty) {
-//            this.propertyDefinition = propertyDefinition;
-//            this.regionProperty = regionProperty;
-//        }
-//
-//        @Override
-//        public TypedPropertyDefinition getPropertyDefinition() {
-//            return propertyDefinition;
-//        }
-//
-//        @Override
-//        public boolean isExternalProperty() {
-//            return true;
-//        }
-//
-//        @Override
-//        public DefinedRegionProperty getRegionProperty() {
-//            return regionProperty;
-//        }
-//
-//    }
-
     /*
         The global properties added to the simulation by this plugin
      */
@@ -191,23 +206,35 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 .defaultValue(new ArrayList<>())
                 .build()),
 
+        VACCINE_ADMINISTRATOR_ALLOCATION(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<VaccineId, Map<VaccineAdministratorId, Double>>>() {
+                })
+                .defaultValue(new HashMap<>()).build()),
+
         VACCINE_DELIVERIES(TypedPropertyDefinition.builder()
                 .typeReference(new TypeReference<Map<Double, Map<VaccineId, FipsCodeDouble>>>() {
                 })
                 .defaultValue(new HashMap<Double, Map<VaccineId, FipsCodeDouble>>())
                 .isMutable(false).build()),
 
-        VACCINE_ADMINISTRATOR_ALLOCATION(TypedPropertyDefinition.builder()
-                .typeReference(new TypeReference<Map<VaccineId, Map<VaccineAdministratorId, Double>>>() {
-                })
-                .defaultValue(new HashMap<>()).build()),
-
         VACCINATION_START_DAY(TypedPropertyDefinition.builder()
                 .type(Double.class).defaultValue(0.0).isMutable(false).build()),
 
-        VACCINATION_RATE_PER_DAY(TypedPropertyDefinition.builder()
-                .type(FipsCodeDouble.class).defaultValue(ImmutableFipsCodeDouble.builder().build())
-                .isMutable(false).build()),
+        // Used for overriding properties only
+        VACCINE_ADMINISTRATOR_SETTINGS(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<VaccineAdministratorId, VaccineAdministratorDefinitionOverride>>() {
+                })
+                .defaultValue(new HashMap<>())
+                .build(),
+                false),
+
+        // Used for overriding properties only
+        VACCINE_ADMINISTRATOR_ALLOCATION_OVERRIDES(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<VaccineId, Map<VaccineAdministratorId, Double>>>() {
+                })
+                .defaultValue(new HashMap<>())
+                .build(),
+                false),
 
         VACCINE_TRIGGER_OVERRIDES(TypedPropertyDefinition.builder()
                 .typeReference(new TypeReference<List<TriggeredPropertyOverride>>() {
@@ -215,16 +242,31 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 .defaultValue(new ArrayList<TriggeredPropertyOverride>())
                 .isMutable(false).build()),
 
+        VACCINATION_FIPS_CODE_RESTART_TIME(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<FipsCode, Double>>() {
+                })
+                .defaultValue(new LinkedHashMap<>())
+                .build(),
+                false),
+
         MOST_RECENT_VACCINATION_DATA(TypedPropertyDefinition.builder()
                 .typeReference(new TypeReference<Optional<DetailedResourceVaccinationData>>() {
                 })
                 .defaultValue(Optional.empty())
-                .build());
+                .build(),
+                false);
 
         private final TypedPropertyDefinition propertyDefinition;
+        private final boolean isExternalProperty;
 
         VaccineGlobalProperty(TypedPropertyDefinition propertyDefinition) {
             this.propertyDefinition = propertyDefinition;
+            isExternalProperty = true;
+        }
+
+        VaccineGlobalProperty(TypedPropertyDefinition propertyDefinition, boolean isExternalProperty) {
+            this.propertyDefinition = propertyDefinition;
+            this.isExternalProperty = isExternalProperty;
         }
 
         @Override
@@ -234,7 +276,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
         @Override
         public boolean isExternalProperty() {
-            return true;
+            return isExternalProperty;
         }
     }
 
@@ -251,7 +293,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         // Map indicating the set of FipsCodes in what at the moment there are no more people to whom to give first doses
         private final Map<VaccineAdministratorId, Set<FipsCode>> fipsCodesWithNoFirstDosesPeople = new HashMap<>();
         // Map for VaccineAdministrators by id
-        private final Map<VaccineAdministratorId, VaccineAdministratorDefinition> vaccineAdministratorMap = new HashMap<>();
+        private final Map<VaccineAdministratorId, VaccineAdministratorDefinition> vaccineAdministratorMap = new LinkedHashMap<>();
         // Map for Vaccines by id
         private final Map<VaccineId, VaccineDefinition> vaccineDefinitionMap = new HashMap<>();
         // Map from Vaccine ID to index in the VACCINE_DEFINITION global property
@@ -266,7 +308,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             List<VaccineAdministratorDefinition> vaccineAdministratorDefinitions = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINE_ADMINISTRATORS);
             vaccineAdministratorDefinitions.forEach(
-                    vaccineAdministratorDefinition -> vaccineAdministratorMap.put(vaccineAdministratorDefinition.id(), vaccineAdministratorDefinition)
+                    vaccineAdministratorDefinition -> vaccineAdministratorMap.put(vaccineAdministratorDefinition.id(),
+                            vaccineAdministratorDefinition)
             );
 
             // Store vaccine definitions by ID and add storage for each administrator
@@ -376,8 +419,119 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                     environment.addPlan(new VaccineDeliveryPlan(entry.getValue()), entry.getKey());
                 }
 
+                // Register to observe changes for triggered property overrides that may restart vaccination
+                environment.observeGlobalPropertyChange(true,
+                        VaccineGlobalProperty.VACCINE_ADMINISTRATOR_SETTINGS);
+                environment.observeGlobalPropertyChange(true,
+                        VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION_OVERRIDES);
             }
 
+        }
+
+        @Override
+        public void observeGlobalPropertyChange(Environment environment, GlobalPropertyId globalPropertyId) {
+            if (globalPropertyId.equals(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_SETTINGS)) {
+                Map<VaccineAdministratorId, VaccineAdministratorDefinitionOverride> overrides =
+                        environment.getGlobalPropertyValue(globalPropertyId);
+                // Track changes that require reconsideration of vaccination plans
+                Set<VaccineAdministratorId> administratorsRateChanged = new LinkedHashSet<>();
+                Set<VaccineAdministratorId> administratorsUptakeChanged = new LinkedHashSet<>();
+                // First recompute the vaccine administrator definitions
+                for (VaccineAdministratorId vaccineAdministratorId : vaccineAdministratorMap.keySet()) {
+                    if (overrides.containsKey(vaccineAdministratorId)) {
+                        VaccineAdministratorDefinitionOverride definitionOverride = overrides.get(vaccineAdministratorId);
+                        ImmutableVaccineAdministratorDefinition.Builder builder = ImmutableVaccineAdministratorDefinition.builder();
+                        builder.from(vaccineAdministratorMap.get(vaccineAdministratorId));
+                        if (definitionOverride.vaccinationRatePerDay() != null) {
+                            if (definitionOverride.vaccinationRatePerDay().scope() !=
+                                    vaccineAdministratorMap.get(vaccineAdministratorId).vaccinationRatePerDay().scope()) {
+                                throw new RuntimeException("Cannot change scope of vaccine administration in override");
+                            }
+                            builder.vaccinationRatePerDay(definitionOverride.vaccinationRatePerDay());
+                            // Requires reconsideration of vaccine administration rate
+                            administratorsRateChanged.add(vaccineAdministratorId);
+                        }
+                        if (definitionOverride.vaccineUptakeWeights() != null) {
+                            builder.vaccineUptakeWeights(definitionOverride.vaccineUptakeWeights());
+                            administratorsUptakeChanged.add(vaccineAdministratorId);
+                        }
+                        if (definitionOverride.vaccineHighRiskUptakeWeights() != null) {
+                            builder.vaccineHighRiskUptakeWeights(definitionOverride.vaccineHighRiskUptakeWeights());
+                            administratorsUptakeChanged.add(vaccineAdministratorId);
+                        }
+                        if (definitionOverride.fractionReturnForSecondDose() != null) {
+                            builder.fractionReturnForSecondDose(definitionOverride.fractionReturnForSecondDose());
+                            // Does not require reconsideration of vaccination plan
+                        }
+                        vaccineAdministratorMap.put(vaccineAdministratorId, builder.build());
+                    }
+                }
+
+                // Recompute vaccination rates and stop/restart vaccination events
+                final double vaccinationStartDay = environment.getGlobalPropertyValue(
+                        VaccineGlobalProperty.VACCINATION_START_DAY);
+                for (VaccineAdministratorId vaccineAdministratorId : administratorsRateChanged) {
+                    // Recompute administration rates from fips code values object
+                    VaccineAdministratorDefinition vaccineAdministratorDefinition = vaccineAdministratorMap.get(vaccineAdministratorId);
+                    Map<FipsCode, Double> vaccinationRatePerDayByFipsCode = vaccineAdministratorDefinition
+                            .vaccinationRatePerDay().getFipsCodeValues(environment);
+                    // Recompute sampling distributions for vaccine administration
+                    Map<FipsCode, RealDistribution> interVaccinationDelayDistributionForAdministrator = new HashMap<>();
+                    for (Map.Entry<FipsCode, Double> entry : vaccinationRatePerDayByFipsCode.entrySet()) {
+                        FipsCode fipsCode = entry.getKey();
+                        Object vaccinationPlanKey = new MultiKey(vaccineAdministratorId, fipsCode);
+                        environment.removePlan(vaccinationPlanKey);
+                        double vaccinationRatePerDay = entry.getValue();
+                        if (vaccinationRatePerDay > 0) {
+                            // Make distribution for inter-vaccination time delays
+                            final RandomGenerator randomGenerator = environment.getRandomGeneratorFromId(VaccineRandomId.ID);
+                            RealDistribution interVaccinationDelayDistribution = new ExponentialDistribution(randomGenerator,
+                                    1 / vaccinationRatePerDay);
+                            interVaccinationDelayDistributionForAdministrator.put(fipsCode, interVaccinationDelayDistribution);
+
+                            // Reschedule vaccination event
+                            environment.addPlan(new VaccinationPlan(vaccineAdministratorDefinition.id(), fipsCode),
+                                    environment.getTime() + interVaccinationDelayDistribution.sample(),
+                                    vaccinationPlanKey);
+                        }
+                    }
+                    interVaccinationDelayDistribution.put(vaccineAdministratorId, interVaccinationDelayDistributionForAdministrator);
+                }
+
+                // Restart vaccination if needed due to uptake changes
+                if (environment.getTime() >= vaccinationStartDay) {
+                    for (VaccineAdministratorId vaccineAdministratorId : administratorsUptakeChanged) {
+                        fipsCodesWithNoFirstDosesPeople.put(vaccineAdministratorId, new HashSet<>());
+                        // Skip those whose rate changed as we have already reconsidered all vaccination events
+                        if (!administratorsRateChanged.contains(vaccineAdministratorId)) {
+                            for (FipsCode fipsCode : fipsCodeRegionMap.keySet()) {
+                                if (!environment.getPlan(new MultiKey(vaccineAdministratorId, fipsCode)).isPresent()) {
+                                    vaccinateAndScheduleNext(environment, vaccineAdministratorId, fipsCode);
+                                }
+                            }
+                        }
+                    }
+                }
+
+            } else if (globalPropertyId.equals(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION_OVERRIDES)) {
+                // Normalize and update allocation
+                Map<VaccineId, Map<VaccineAdministratorId, Double>> allocation = environment.getGlobalPropertyValue(
+                        VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION);
+                Map<VaccineId, Map<VaccineAdministratorId, Double>> allocationOverrides = environment.getGlobalPropertyValue(
+                        VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION_OVERRIDES);
+                allocationOverrides.forEach(
+                        (vaccineId, vaccineAllocation) -> {
+                            final double vaccineAllocationTotal = vaccineAllocation.values().stream()
+                                    .mapToDouble(x -> x).sum();
+                            vaccineAllocation.replaceAll(
+                                    (i, v) -> vaccineAllocation.get(i) / vaccineAllocationTotal);
+                            allocation.put(vaccineId, vaccineAllocation);
+                        }
+                );
+                environment.setGlobalPropertyValue(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION, allocation);
+            } else {
+                throw new RuntimeException("VaccineManager observed unexpected global property change");
+            }
         }
 
         @Override

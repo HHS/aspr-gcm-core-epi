@@ -137,7 +137,8 @@ public class TestPropertyFipsLoading {
             ObjectReader simpleParser = objectMapper.readerFor(Double.class);
             //Double firstDoubleValue = simpleParser.readValue(initialParsedSimpleInput.get(PROPERTY_A.toString()).get(0));
             Double firstDoubleValue = (Double) CoreEpiBootstrapUtil.getPropertyValueFromJson(
-                    initialParsedSimpleInput.get(PROPERTY_A.toString()).get(0), PROPERTY_A, null);
+                    initialParsedSimpleInput.get(PROPERTY_A.toString()).get(0),
+                    PROPERTY_A.getPropertyDefinition().javaType(), null);
             Double secondDoubleValue = simpleParser.readValue(initialParsedSimpleInput.get(PROPERTY_A.toString()).get(1));
 
             assertEquals(firstDoubleValue, 1.0, 1e-16);
@@ -153,7 +154,7 @@ public class TestPropertyFipsLoading {
             assertEquals(secondFipsCodeDouble.defaultValue(), 2.0, 1e-16);
 
             CoreEpiBootstrapUtil.getPropertyValueFromJson(initialParsedSimpleInput.get(PROPERTY_A.toString()).get(0),
-                    PROPERTY_A, null);
+                    PROPERTY_A.getPropertyDefinition().javaType(), null);
 
             Map<String, List<JsonNode>> initialParsedSimpleMapInput = initialReader.readValue(SIMPLE_MAP_INPUT);
             ObjectReader simpleMapParser = objectMapper.readerFor(new TypeReference<Map<AgeGroup, Double>>() { });

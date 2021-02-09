@@ -1,10 +1,7 @@
 package gcm.core.epi.util.loading;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MappingIterator;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -254,11 +251,11 @@ public class CoreEpiBootstrapUtil {
     }
 
     private static Object getPropertyValueFromJson(ObjectMapper objectMapper, JsonNode jsonNode,
-                                                   DefinedProperty property) throws IOException {
-        return objectMapper.readerFor(property.getPropertyDefinition().javaType()).readValue(jsonNode);
+                                                   JavaType javaType) throws IOException {
+        return objectMapper.readerFor(javaType).readValue(jsonNode);
     }
 
-    public static Object getPropertyValueFromJson(JsonNode jsonNode, DefinedProperty property,
+    public static Object getPropertyValueFromJson(JsonNode jsonNode, JavaType javaType,
                                                   AgeGroupPartition ageGroupPartition) throws IOException {
         // Create module for deserializing special objects from Strings for use in map keys during property loading
         SimpleModule deserializationModule = new SimpleModule();
@@ -274,7 +271,7 @@ public class CoreEpiBootstrapUtil {
                 .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
                 .registerModule(new Jdk8Module())
                 .registerModule(deserializationModule);
-        return getPropertyValueFromJson(objectMapper, jsonNode, property);
+        return getPropertyValueFromJson(objectMapper, jsonNode, javaType);
     }
 
     public static List<RegionFileRecord> loadRegionsFromFile(Path file) {
@@ -505,7 +502,7 @@ public class CoreEpiBootstrapUtil {
          */
         List<CheckedSupplier<Object>> parsingMethods = new ArrayList<>();
 
-        parsingMethods.add(() -> getPropertyValueFromJson(objectMapper, jsonNode, property));
+        parsingMethods.add(() -> getPropertyValueFromJson(objectMapper, jsonNode, property.getPropertyDefinition().javaType()));
 
         final Object basePropertyValue = objectMapper.treeToValue(jsonNode, Object.class);
         if (String.class.isAssignableFrom(basePropertyValue.getClass())) {

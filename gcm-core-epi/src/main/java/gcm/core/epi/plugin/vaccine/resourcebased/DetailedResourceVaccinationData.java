@@ -9,9 +9,12 @@ import org.immutables.value.Value;
 public interface DetailedResourceVaccinationData {
 
     RegionId regionId();
+
     VaccineAdministratorId vaccineAdministratorId();
+
     VaccineId vaccineId();
-    DoseType doseType ();
+
+    DoseType doseType();
 
     enum DoseType {
         FIRST_DOSE,

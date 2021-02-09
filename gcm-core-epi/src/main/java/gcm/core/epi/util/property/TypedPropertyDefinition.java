@@ -30,6 +30,25 @@ public abstract class TypedPropertyDefinition {
         }
     }
 
+    @Value.Default
+    Optional<TypeReference<?>> overrideTypeReference() {
+        return typeReference();
+    }
+
+    @Value.Default
+    Optional<Class<?>> overrideType() {
+        return type();
+    }
+
+    @Value.Derived
+    public JavaType overrideJavaType() {
+        if (typeReference().isPresent()) {
+            return TypeFactory.defaultInstance().constructType(typeReference().get());
+        } else {
+            return TypeFactory.defaultInstance().constructSimpleType(type().get(), null);
+        }
+    }
+
     abstract @Nullable Object defaultValue();
 
     @Value.Default

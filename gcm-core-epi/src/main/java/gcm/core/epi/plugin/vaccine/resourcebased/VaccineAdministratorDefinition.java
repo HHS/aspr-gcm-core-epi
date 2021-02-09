@@ -24,17 +24,17 @@ public abstract class VaccineAdministratorDefinition {
     }
 
     @Value.Default
-    public AgeWeights vaccineHighRiskUptakeWeights()  {
+    public AgeWeights vaccineHighRiskUptakeWeights() {
         return ImmutableAgeWeights.builder().defaultValue(1.0).build();
     }
 
     @Value.Default
-    public boolean reserveSecondDoses() {
+    public Boolean reserveSecondDoses() {
         return true;
     }
 
     @Value.Default
-    public double fractionReturnForSecondDose() {
+    public Double fractionReturnForSecondDose() {
         return 1.0;
     }
 
