@@ -6,6 +6,8 @@ import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.identifiers.Resource;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.PopulationDescription;
+import gcm.core.epi.variants.VariantId;
+import gcm.core.epi.variants.VariantsDescription;
 import gcm.output.reports.ReportHeader;
 import gcm.output.reports.ReportItem;
 import gcm.output.reports.StateChange;
@@ -16,7 +18,7 @@ import java.util.*;
 
 public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
 
-    private final Map<String, Map<AgeGroup, Map<CounterType, Counter>>> counterMap = new LinkedHashMap<>();
+    private final Map<String, Map<AgeGroup, Map<VariantId, Map<CounterType, Counter>>>> counterMap = new LinkedHashMap<>();
     private ReportHeader reportHeader;
 
     private static AgeGroup getPersonAgeGroup(ObservableEnvironment observableEnvironment, PersonId personId) {
@@ -33,6 +35,7 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
             reportHeader = reportHeaderBuilder
                     .add("Region")
                     .add("AgeGroup")
+                    .add("Variant")
                     .add("Metric")
                     .add("Incidence")
                     .build();
@@ -43,9 +46,15 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
     private Counter getCounter(ObservableEnvironment observableEnvironment, PersonId personId, CounterType counterType) {
         RegionId regionId = observableEnvironment.getPersonRegion(personId);
         AgeGroup ageGroup = getPersonAgeGroup(observableEnvironment, personId);
+        VariantsDescription variantsDescription = observableEnvironment.getGlobalPropertyValue(GlobalProperty.VARIANTS_DESCRIPTION);
+        // Handle case that infection index has not been set yet from initial seeding
+        int strainIndex = Math.max(observableEnvironment.getPersonPropertyValue(personId,
+                PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1), 0);
+        VariantId variantId = variantsDescription.variantIdList().get(strainIndex);
         return counterMap
                 .computeIfAbsent(getFipsString(regionId), x -> new HashMap<>())
-                .computeIfAbsent(ageGroup, x -> new EnumMap<>(CounterType.class))
+                .computeIfAbsent(ageGroup, x -> new HashMap<>())
+                .computeIfAbsent(variantId, x -> new EnumMap<>(CounterType.class))
                 .computeIfAbsent(counterType, x -> new Counter());
     }
 
@@ -92,25 +101,29 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
         for (String regionId : counterMap.keySet()) {
-            Map<AgeGroup, Map<CounterType, Counter>> ageGroupCounterMap = counterMap.get(regionId);
+            Map<AgeGroup, Map<VariantId, Map<CounterType, Counter>>> ageGroupCounterMap = counterMap.get(regionId);
             for (AgeGroup ageGroup : ageGroupCounterMap.keySet()) {
-                Map<CounterType, Counter> counters = ageGroupCounterMap.get(ageGroup);
-                for (CounterType counterType : counters.keySet()) {
-                    int count = counters.get(counterType).count;
-                    if (count > 0) {
-                        reportItemBuilder.setReportHeader(getReportHeader());
-                        reportItemBuilder.setReportType(getClass());
-                        reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
-                        reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
-                        buildTimeFields(reportItemBuilder);
+                Map<VariantId, Map<CounterType, Counter>> variantCounterMap = ageGroupCounterMap.get(ageGroup);
+                for (VariantId variantId : variantCounterMap.keySet()) {
+                    Map<CounterType, Counter> counters = variantCounterMap.get(variantId);
+                    for (CounterType counterType : counters.keySet()) {
+                        int count = counters.get(counterType).count;
+                        if (count > 0) {
+                            reportItemBuilder.setReportHeader(getReportHeader());
+                            reportItemBuilder.setReportType(getClass());
+                            reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
+                            reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
+                            buildTimeFields(reportItemBuilder);
 
-                        reportItemBuilder.addValue(regionId);
-                        reportItemBuilder.addValue(ageGroup.toString());
-                        reportItemBuilder.addValue(counterType.toString());
-                        reportItemBuilder.addValue(count);
+                            reportItemBuilder.addValue(regionId);
+                            reportItemBuilder.addValue(ageGroup.toString());
+                            reportItemBuilder.addValue(variantId.id());
+                            reportItemBuilder.addValue(counterType.toString());
+                            reportItemBuilder.addValue(count);
 
-                        observableEnvironment.releaseOutputItem(reportItemBuilder.build());
-                        counters.get(counterType).count = 0;
+                            observableEnvironment.releaseOutputItem(reportItemBuilder.build());
+                            counters.get(counterType).count = 0;
+                        }
                     }
                 }
             }
