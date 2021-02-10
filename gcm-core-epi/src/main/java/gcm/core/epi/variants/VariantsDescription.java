@@ -1,5 +1,6 @@
 package gcm.core.epi.variants;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
@@ -9,17 +10,18 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Value.Immutable
+@JsonDeserialize(as = ImmutableVariantsDescription.class)
 public abstract class VariantsDescription {
 
-    private static final VariantId REFERENCE_STRAIN = VariantId.of("Reference");
+    private static final VariantId REFERENCE_STRAIN = VariantId.REFERENCE_ID;
     private static final VariantDefinition REFERENCE_VARIANT_DEFINITION = ImmutableVariantDefinition.builder().build();
 
-    public abstract Map<VariantId, VariantDefinition> variantDefinitions();
+    abstract Map<VariantId, VariantDefinition> variantDefinitions();
 
-    public abstract Map<VariantId, Map<VariantId, Double>> priorInfectionImmunity();
+    abstract Map<VariantId, Map<VariantId, Double>> priorInfectionImmunity();
 
     @Value.Derived
-    List<VariantId> variantIdList() {
+    public List<VariantId> variantIdList() {
         List<VariantId> variantIdList = new ArrayList<>();
         // Reference strain will always be first
         variantIdList.add(REFERENCE_STRAIN);
@@ -56,6 +58,14 @@ public abstract class VariantsDescription {
             return variantDefinitions().get(variantIdList().get(variantIndex));
         } else {
             return REFERENCE_VARIANT_DEFINITION;
+        }
+    }
+
+    public int getVariantIndex(VariantId variantId) {
+        if (variantIdIndex().containsKey(variantId)) {
+            return variantIdIndex().get(variantId);
+        } else {
+            throw new RuntimeException("Invalid variant id: " + variantId.toString());
         }
     }
 

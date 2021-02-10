@@ -6,7 +6,7 @@ import org.apache.commons.math3.distribution.GammaDistribution;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonDeserialize(as = WaningImmunityFunction.class)
+@JsonDeserialize(as = ImmutableWaningImmunityFunction.class)
 public abstract class WaningImmunityFunction {
 
     @Value.Default

@@ -1,5 +1,6 @@
 package gcm.core.epi.plugin.transmission;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.GlobalProperty;
@@ -8,9 +9,14 @@ import gcm.core.epi.propertytypes.InfectionData;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.core.epi.variants.VariantId;
+import gcm.core.epi.variants.VariantsDescription;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
+import org.apache.commons.math3.analysis.function.Identity;
+import org.apache.commons.math3.distribution.EnumeratedDistribution;
+import org.apache.commons.math3.util.Pair;
 
 import java.util.*;
 
@@ -24,22 +30,10 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
     };
 
     @Override
-    public double getRelativeTransmissibility(Environment environment, PersonId personId) {
-        double relativeTransmissibilty = environment.getGlobalPropertyValue(VariantGlobalProperty.VARIANT_RELATIVE_TRANSMISSIBILITY);
-        boolean hasVariant = environment.getPersonPropertyValue(personId, VariantPersonProperty.HAS_VARIANT);
-        return hasVariant ? relativeTransmissibilty : 1.0;
-    }
-
-    @Override
     public List<RandomNumberGeneratorId> getRandomIds() {
         List<RandomNumberGeneratorId> randomIds = new ArrayList<>();
         randomIds.add(VariantRandomId.VARIANT_RANDOM_ID);
         return randomIds;
-    }
-
-    @Override
-    public Set<DefinedPersonProperty> getPersonProperties() {
-        return new HashSet<>(EnumSet.allOf(VariantPersonProperty.class));
     }
 
     @Override
@@ -57,32 +51,14 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
         VARIANT_RANDOM_ID
     }
 
-    public enum VariantPersonProperty implements DefinedPersonProperty {
-        HAS_VARIANT(TypedPropertyDefinition.builder()
-                .type(Boolean.class).defaultValue(false).build());
-
-        private final TypedPropertyDefinition propertyDefinition;
-
-        VariantPersonProperty(TypedPropertyDefinition propertyDefinition) {
-            this.propertyDefinition = propertyDefinition;
-        }
-
-        @Override
-        public TypedPropertyDefinition getPropertyDefinition() {
-            return propertyDefinition;
-        }
-    }
-
     public enum VariantGlobalProperty implements DefinedGlobalProperty {
 
         VARIANT_INITIAL_PREVALENCE(TypedPropertyDefinition.builder()
-                .type(Double.class).defaultValue(0.0).build()),
+                .typeReference(new TypeReference<Map<VariantId, Double>>() {
+                }).defaultValue(new HashMap<>()).build()),
 
         VARIANT_SEEDING_START(TypedPropertyDefinition.builder()
-                .type(Double.class).defaultValue(0.0).build()),
-
-        VARIANT_RELATIVE_TRANSMISSIBILITY(TypedPropertyDefinition.builder()
-                .type(Double.class).defaultValue(1.0).build());
+                .type(Double.class).defaultValue(0.0).build());
 
         private final TypedPropertyDefinition propertyDefinition;
 
@@ -112,33 +88,50 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
 
         @Override
         public void executePlan(Environment environment, Plan plan) {
-            // Only called to seed variant
-            // First seed the variant
-            double variantInitialPrevalence = environment.getGlobalPropertyValue(VariantGlobalProperty.VARIANT_INITIAL_PREVALENCE);
-            for (PersonId personId : environment.getPeopleInCompartment(Compartment.INFECTED)) {
-                if (environment.getRandomGeneratorFromId(VariantRandomId.VARIANT_RANDOM_ID).nextDouble() < variantInitialPrevalence) {
-                    environment.setPersonPropertyValue(personId, VariantPersonProperty.HAS_VARIANT, true);
-                    // Change their transmissibility from that point forward
-                    environment.setPersonPropertyValue(personId, PersonProperty.ACTIVITY_LEVEL_CHANGED, true);
+            // Only called to seed variants
+
+            // Compute and validate weights
+            Map<VariantId, Double> variantInitialPrevalence = environment.getGlobalPropertyValue(
+                    VariantGlobalProperty.VARIANT_INITIAL_PREVALENCE);
+            if (variantInitialPrevalence.values().stream().anyMatch(x -> x < 0)) {
+                throw new RuntimeException("Negative initial prevalence");
+            }
+            double total = variantInitialPrevalence.values().stream().mapToDouble(x -> x).sum();
+            if (total > 1.0) {
+                throw new RuntimeException("Total initial prevalence is too high");
+            }
+
+            // Seed the variants as needed
+            if (total > 0) {
+                List<Pair<VariantId, Double>> variantSamplingWeights = new ArrayList<>();
+                VariantsDescription variantsDescription = environment.getGlobalPropertyValue(GlobalProperty.VARIANTS_DESCRIPTION);
+                for (VariantId variantId : variantsDescription.variantIdList()) {
+                    if (variantId.equals(VariantId.REFERENCE_ID) && total < 1.0) {
+                        variantSamplingWeights.add(new Pair<>(VariantId.REFERENCE_ID, 1.0 - total));
+                    } else {
+                        double variantPrevalence = variantInitialPrevalence.getOrDefault(variantId, 0.0);
+                        if (variantPrevalence > 0) {
+                            variantSamplingWeights.add(new Pair<>(variantId, variantPrevalence));
+                        }
+                    }
+                }
+                EnumeratedDistribution<VariantId> variantIdDistribution = new EnumeratedDistribution<>(
+                        environment.getRandomGeneratorFromId(VariantRandomId.VARIANT_RANDOM_ID),
+                        variantSamplingWeights);
+
+                for (PersonId personId : environment.getPeopleInCompartment(Compartment.INFECTED)) {
+                    // Update strain
+                    VariantId variantId = variantIdDistribution.sample();
+                    // If not reference, update and re-assess transmissibility
+                    if (!variantId.equals(VariantId.REFERENCE_ID)) {
+                        int strainIndex = variantsDescription.getVariantIndex(variantId);
+                        environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1, strainIndex);
+                        environment.setPersonPropertyValue(personId, PersonProperty.ACTIVITY_LEVEL_CHANGED, true);
+                    }
                 }
             }
 
-            // Register to see people having infectious contact
-            environment.observeGlobalPersonPropertyChange(true, PersonProperty.HAD_INFECTIOUS_CONTACT);
-        }
 
-        @Override
-        public void observePersonPropertyChange(Environment environment, PersonId personId, PersonPropertyId personPropertyId) {
-            // Only called when person had infectious contact
-            Optional<InfectionData> infectionData = environment.getGlobalPropertyValue(GlobalProperty.MOST_RECENT_INFECTION_DATA);
-            if (infectionData.isPresent()) {
-                boolean sourceHadVariant = infectionData.get().sourcePersonId()
-                        .map(sourcePersonId -> (boolean) environment.getPersonPropertyValue(sourcePersonId, VariantPersonProperty.HAS_VARIANT))
-                        .orElse(false);
-                if (sourceHadVariant) {
-                    environment.setPersonPropertyValue(personId, VariantPersonProperty.HAS_VARIANT, true);
-                }
-            }
         }
 
         private static final class VariantSeedingPlan implements Plan {

@@ -18,4 +18,6 @@ public interface VariantId {
     @Value.Parameter
     String id();
 
+    final VariantId REFERENCE_ID = VariantId.of("Reference");
+
 }
