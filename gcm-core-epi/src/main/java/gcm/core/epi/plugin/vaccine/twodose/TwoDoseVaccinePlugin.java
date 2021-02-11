@@ -11,6 +11,7 @@ import gcm.core.epi.propertytypes.ImmutableAgeWeights;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.core.epi.variants.VariantId;
 import gcm.scenario.ExperimentBuilder;
 import gcm.scenario.PersonId;
 import gcm.scenario.RandomNumberGeneratorId;
@@ -53,7 +54,7 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
-    public double getVES(Environment environment, PersonId personId) {
+    public double getVES(Environment environment, PersonId personId, VariantId variantId) {
         return isVaccineDose2Protected(environment, personId) ?
                 environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_S_2) :
                 isVaccineDose1Protected(environment, personId) ?
@@ -61,7 +62,7 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
-    public double getVEI(Environment environment, PersonId personId) {
+    public double getVEI(Environment environment, PersonId personId, VariantId variantId) {
         return isVaccineDose2Protected(environment, personId) ?
                 environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_I_2) :
                 isVaccineDose1Protected(environment, personId) ?
@@ -69,7 +70,7 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
-    public double getVEP(Environment environment, PersonId personId) {
+    public double getVEP(Environment environment, PersonId personId, VariantId variantId) {
         return isVaccineDose2Protected(environment, personId) ?
                 environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_P_2) :
                 isVaccineDose1Protected(environment, personId) ?

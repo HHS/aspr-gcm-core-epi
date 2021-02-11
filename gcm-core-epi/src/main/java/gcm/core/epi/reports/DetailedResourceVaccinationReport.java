@@ -73,33 +73,31 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
         regionCounterMap.forEach(
-                (regionId, counterMap) -> {
-                    counterMap.forEach(
-                            (administrationData, doseTypeCounterMap) -> {
-                                reportItemBuilder.setReportHeader(getReportHeader());
-                                reportItemBuilder.setReportType(getClass());
-                                reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
-                                reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
+                (regionId, counterMap) -> counterMap.forEach(
+                        (administrationData, doseTypeCounterMap) -> {
+                            reportItemBuilder.setReportHeader(getReportHeader());
+                            reportItemBuilder.setReportType(getClass());
+                            reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
+                            reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
 
-                                buildTimeFields(reportItemBuilder);
-                                reportItemBuilder.addValue(regionId);
-                                reportItemBuilder.addValue(administrationData.vaccineAdministratorId.id());
-                                reportItemBuilder.addValue(administrationData.vaccineId.id());
-                                reportItemBuilder.addValue(doseTypeCounterMap
-                                        .computeIfAbsent(DetailedResourceVaccinationData.DoseType.FIRST_DOSE, x -> new Counter()).count);
-                                reportItemBuilder.addValue(doseTypeCounterMap
-                                        .computeIfAbsent(DetailedResourceVaccinationData.DoseType.SECOND_DOSE, x -> new Counter()).count);
+                            buildTimeFields(reportItemBuilder);
+                            reportItemBuilder.addValue(regionId);
+                            reportItemBuilder.addValue(administrationData.vaccineAdministratorId.id());
+                            reportItemBuilder.addValue(administrationData.vaccineId.id());
+                            reportItemBuilder.addValue(doseTypeCounterMap
+                                    .computeIfAbsent(DetailedResourceVaccinationData.DoseType.FIRST_DOSE, x -> new Counter()).count);
+                            reportItemBuilder.addValue(doseTypeCounterMap
+                                    .computeIfAbsent(DetailedResourceVaccinationData.DoseType.SECOND_DOSE, x -> new Counter()).count);
 
-                                observableEnvironment.releaseOutputItem(reportItemBuilder.build());
+                            observableEnvironment.releaseOutputItem(reportItemBuilder.build());
 
-                                // Reset counters
-                                for (DetailedResourceVaccinationData.DoseType doseType :
-                                        DetailedResourceVaccinationData.DoseType.values()) {
-                                    doseTypeCounterMap.get(doseType).count = 0;
-                                }
+                            // Reset counters
+                            for (DetailedResourceVaccinationData.DoseType doseType :
+                                    DetailedResourceVaccinationData.DoseType.values()) {
+                                doseTypeCounterMap.get(doseType).count = 0;
                             }
-                    );
-                }
+                        }
+                )
         );
     }
 

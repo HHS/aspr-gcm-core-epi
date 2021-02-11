@@ -51,7 +51,7 @@ public enum FipsScope {
         return populationDescription.regionIds().stream()
                 .collect(Collectors.groupingBy(this::getFipsSubCode,
                         // Force map order
-                        () -> new LinkedHashMap<>(),
+                        LinkedHashMap::new,
                         Collectors.toCollection(LinkedHashSet::new)));
     }
 

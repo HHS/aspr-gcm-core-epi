@@ -2,8 +2,6 @@ package gcm.core.epi.variants;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import gcm.core.epi.plugin.vaccine.resourcebased.ImmutableVaccineId;
-import gcm.scenario.ResourceId;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
@@ -18,6 +16,6 @@ public interface VariantId {
     @Value.Parameter
     String id();
 
-    final VariantId REFERENCE_ID = VariantId.of("Reference");
+    VariantId REFERENCE_ID = VariantId.of("Reference");
 
 }

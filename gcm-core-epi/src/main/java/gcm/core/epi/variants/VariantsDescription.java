@@ -33,9 +33,7 @@ public abstract class VariantsDescription {
     Map<VariantId, Integer> variantIdIndex() {
         Map<VariantId, Integer> variantIdIndex = new HashMap<>();
         AtomicInteger counter = new AtomicInteger();
-        variantIdList().forEach(variantId -> {
-            variantIdIndex.put(variantId, counter.getAndIncrement());
-        });
+        variantIdList().forEach(variantId -> variantIdIndex.put(variantId, counter.getAndIncrement()));
         return variantIdIndex;
     }
 

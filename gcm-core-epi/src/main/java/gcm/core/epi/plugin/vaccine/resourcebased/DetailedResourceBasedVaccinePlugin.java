@@ -20,6 +20,7 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.DefinedResourceProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.core.epi.variants.VariantId;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
@@ -44,9 +45,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
     @Override
     public Set<DefinedGlobalProperty> getGlobalProperties() {
-        Set<DefinedGlobalProperty> globalProperties = new HashSet<>();
-        globalProperties.addAll(EnumSet.allOf(VaccineGlobalProperty.class));
-        //globalProperties.addAll(EnumSet.allOf(VaccineGlobalAndRegionProperty.class));
+        Set<DefinedGlobalProperty> globalProperties = new HashSet<>(EnumSet.allOf(VaccineGlobalProperty.class));
         return globalProperties;
     }
 
@@ -63,21 +62,22 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
-    public double getVES(Environment environment, PersonId personId) {
-        return getEfficacyFunctionValue(environment, personId, VaccineDefinition.EfficacyType.VE_S);
+    public double getVES(Environment environment, PersonId personId, VariantId variantId) {
+        return getEfficacyFunctionValue(environment, personId, variantId, VaccineDefinition.EfficacyType.VE_S);
     }
 
     @Override
-    public double getVEI(Environment environment, PersonId personId) {
-        return getEfficacyFunctionValue(environment, personId, VaccineDefinition.EfficacyType.VE_I);
+    public double getVEI(Environment environment, PersonId personId, VariantId variantId) {
+        return getEfficacyFunctionValue(environment, personId, variantId, VaccineDefinition.EfficacyType.VE_I);
     }
 
     @Override
-    public double getVEP(Environment environment, PersonId personId) {
-        return getEfficacyFunctionValue(environment, personId, VaccineDefinition.EfficacyType.VE_P);
+    public double getVEP(Environment environment, PersonId personId, VariantId variantId) {
+        return getEfficacyFunctionValue(environment, personId, variantId, VaccineDefinition.EfficacyType.VE_P);
     }
 
-    private double getEfficacyFunctionValue(Environment environment, PersonId personId, VaccineDefinition.EfficacyType efficacyType) {
+    private double getEfficacyFunctionValue(Environment environment, PersonId personId, VariantId variantId,
+                                            VaccineDefinition.EfficacyType efficacyType) {
         long numberOfDoses = environment.getPersonResourceLevel(personId, VaccineResourceId.VACCINE);
         if (numberOfDoses > 0) {
             List<VaccineDefinition> vaccineDefinitions = environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINE_DEFINITIONS);
@@ -88,7 +88,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             VaccineDefinition vaccineDefinition = vaccineDefinitions.get(vaccineIndex);
             double vaccinationTime = environment.getPersonResourceTime(personId, VaccineResourceId.VACCINE);
             double relativeTime = environment.getTime() - vaccinationTime;
-            return vaccineDefinition.getVaccineEfficacy(numberOfDoses, relativeTime, efficacyType);
+            return vaccineDefinition.getVaccineEfficacy(numberOfDoses, relativeTime, variantId, efficacyType);
         } else {
             return 0.0;
         }
@@ -665,14 +665,6 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             if (hasResource) {
                 VaccineAdministratorDefinition vaccineAdministratorDefinition = vaccineAdministratorMap.get(vaccineAdministratorId);
                 // Get a random person to vaccinate, if possible, taking into account vaccine uptake weights
-//                TODO: Trigger overrides for vaccine uptake weights
-//                // Can use any region in the fips code as all will have the same value
-//                RegionId exemplarRegion = fipsCodeRegionMap.get(fipsCode).iterator().next();
-//                AgeWeights vaccineUptakeWeights = Plugin.getRegionalPropertyValue(environment,
-//                        exemplarRegion, VaccineGlobalAndRegionProperty.VACCINE_UPTAKE_WEIGHTS);
-//                AgeWeights vaccineHighRiskUptakeWeights = Plugin.getRegionalPropertyValue(environment,
-//                        exemplarRegion, VaccineGlobalAndRegionProperty.VACCINE_HIGH_RISK_UPTAKE_WEIGHTS);
-
                 AgeWeights vaccineUptakeWeights = vaccineAdministratorDefinition.vaccineUptakeWeights();
                 AgeWeights vaccineHighRiskUptakeWeights = vaccineAdministratorDefinition.vaccineHighRiskUptakeWeights();
 

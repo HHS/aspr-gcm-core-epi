@@ -13,6 +13,7 @@ import gcm.core.epi.plugin.vaccine.twodose.TwoDoseVaccineStatus;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AgeWeights;
+import gcm.core.epi.variants.VariantId;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Equality;
@@ -55,7 +56,7 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
-    public double getVES(Environment environment, PersonId personId) {
+    public double getVES(Environment environment, PersonId personId, VariantId variantId) {
         int i = 0;
         double vaccineFailureProbability = 1.0;
         for (VaccineType vaccineType : vaccineTypes) {
@@ -81,7 +82,7 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
-    public double getVEI(Environment environment, PersonId personId) {
+    public double getVEI(Environment environment, PersonId personId, VariantId variantId) {
         int i = 0;
         double vaccineFailureProbability = 1.0;
         for (VaccineType vaccineType : vaccineTypes) {
@@ -107,7 +108,7 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
-    public double getVEP(Environment environment, PersonId personId) {
+    public double getVEP(Environment environment, PersonId personId, VariantId variantId) {
         int i = 0;
         double vaccineFailureProbability = 1.0;
         for (VaccineType vaccineType : vaccineTypes) {

@@ -93,7 +93,7 @@ public abstract class PopulationDescription {
         return regionByPersonId().stream()
                 .collect(Collectors.groupingBy(Function.identity(),
                         // Force map order
-                        () -> new LinkedHashMap<>(),
+                        LinkedHashMap::new,
                         Collectors.counting()));
     }
 
@@ -106,7 +106,7 @@ public abstract class PopulationDescription {
                 .map(ageGroupIndex -> ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex))
                 .collect(Collectors.groupingBy(Function.identity(),
                         // Force map order
-                        () -> new LinkedHashMap<>(),
+                        LinkedHashMap::new,
                         Collectors.counting()));
         return ageGroupCounts.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey,

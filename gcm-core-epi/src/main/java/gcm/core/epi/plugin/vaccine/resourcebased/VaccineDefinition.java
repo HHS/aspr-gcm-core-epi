@@ -1,7 +1,10 @@
 package gcm.core.epi.plugin.vaccine.resourcebased;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import gcm.core.epi.variants.VariantId;
 import org.immutables.value.Value;
+
+import java.util.Map;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableVaccineDefinition.class)
@@ -52,7 +55,9 @@ public abstract class VaccineDefinition {
         return 0;
     }
 
-    double getVaccineEfficacy(long doses, double timeSinceLastDose, EfficacyType efficacyType) {
+    public abstract Map<VariantId, Double> variantRelativeEfficacy();
+
+    double getVaccineEfficacy(long doses, double timeSinceLastDose, VariantId variantId, EfficacyType efficacyType) {
         if (doses == 0) {
             return 0;
         }
@@ -70,6 +75,9 @@ public abstract class VaccineDefinition {
             default:
                 efficacyTypeMultiplier = 0.0;
         }
+        // Account for strain
+        efficacyTypeMultiplier *= variantRelativeEfficacy().getOrDefault(variantId, 1.0);
+        // Account for dose and time effect
         switch (type()) {
             case ONE_DOSE:
                 if (doses == 1) {

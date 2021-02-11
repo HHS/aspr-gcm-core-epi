@@ -73,7 +73,7 @@ public abstract class IncidenceTrigger extends AbstractFipsCodeDouble implements
             Map<RegionId, Long> regionPopulations = populationDescription.populationByRegion();
             Map<FipsCode, Long> fipsCodePopulations = populationDescription.regionIds().stream()
                     .collect(Collectors.groupingBy(scope()::getFipsSubCode,
-                            () -> new LinkedHashMap<>(),
+                            LinkedHashMap::new,
                             summingLong(regionId -> regionPopulations.getOrDefault(regionId, 0L))));
             thresholdsByFipsCode = fipsCodePopulations.entrySet().stream()
                     .collect(toMap(Map.Entry::getKey,

@@ -15,6 +15,7 @@ import gcm.core.epi.trigger.AbsoluteTimeTrigger;
 import gcm.core.epi.trigger.ImmutableAbsoluteTimeTrigger;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.util.property.*;
+import gcm.core.epi.variants.VariantId;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
 import gcm.simulation.Plan;
@@ -83,21 +84,21 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
-    public double getVES(Environment environment, PersonId personId) {
+    public double getVES(Environment environment, PersonId personId, VariantId variantId) {
 //        double vES = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_S);
         double vES = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_S);
         return vES * getEfficacyFunctionValue(environment, personId);
     }
 
     @Override
-    public double getVEI(Environment environment, PersonId personId) {
+    public double getVEI(Environment environment, PersonId personId, VariantId variantId) {
 //        double vEI = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_I);
         double vEI = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_I);
         return vEI * getEfficacyFunctionValue(environment, personId);
     }
 
     @Override
-    public double getVEP(Environment environment, PersonId personId) {
+    public double getVEP(Environment environment, PersonId personId, VariantId variantId) {
 //        double vEP = environment.getResourcePropertyValue(VaccineId.VACCINE_ONE, VaccineProperty.VE_P);
         double vEP = environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_P);
         return vEP * getEfficacyFunctionValue(environment, personId);
