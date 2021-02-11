@@ -44,8 +44,7 @@ public class ContactManager extends AbstractComponent {
                 environment.getGlobalPropertyValue(GlobalProperty.FRACTION_OF_GLOBAL_CONTACTS_IN_HOME_REGION);
         RegionId sourceRegionId = environment.getPersonRegion(sourcePersonId);
         RegionId targetRegionId;
-        if (environment.getRandomGeneratorFromId(RandomId.CONTACT_MANAGER).nextDouble() <
-                fractionOfGlobalContactsInHomeRegion) {
+        if (environment.getRandomGeneratorFromId(randomId).nextDouble() < fractionOfGlobalContactsInHomeRegion) {
             targetRegionId = sourceRegionId;
         } else {
             // Get a sample from the radiation flow distribution
