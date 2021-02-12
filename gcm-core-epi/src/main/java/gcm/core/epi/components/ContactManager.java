@@ -503,18 +503,27 @@ public class ContactManager extends AbstractComponent {
         // Strain 1
         targetStrainIndex = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1);
         recoveryTime = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_1);
-        infectionProbability *= variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex) *
-                waningImmunityFunction.getInfectionProbability(recoveryTime - environment.getTime());
+        if (recoveryTime < Float.POSITIVE_INFINITY) {
+            double variantBaseInfectionProbability = variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex);
+            infectionProbability *= variantBaseInfectionProbability + (1.0 - variantBaseInfectionProbability) *
+                    waningImmunityFunction.getInfectionProbability(environment.getTime() - recoveryTime);
+        }
         // Strain 2
         targetStrainIndex = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_2);
         recoveryTime = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_2);
-        infectionProbability *= variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex) *
-                waningImmunityFunction.getInfectionProbability(recoveryTime - environment.getTime());
+        if (recoveryTime < Float.POSITIVE_INFINITY) {
+            double variantBaseInfectionProbability = variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex);
+            infectionProbability *= variantBaseInfectionProbability + (1.0 - variantBaseInfectionProbability) *
+                    waningImmunityFunction.getInfectionProbability(environment.getTime() - recoveryTime);
+        }
         // Strain 3
         targetStrainIndex = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_3);
         recoveryTime = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_RECOVERY_TIME_3);
-        infectionProbability *= variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex) *
-                waningImmunityFunction.getInfectionProbability(recoveryTime - environment.getTime());
+        if (recoveryTime < Float.POSITIVE_INFINITY) {
+            double variantBaseInfectionProbability = variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex);
+            infectionProbability *= variantBaseInfectionProbability + (1.0 - variantBaseInfectionProbability) *
+                    waningImmunityFunction.getInfectionProbability(environment.getTime() - recoveryTime);
+        }
 
         return infectionProbability;
     }

@@ -13,15 +13,15 @@ public enum PersonProperty implements DefinedPersonProperty {
 
     PRIOR_INFECTION_STRAIN_INDEX_1(TypedPropertyDefinition.builder().type(Integer.class).defaultValue(-1).build()),
 
-    PRIOR_INFECTION_RECOVERY_TIME_1(TypedPropertyDefinition.builder().type(Float.class).defaultValue(-1.0f).build()),
+    PRIOR_INFECTION_RECOVERY_TIME_1(TypedPropertyDefinition.builder().type(Float.class).defaultValue(Float.POSITIVE_INFINITY).build()),
 
     PRIOR_INFECTION_STRAIN_INDEX_2(TypedPropertyDefinition.builder().type(Integer.class).defaultValue(-1).build()),
 
-    PRIOR_INFECTION_RECOVERY_TIME_2(TypedPropertyDefinition.builder().type(Float.class).defaultValue(-1.0f).build()),
+    PRIOR_INFECTION_RECOVERY_TIME_2(TypedPropertyDefinition.builder().type(Float.class).defaultValue(Float.POSITIVE_INFINITY).build()),
 
     PRIOR_INFECTION_STRAIN_INDEX_3(TypedPropertyDefinition.builder().type(Integer.class).defaultValue(-1).build()),
 
-    PRIOR_INFECTION_RECOVERY_TIME_3(TypedPropertyDefinition.builder().type(Float.class).defaultValue(-1.0f).build()),
+    PRIOR_INFECTION_RECOVERY_TIME_3(TypedPropertyDefinition.builder().type(Float.class).defaultValue(Float.POSITIVE_INFINITY).build()),
 
     WILL_BE_SYMPTOMATIC(TypedPropertyDefinition.builder().type(Boolean.class).defaultValue(false).build()),
 
