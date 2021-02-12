@@ -506,7 +506,7 @@ public class ContactManager extends AbstractComponent {
         if (recoveryTime < Float.POSITIVE_INFINITY) {
             double variantBaseInfectionProbability = variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex);
             infectionProbability *= variantBaseInfectionProbability + (1.0 - variantBaseInfectionProbability) *
-                    waningImmunityFunction.getInfectionProbability(environment.getTime() - recoveryTime);
+                    waningImmunityFunction.getWaningProbability(environment.getTime() - recoveryTime);
         }
         // Strain 2
         targetStrainIndex = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_2);
@@ -514,7 +514,7 @@ public class ContactManager extends AbstractComponent {
         if (recoveryTime < Float.POSITIVE_INFINITY) {
             double variantBaseInfectionProbability = variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex);
             infectionProbability *= variantBaseInfectionProbability + (1.0 - variantBaseInfectionProbability) *
-                    waningImmunityFunction.getInfectionProbability(environment.getTime() - recoveryTime);
+                    waningImmunityFunction.getWaningProbability(environment.getTime() - recoveryTime);
         }
         // Strain 3
         targetStrainIndex = environment.getPersonPropertyValue(targetPersonId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_3);
@@ -522,7 +522,7 @@ public class ContactManager extends AbstractComponent {
         if (recoveryTime < Float.POSITIVE_INFINITY) {
             double variantBaseInfectionProbability = variantsDescription.getInfectionProbability(sourceStrainIndex, targetStrainIndex);
             infectionProbability *= variantBaseInfectionProbability + (1.0 - variantBaseInfectionProbability) *
-                    waningImmunityFunction.getInfectionProbability(environment.getTime() - recoveryTime);
+                    waningImmunityFunction.getWaningProbability(environment.getTime() - recoveryTime);
         }
 
         return infectionProbability;

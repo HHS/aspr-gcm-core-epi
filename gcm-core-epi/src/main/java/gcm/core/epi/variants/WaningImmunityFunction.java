@@ -25,7 +25,7 @@ public abstract class WaningImmunityFunction {
                 GammaHelper.getScaleFromMeanAndSD(waningMean(), waningSD()));
     }
 
-    public double getInfectionProbability(double time) {
+    public double getWaningProbability(double time) {
         if (time < 0) {
             return 1.0;
         }
