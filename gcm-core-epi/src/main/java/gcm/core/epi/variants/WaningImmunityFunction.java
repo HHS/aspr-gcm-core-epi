@@ -25,14 +25,14 @@ public abstract class WaningImmunityFunction {
                 GammaHelper.getScaleFromMeanAndSD(waningMean(), waningSD()));
     }
 
-    public double getWaningProbability(double time) {
+    public double getResidualImmunity(double time) {
         if (time < 0) {
-            return 1.0;
+            return 0.0;
         }
         if (waningMean() == Double.POSITIVE_INFINITY) {
-            return 0.0;
+            return 1.0;
         } else {
-            return waningDistribution().cumulativeProbability(time);
+            return 1.0 - waningDistribution().cumulativeProbability(time);
         }
     }
 

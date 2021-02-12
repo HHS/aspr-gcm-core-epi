@@ -37,17 +37,17 @@ public abstract class VariantsDescription {
         return variantIdIndex;
     }
 
-    public double getInfectionProbability(int sourceIndex, int targetIndex) {
+    public double getPriorInfectionImmunity(int sourceIndex, int targetIndex) {
         if (targetIndex < 0) {
-            return 1.0;
+            return 0.0;
         }
         VariantId sourceVariantId = variantIdList().get(sourceIndex);
         VariantId targetVariantId = variantIdList().get(targetIndex);
         if (priorInfectionImmunity().containsKey(sourceVariantId)) {
             Map<VariantId, Double> priorInfectionImmunity = priorInfectionImmunity().get(sourceVariantId);
-            return 1.0 - priorInfectionImmunity.getOrDefault(targetVariantId, 1.0);
+            return priorInfectionImmunity.getOrDefault(targetVariantId, 1.0);
         } else {
-            return 0.0;
+            return 1.0;
         }
     }
 

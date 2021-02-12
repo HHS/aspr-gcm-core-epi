@@ -10,9 +10,9 @@ public class TestWaningImmunity {
     void test() {
         WaningImmunityFunction waningImmunityFunction = ImmutableWaningImmunityFunction.builder()
                 .waningMean(365.0).waningSD(131.4).build();
-        System.out.println(waningImmunityFunction.getWaningProbability(0.0));
-        System.out.println(waningImmunityFunction.getWaningProbability(10.0));
-        System.out.println(waningImmunityFunction.getWaningProbability(365.0));
+        System.out.println(waningImmunityFunction.getResidualImmunity(0.0));
+        System.out.println(waningImmunityFunction.getResidualImmunity(10.0));
+        System.out.println(waningImmunityFunction.getResidualImmunity(365.0));
     }
 
 }

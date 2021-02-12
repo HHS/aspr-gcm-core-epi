@@ -8,6 +8,8 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableVariantId.class)
 public interface VariantId {
 
+    VariantId REFERENCE_ID = VariantId.of("Reference");
+
     @JsonCreator
     static VariantId of(String id) {
         return ImmutableVariantId.of(id);
@@ -15,7 +17,5 @@ public interface VariantId {
 
     @Value.Parameter
     String id();
-
-    VariantId REFERENCE_ID = VariantId.of("Reference");
 
 }
