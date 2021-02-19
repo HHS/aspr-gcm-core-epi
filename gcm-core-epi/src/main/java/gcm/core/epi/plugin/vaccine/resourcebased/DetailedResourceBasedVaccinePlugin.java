@@ -338,7 +338,10 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             // Determine if we are vaccinating and if so set up plans and distributions
             final double vaccinationStartDay = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINATION_START_DAY);
-            boolean usingVaccine = false;
+            final List<TriggeredPropertyOverride> overrideList = environment.getGlobalPropertyValue(
+                    VaccineGlobalProperty.VACCINE_TRIGGER_OVERRIDES);
+            // Presume if we have overrides we will be vaccinating at some point
+            boolean usingVaccine = overrideList.size() > 0;
 
             for (VaccineAdministratorDefinition vaccineAdministratorDefinition : vaccineAdministratorDefinitions) {
                 Map<FipsCode, Double> vaccinationRatePerDayByFipsCode = vaccineAdministratorDefinition
