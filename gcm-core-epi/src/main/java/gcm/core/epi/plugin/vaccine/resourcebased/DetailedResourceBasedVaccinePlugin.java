@@ -416,7 +416,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 Map<Double, Map<VaccineId, FipsCodeDouble>> vaccineDeliveries = environment.getGlobalPropertyValue(
                         VaccineGlobalProperty.VACCINE_DELIVERIES);
                 for (Map.Entry<Double, Map<VaccineId, FipsCodeDouble>> entry : vaccineDeliveries.entrySet()) {
-                    environment.addPlan(new VaccineDeliveryPlan(entry.getValue()), entry.getKey());
+                    if (vaccineDefinitionMap.containsKey(entry.getKey()))
+                        environment.addPlan(new VaccineDeliveryPlan(entry.getValue()), entry.getKey());
                 }
 
                 // Register to observe changes for triggered property overrides that may restart vaccination
