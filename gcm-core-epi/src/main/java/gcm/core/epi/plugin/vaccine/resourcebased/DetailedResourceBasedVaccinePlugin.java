@@ -287,7 +287,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         // Vaccines ready to be distributed
         private final Map<VaccineAdministratorId, Map<VaccineId, VaccineDoseFipsContainer>> vaccineDeliveries = new HashMap<>();
         // Random distributions for vaccine delays
-        private final Map<VaccineAdministratorId, Map<FipsCode, RealDistribution>> interVaccinationDelayDistribution = new LinkedHashMap<>();
+        private final Map<VaccineAdministratorId, Map<FipsCode, RealDistribution>> interVaccinationDelayDistributions = new LinkedHashMap<>();
         // Map holding prioritized people for second doses by VaccineAdministrator
         private final Map<VaccineAdministratorId, Map<VaccineId, ArrayDeque<PersonId>>> secondDosePriorityMap = new HashMap<>();
         // Map indicating the set of FipsCodes in what at the moment there are no more people to whom to give first doses
@@ -363,7 +363,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                 new MultiKey(vaccineAdministratorDefinition.id(), fipsCode));
                     }
                 }
-                interVaccinationDelayDistribution.put(vaccineAdministratorDefinition.id(), interVaccinationDelayDistributionForAdministrator);
+                interVaccinationDelayDistributions.put(vaccineAdministratorDefinition.id(), interVaccinationDelayDistributionForAdministrator);
             }
 
             if (usingVaccine) {
@@ -419,7 +419,6 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 Map<Double, Map<VaccineId, FipsCodeDouble>> vaccineDeliveries = environment.getGlobalPropertyValue(
                         VaccineGlobalProperty.VACCINE_DELIVERIES);
                 for (Map.Entry<Double, Map<VaccineId, FipsCodeDouble>> entry : vaccineDeliveries.entrySet()) {
-                    if (vaccineDefinitionMap.containsKey(entry.getKey()))
                         environment.addPlan(new VaccineDeliveryPlan(entry.getValue()), entry.getKey());
                 }
 
@@ -499,7 +498,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                     vaccinationPlanKey);
                         }
                     }
-                    interVaccinationDelayDistribution.put(vaccineAdministratorId, interVaccinationDelayDistributionForAdministrator);
+                    interVaccinationDelayDistributions.put(vaccineAdministratorId, interVaccinationDelayDistributionForAdministrator);
                 }
 
                 // Restart vaccination if needed due to uptake changes
@@ -550,7 +549,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             final double vaccinationStartDay = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINATION_START_DAY);
             for (Map.Entry<VaccineAdministratorId, Map<FipsCode, RealDistribution>> entry :
-                    interVaccinationDelayDistribution.entrySet()) {
+                    interVaccinationDelayDistributions.entrySet()) {
                 if (entry.getValue().containsKey(fipsCode) &&
                         !environment.getPlan(new MultiKey(entry.getKey(), fipsCode)).isPresent() &&
                         environment.getTime() >= vaccinationStartDay) {
@@ -608,8 +607,12 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 if (environment.getTime() >= vaccinationStartDay) {
                     vaccineAdministratorsToRestart.forEach(
                             (vaccineAdministratorId) -> {
+                                Map<FipsCode, RealDistribution> interVaccinationDelayDistribution =
+                                        interVaccinationDelayDistributions.get(vaccineAdministratorId);
                                 for (FipsCode fipsCode : fipsCodeRegionMap.keySet()) {
-                                    if (!environment.getPlan(new MultiKey(vaccineAdministratorId, fipsCode)).isPresent()) {
+                                    // Make sure rate of vaccination is nonzero and not already planned
+                                    if (interVaccinationDelayDistribution.containsKey(fipsCode) &&
+                                            !environment.getPlan(new MultiKey(vaccineAdministratorId, fipsCode)).isPresent()) {
                                         vaccinateAndScheduleNext(environment, vaccineAdministratorId, fipsCode);
                                     }
                                 }
@@ -781,7 +784,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 if (someoneToGiveFirstDosesTo.get() || someoneToGiveSecondDosesTo.containsValue(true)) {
                     // Schedule next vaccination
                     final double vaccinationTime = environment.getTime() +
-                            interVaccinationDelayDistribution.get(vaccineAdministratorId).get(fipsCode).sample();
+                            interVaccinationDelayDistributions.get(vaccineAdministratorId).get(fipsCode).sample();
                     environment.addPlan(new VaccinationPlan(vaccineAdministratorId, fipsCode), vaccinationTime,
                             new MultiKey(vaccineAdministratorId, fipsCode));
                 }
