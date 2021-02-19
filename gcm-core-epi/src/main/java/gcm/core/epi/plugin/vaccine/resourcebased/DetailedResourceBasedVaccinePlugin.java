@@ -301,6 +301,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         // Map giving regions in a given FipsCode - note all VaccineAdministrators must share a scope
         private Map<FipsCode, Set<RegionId>> fipsCodeRegionMap;
         private FipsScope administrationScope;
+        // Flag for seeing if we are already observing region arrivals
+        private Map<FipsCode, Boolean> alreadyObservingRegionArrivals = new HashMap<>();
 
         @Override
         public void init(Environment environment) {
@@ -540,20 +542,18 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         @Override
         public void observeRegionPersonArrival(Environment environment, PersonId personId) {
             /*
-             * A new person has been added to the simulation and we must have
+             * A new person has been added to the region and we must have
              * already started vaccinating because we only start observing arrivals
              * after vaccination has begun
              */
             RegionId regionId = environment.getPersonRegion(personId);
             FipsCode fipsCode = administrationScope.getFipsSubCode(regionId);
-            final double vaccinationStartDay = environment.getGlobalPropertyValue(
-                    VaccineGlobalProperty.VACCINATION_START_DAY);
+
+            // See if any of the vaccine administrators need to be restarted
             for (Map.Entry<VaccineAdministratorId, Map<FipsCode, RealDistribution>> entry :
                     interVaccinationDelayDistributions.entrySet()) {
                 if (entry.getValue().containsKey(fipsCode) &&
-                        !environment.getPlan(new MultiKey(entry.getKey(), fipsCode)).isPresent() &&
-                        environment.getTime() >= vaccinationStartDay) {
-                    toggleFipsCodePersonArrivalObservation(environment, fipsCode, false);
+                        !environment.getPlan(new MultiKey(entry.getKey(), fipsCode)).isPresent()) {
                     fipsCodesWithNoFirstDosesPeople.get(entry.getKey()).remove(fipsCode);
                     vaccinateAndScheduleNext(environment, entry.getKey(), fipsCode);
                 }
@@ -776,7 +776,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
                 }
 
-                if (!someoneToGiveFirstDosesTo.get()) {
+                if (!someoneToGiveFirstDosesTo.get() & !alreadyObservingRegionArrivals.getOrDefault(fipsCode, false)) {
                     // Nobody left to give first doses to for now, so register to observe new arrivals
                     toggleFipsCodePersonArrivalObservation(environment, fipsCode, true);
                 }
@@ -794,8 +794,11 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         }
 
         private void toggleFipsCodePersonArrivalObservation(Environment environment, FipsCode fipsCode, boolean observe) {
-            for (RegionId regionId : fipsCodeRegionMap.get(fipsCode)) {
-                environment.observeRegionPersonArrival(observe, regionId);
+            if (!alreadyObservingRegionArrivals.getOrDefault(fipsCode, false)) {
+                for (RegionId regionId : fipsCodeRegionMap.get(fipsCode)) {
+                    environment.observeRegionPersonArrival(observe, regionId);
+                }
+                alreadyObservingRegionArrivals.put(fipsCode, true);
             }
         }
 
