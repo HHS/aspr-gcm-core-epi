@@ -519,7 +519,7 @@ public class ContactManager extends AbstractComponent {
         return infectionProbability;
     }
 
-    private void infectPerson(Environment environment, PersonId personId, int strainIndex) {
+    public static void infectPerson(Environment environment, PersonId personId, int strainIndex) {
         environment.setPersonPropertyValue(personId, PersonProperty.HAD_INFECTIOUS_CONTACT, true);
         // Shift history data
         int priorStrainIndex;

@@ -1,16 +1,21 @@
 package gcm.core.epi.plugin.seeding;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.components.AbstractComponent;
+import gcm.core.epi.components.ContactManager;
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.plugin.Plugin;
+import gcm.core.epi.plugin.transmission.VariantTransmissionPlugin;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableFipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
+import gcm.core.epi.variants.VariantId;
+import gcm.core.epi.variants.VariantsDescription;
 import gcm.scenario.ExperimentBuilder;
 import gcm.scenario.GlobalComponentId;
 import gcm.scenario.PersonId;
@@ -20,9 +25,13 @@ import gcm.simulation.Plan;
 import gcm.simulation.partition.LabelSet;
 import gcm.simulation.partition.Partition;
 import gcm.simulation.partition.PartitionSampler;
+import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
+import org.apache.commons.math3.util.Pair;
 
 import java.util.*;
+
+import static gcm.core.epi.components.ContactManager.infectPerson;
 
 public class ExponentialSeedingPlugin implements Plugin {
 
@@ -65,6 +74,13 @@ public class ExponentialSeedingPlugin implements Plugin {
                 .isMutable(false).build()),
 
         SEEDING_GROWTH_DOUBLING_TIME(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(Double.POSITIVE_INFINITY).isMutable(false).build()),
+
+        SEEDING_VARIANT_PREVALENCE(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<VariantId, Double>>() {
+                }).defaultValue(new HashMap<>()).build()),
+
+        SEEDING_VARIANT_START_DAY(TypedPropertyDefinition.builder()
                 .type(Double.class).defaultValue(Double.POSITIVE_INFINITY).isMutable(false).build());
 
         private final TypedPropertyDefinition propertyDefinition;
@@ -92,6 +108,7 @@ public class ExponentialSeedingPlugin implements Plugin {
     public static class SeedingManager extends AbstractComponent {
 
         private static final Object SEEDING_PARTITION_KEY = new Object();
+        private EnumeratedDistribution<Integer> variantSamplingDistribution;
 
         private void planNextSeeding(Environment environment, FipsCode fipsCode, double currentSeedingRate) {
             double seedingEndDay = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.SEEDING_END_DAY);
@@ -141,7 +158,14 @@ public class ExponentialSeedingPlugin implements Plugin {
                 if (personId.isPresent()) {
                     Compartment compartment = environment.getPersonCompartment(personId.get());
                     if (compartment.equals(Compartment.SUSCEPTIBLE)) {
-                        environment.setPersonCompartment(personId.get(), Compartment.INFECTED);
+                        // Select strain and infect
+                        double variantSeedingStartDay = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.SEEDING_VARIANT_START_DAY);
+                        if (environment.getTime() >= variantSeedingStartDay) {
+                            int variantIndex = variantSamplingDistribution.sample();
+                            ContactManager:infectPerson(environment, personId.get(), variantIndex);
+                        } else {
+                            ContactManager:infectPerson(environment, personId.get(), 0);
+                        }
                         environment.setGlobalPropertyValue(GlobalProperty.MOST_RECENT_INFECTION_DATA,
                                 Optional.of(ImmutableInfectionData.builder()
                                         .targetPersonId(personId)
@@ -160,6 +184,33 @@ public class ExponentialSeedingPlugin implements Plugin {
             // Start seeding plan
             double seedingStartTime = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.SEEDING_START_DAY);
             environment.addPlan(new StartSeedingPlan(), seedingStartTime);
+
+            // Validate variant seeding prevalence and store distribution
+            Map<VariantId, Double> variantSeedingPrevalence = environment.getGlobalPropertyValue(
+                    ExponentialSeedingGlobalProperty.SEEDING_VARIANT_PREVALENCE);
+            if (variantSeedingPrevalence.values().stream().anyMatch(x -> x < 0)) {
+                throw new RuntimeException("Negative variant seeding prevalence");
+            }
+            double total = variantSeedingPrevalence.values().stream().mapToDouble(x -> x).sum();
+            if (total > 1.0) {
+                throw new RuntimeException("Total variant prevalence is too high");
+            }
+            List<Pair<Integer, Double>> variantIndexSamplingWeights = new ArrayList<>();
+            VariantsDescription variantsDescription = environment.getGlobalPropertyValue(GlobalProperty.VARIANTS_DESCRIPTION);
+            for (VariantId variantId : variantsDescription.variantIdList()) {
+                int variantIndex = variantsDescription.getVariantIndex(variantId);
+                if (variantId.equals(VariantId.REFERENCE_ID) && total < 1.0) {
+                    variantIndexSamplingWeights.add(new Pair<>(variantIndex, 1.0 - total));
+                } else {
+                    double variantPrevalence = variantSeedingPrevalence.getOrDefault(variantId, 0.0);
+                    if (variantPrevalence > 0) {
+                        variantIndexSamplingWeights.add(new Pair<>(variantIndex, variantPrevalence));
+                    }
+                }
+            }
+            variantSamplingDistribution = new EnumeratedDistribution<>(
+                    environment.getRandomGeneratorFromId(ExponentialSeedingRandomId.ID),
+                    variantIndexSamplingWeights);
         }
 
         private static class StartSeedingPlan implements Plan {
