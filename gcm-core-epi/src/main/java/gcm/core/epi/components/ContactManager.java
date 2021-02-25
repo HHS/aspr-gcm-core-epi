@@ -433,8 +433,9 @@ public class ContactManager extends AbstractComponent {
                 if (targetPersonId.isPresent()) {
 
                     Compartment contactCompartment = environment.getPersonCompartment(targetPersonId.get());
+                    boolean isDead = environment.getPersonPropertyValue(targetPersonId.get(), PersonProperty.IS_DEAD);
 
-                    if (contactCompartment == Compartment.SUSCEPTIBLE) {
+                    if (contactCompartment == Compartment.SUSCEPTIBLE && !isDead) {
 
                         // TODO: Re-incorporate antiviral plugin(s)
                         double probabilityAntiviralsFail = 1.0;
