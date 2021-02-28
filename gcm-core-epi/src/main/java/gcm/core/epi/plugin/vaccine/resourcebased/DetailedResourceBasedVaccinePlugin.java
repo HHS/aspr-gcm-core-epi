@@ -10,10 +10,7 @@ import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.PopulationDescription;
-import gcm.core.epi.propertytypes.AgeWeights;
-import gcm.core.epi.propertytypes.FipsCode;
-import gcm.core.epi.propertytypes.FipsCodeDouble;
-import gcm.core.epi.propertytypes.FipsScope;
+import gcm.core.epi.propertytypes.*;
 import gcm.core.epi.trigger.*;
 import gcm.core.epi.util.loading.CoreEpiBootstrapUtil;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
@@ -23,7 +20,9 @@ import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.core.epi.variants.VariantId;
 import gcm.scenario.*;
 import gcm.simulation.Environment;
+import gcm.simulation.Equality;
 import gcm.simulation.Plan;
+import gcm.simulation.partition.Filter;
 import gcm.simulation.partition.LabelSet;
 import gcm.simulation.partition.Partition;
 import gcm.simulation.partition.PartitionSampler;
@@ -53,6 +52,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
     public List<RandomNumberGeneratorId> getRandomIds() {
         List<RandomNumberGeneratorId> randomIds = new ArrayList<>();
         randomIds.add(VaccineRandomId.ID);
+        randomIds.add(VaccineRandomId.COVERAGE_ID);
         return randomIds;
     }
 
@@ -168,7 +168,10 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
     public enum VaccinePersonProperty implements DefinedPersonProperty {
 
         VACCINE_INDEX(TypedPropertyDefinition.builder()
-                .type(Integer.class).defaultValue(-1).build());
+                .type(Integer.class).defaultValue(-1).build()),
+
+        WILL_GET_VACCINE(TypedPropertyDefinition.builder()
+                .type(Boolean.class).defaultValue(true).build());
 
         private final TypedPropertyDefinition propertyDefinition;
 
@@ -219,6 +222,11 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
         VACCINATION_START_DAY(TypedPropertyDefinition.builder()
                 .type(Double.class).defaultValue(0.0).isMutable(false).build()),
+
+        VACCINATION_MAXIMUM_COVERAGE(TypedPropertyDefinition.builder()
+                .type(AgeWeights.class)
+                .defaultValue(ImmutableAgeWeights.builder().defaultValue(1.0).build())
+                .build()),
 
         // Used for overriding properties only
         VACCINE_ADMINISTRATOR_SETTINGS(TypedPropertyDefinition.builder()
@@ -386,6 +394,9 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         GlobalProperty.POPULATION_DESCRIPTION);
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
                 environment.addPartition(Partition.builder()
+                                // Limit coverage
+                                .setFilter(Filter.property(VaccinePersonProperty.WILL_GET_VACCINE,
+                                        Equality.EQUAL, true))
                                 // Partition regions by FIPS code
                                 .setRegionFunction(regionId -> administrationScope.getFipsSubCode(regionId))
                                 // Partition by age group
@@ -429,6 +440,9 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         VaccineGlobalProperty.VACCINE_ADMINISTRATOR_SETTINGS);
                 environment.observeGlobalPropertyChange(true,
                         VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION_OVERRIDES);
+
+                // Register to observe people being added to the simulation to determine coverage
+                environment.observeGlobalPersonArrival(true);
             }
 
         }
@@ -556,6 +570,22 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         !environment.getPlan(new MultiKey(entry.getKey(), fipsCode)).isPresent()) {
                     fipsCodesWithNoFirstDosesPeople.get(entry.getKey()).remove(fipsCode);
                     vaccinateAndScheduleNext(environment, entry.getKey(), fipsCode);
+                }
+            }
+        }
+
+        @Override
+        public void observeGlobalPersonArrival(Environment environment, PersonId personId) {
+            // Determine if person will receive vaccine
+            AgeWeights maximumCoverage = environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE);
+            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+                    GlobalProperty.POPULATION_DESCRIPTION);
+            List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
+            int ageGroupIndex = environment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
+            double maximumCoverageForAgeGroup = maximumCoverage.getWeight(ageGroups.get(ageGroupIndex));
+            if (maximumCoverageForAgeGroup < 1.0) {
+                if (environment.getRandomGeneratorFromId(VaccineRandomId.COVERAGE_ID).nextDouble() >= maximumCoverageForAgeGroup) {
+                    environment.setPersonPropertyValue(personId, VaccinePersonProperty.WILL_GET_VACCINE, false);
                 }
             }
         }

@@ -61,7 +61,8 @@ public interface VaccinePlugin extends Plugin {
         The random generator ID used by all vaccine plugins
      */
     enum VaccineRandomId implements RandomNumberGeneratorId {
-        ID
+        ID,
+        COVERAGE_ID
     }
 
 }
