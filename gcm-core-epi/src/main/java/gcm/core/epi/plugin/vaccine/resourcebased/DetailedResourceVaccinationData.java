@@ -1,6 +1,7 @@
 package gcm.core.epi.plugin.vaccine.resourcebased;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import gcm.core.epi.population.AgeGroup;
 import gcm.scenario.RegionId;
 import org.immutables.value.Value;
 
@@ -15,6 +16,8 @@ public interface DetailedResourceVaccinationData {
     VaccineId vaccineId();
 
     DoseType doseType();
+
+    AgeGroup ageGroup();
 
     enum DoseType {
         FIRST_DOSE,

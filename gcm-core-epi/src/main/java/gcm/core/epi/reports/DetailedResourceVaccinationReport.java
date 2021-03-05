@@ -4,6 +4,7 @@ import gcm.core.epi.plugin.vaccine.resourcebased.DetailedResourceBasedVaccinePlu
 import gcm.core.epi.plugin.vaccine.resourcebased.DetailedResourceVaccinationData;
 import gcm.core.epi.plugin.vaccine.resourcebased.VaccineAdministratorId;
 import gcm.core.epi.plugin.vaccine.resourcebased.VaccineId;
+import gcm.core.epi.population.AgeGroup;
 import gcm.output.reports.ReportHeader;
 import gcm.output.reports.ReportItem;
 import gcm.output.reports.StateChange;
@@ -27,6 +28,7 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
                     .add("Region")
                     .add("VaccineAdministrator")
                     .add("Vaccine")
+                    .add("AgeGroup")
                     .add("FirstDoses")
                     .add("SecondDoses")
                     .build();
@@ -60,7 +62,8 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
                 Map<AdministrationData, Map<DetailedResourceVaccinationData.DoseType, Counter>> administrationCounterMap =
                         regionCounterMap.get(getFipsString(vaccinationData.regionId()));
                 Map<DetailedResourceVaccinationData.DoseType, Counter> counterMap = administrationCounterMap.computeIfAbsent(
-                        new AdministrationData(vaccinationData.vaccineAdministratorId(), vaccinationData.vaccineId()),
+                        new AdministrationData(vaccinationData.vaccineAdministratorId(), vaccinationData.vaccineId(),
+                                vaccinationData.ageGroup()),
                         x -> new EnumMap<>(DetailedResourceVaccinationData.DoseType.class));
                 Counter counter = counterMap.computeIfAbsent(vaccinationData.doseType(), x -> new Counter());
                 counter.count++;
@@ -84,6 +87,7 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
                             reportItemBuilder.addValue(regionId);
                             reportItemBuilder.addValue(administrationData.vaccineAdministratorId.id());
                             reportItemBuilder.addValue(administrationData.vaccineId.id());
+                            reportItemBuilder.addValue(administrationData.ageGroup.toString());
                             reportItemBuilder.addValue(doseTypeCounterMap
                                     .computeIfAbsent(DetailedResourceVaccinationData.DoseType.FIRST_DOSE, x -> new Counter()).count);
                             reportItemBuilder.addValue(doseTypeCounterMap
@@ -114,10 +118,12 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
     private static class AdministrationData {
         final VaccineAdministratorId vaccineAdministratorId;
         final VaccineId vaccineId;
+        final AgeGroup ageGroup;
 
-        private AdministrationData(VaccineAdministratorId vaccineAdministratorId, VaccineId vaccineId) {
+        private AdministrationData(VaccineAdministratorId vaccineAdministratorId, VaccineId vaccineId, AgeGroup ageGroup) {
             this.vaccineAdministratorId = vaccineAdministratorId;
             this.vaccineId = vaccineId;
+            this.ageGroup = ageGroup;
         }
 
         @Override
@@ -125,12 +131,13 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             AdministrationData that = (AdministrationData) o;
-            return vaccineAdministratorId.equals(that.vaccineAdministratorId) && vaccineId.equals(that.vaccineId);
+            return vaccineAdministratorId.equals(that.vaccineAdministratorId) && vaccineId.equals(that.vaccineId) &&
+                    ageGroup.equals(that.ageGroup);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(vaccineAdministratorId, vaccineId);
+            return Objects.hash(vaccineAdministratorId, vaccineId, ageGroup);
         }
     }
 

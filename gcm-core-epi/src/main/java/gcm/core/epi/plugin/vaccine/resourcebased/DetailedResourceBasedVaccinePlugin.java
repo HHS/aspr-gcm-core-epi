@@ -773,12 +773,17 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                     environment.addResourceToRegion(VaccineResourceId.VACCINE, regionId, 1);
                     environment.transferResourceToPerson(VaccineResourceId.VACCINE, personId.get(), 1);
                     // Reporting data
+                    PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+                            GlobalProperty.POPULATION_DESCRIPTION);
+                    List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
+                    int ageGroupIndex = environment.getPersonPropertyValue(personId.get(), PersonProperty.AGE_GROUP_INDEX);
                     environment.setGlobalPropertyValue(VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA,
                             Optional.of(
                                     ImmutableDetailedResourceVaccinationData.builder()
                                             .regionId(regionId)
                                             .vaccineAdministratorId(vaccineAdministratorId)
                                             .vaccineId(vaccineId)
+                                            .ageGroup(ageGroups.get(ageGroupIndex))
                                             .doseType(isSecondDose ? DetailedResourceVaccinationData.DoseType.SECOND_DOSE :
                                                     DetailedResourceVaccinationData.DoseType.FIRST_DOSE)
                                             .build()
