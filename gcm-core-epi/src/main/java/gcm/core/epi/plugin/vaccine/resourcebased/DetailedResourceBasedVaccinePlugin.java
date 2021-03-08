@@ -753,7 +753,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                     AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
                                     //noinspection OptionalGetWithoutIsPresent
                                     boolean isHighRisk = (boolean) labelSetInfo.getPersonPropertyLabel(PersonProperty.IS_HIGH_RISK).get();
-                                    long populationInFipsCodeAndAge = getPopulationByFipsCodeAndAgeGroup(environment, fipsCode, ageGroup, isHighRisk);
+                                    long populationInFipsCodeAndAge = getPopulationByFipsCodeAndAgeGroup(environment, fipsCode, ageGroup);
                                     return vaccineUptakeWeights.getWeight(ageGroup) *
                                             // Handle uptake normalization
                                             (uptakeNormalization == VaccineAdministratorDefinition.UptakeNormalization.POPULATION ?
@@ -837,13 +837,13 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             // No vaccine available, so pause vaccinating for now and wait for vaccine delivery
         }
 
-        private long getPopulationByFipsCodeAndAgeGroup(Environment environment, FipsCode fipsCode, AgeGroup ageGroup, Boolean isHighRisk) {
+        private long getPopulationByFipsCodeAndAgeGroup(Environment environment, FipsCode fipsCode, AgeGroup ageGroup) {
             return environment.getPartitionSize(VACCINE_PARTITION_KEY,
                     LabelSet.builder()
                             .setRegionLabel(fipsCode)
                             .setPropertyLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
                             .setResourceLabel(VaccineResourceId.VACCINE, 0L)
-                            .setPropertyLabel(PersonProperty.IS_HIGH_RISK, isHighRisk).build());
+                            .build());
         }
 
         private void toggleFipsCodePersonArrivalObservation(Environment environment, FipsCode fipsCode, boolean observe) {
