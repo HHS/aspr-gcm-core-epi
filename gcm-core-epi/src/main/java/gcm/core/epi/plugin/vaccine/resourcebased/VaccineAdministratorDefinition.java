@@ -11,6 +11,11 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableVaccineAdministratorDefinition.class)
 public abstract class VaccineAdministratorDefinition {
 
+    public enum UptakeNormalization {
+        POPULATION,
+        DOSES
+    }
+
     public abstract VaccineAdministratorId id();
 
     @Value.Default
@@ -21,6 +26,11 @@ public abstract class VaccineAdministratorDefinition {
     @Value.Default
     public AgeWeights vaccineUptakeWeights() {
         return ImmutableAgeWeights.builder().defaultValue(1.0).build();
+    }
+
+    @Value.Default
+    public UptakeNormalization vaccineUptakeNormalization() {
+        return UptakeNormalization.POPULATION;
     }
 
     @Value.Default

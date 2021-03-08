@@ -2,12 +2,10 @@ package gcm.core.epi.plugin.seeding;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import gcm.components.AbstractComponent;
-import gcm.core.epi.components.ContactManager;
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.plugin.Plugin;
-import gcm.core.epi.plugin.transmission.VariantTransmissionPlugin;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableFipsCodeDouble;

@@ -310,7 +310,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         private Map<FipsCode, Set<RegionId>> fipsCodeRegionMap;
         private FipsScope administrationScope;
         // Flag for seeing if we are already observing region arrivals
-        private Map<FipsCode, Boolean> alreadyObservingRegionArrivals = new HashMap<>();
+        private final Map<FipsCode, Boolean> alreadyObservingRegionArrivals = new HashMap<>();
 
         @Override
         public void init(Environment environment) {
@@ -427,7 +427,6 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 environment.setGlobalPropertyValue(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION,
                         vaccineAdministratorAllocation);
 
-
                 // Schedule vaccine deliveries
                 Map<Double, Map<VaccineId, FipsCodeDouble>> vaccineDeliveries = environment.getGlobalPropertyValue(
                         VaccineGlobalProperty.VACCINE_DELIVERIES);
@@ -472,6 +471,10 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         }
                         if (definitionOverride.vaccineUptakeWeights() != null) {
                             builder.vaccineUptakeWeights(definitionOverride.vaccineUptakeWeights());
+                            administratorsUptakeChanged.add(vaccineAdministratorId);
+                        }
+                        if (definitionOverride.vaccineUptakeNormalization() != null) {
+                            builder.vaccineUptakeNormalization(definitionOverride.vaccineUptakeNormalization());
                             administratorsUptakeChanged.add(vaccineAdministratorId);
                         }
                         if (definitionOverride.vaccineHighRiskUptakeWeights() != null) {
@@ -524,7 +527,9 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         // Skip those whose rate changed as we have already reconsidered all vaccination events
                         if (!administratorsRateChanged.contains(vaccineAdministratorId)) {
                             for (FipsCode fipsCode : fipsCodeRegionMap.keySet()) {
-                                if (!environment.getPlan(new MultiKey(vaccineAdministratorId, fipsCode)).isPresent()) {
+                                // If has a delay distribution (so nonzero rate) and not already planned then vaccinate
+                                if (interVaccinationDelayDistributions.get(vaccineAdministratorId).containsKey(fipsCode) &
+                                        !environment.getPlan(new MultiKey(vaccineAdministratorId, fipsCode)).isPresent()) {
                                     vaccinateAndScheduleNext(environment, vaccineAdministratorId, fipsCode);
                                 }
                             }
@@ -703,6 +708,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 VaccineAdministratorDefinition vaccineAdministratorDefinition = vaccineAdministratorMap.get(vaccineAdministratorId);
                 // Get a random person to vaccinate, if possible, taking into account vaccine uptake weights
                 AgeWeights vaccineUptakeWeights = vaccineAdministratorDefinition.vaccineUptakeWeights();
+                VaccineAdministratorDefinition.UptakeNormalization uptakeNormalization = vaccineAdministratorDefinition.vaccineUptakeNormalization();
+                PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
                 AgeWeights vaccineHighRiskUptakeWeights = vaccineAdministratorDefinition.vaccineHighRiskUptakeWeights();
 
                 // First select which type of vaccine to use
@@ -746,7 +753,11 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                     AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
                                     //noinspection OptionalGetWithoutIsPresent
                                     boolean isHighRisk = (boolean) labelSetInfo.getPersonPropertyLabel(PersonProperty.IS_HIGH_RISK).get();
+                                    long populationInFipsCodeAndAge = getPopulationByFipsCodeAndAgeGroup(environment, fipsCode, ageGroup, isHighRisk);
                                     return vaccineUptakeWeights.getWeight(ageGroup) *
+                                            // Handle uptake normalization
+                                            (uptakeNormalization == VaccineAdministratorDefinition.UptakeNormalization.POPULATION ?
+                                                    1.0 : (populationInFipsCodeAndAge > 0L ? 1.0 / populationInFipsCodeAndAge : 0.0)) *
                                             (isHighRisk ? vaccineHighRiskUptakeWeights.getWeight(ageGroup) : 1.0);
                                 })
                                 .setRandomNumberGeneratorId(VaccineRandomId.ID)
@@ -773,8 +784,6 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                     environment.addResourceToRegion(VaccineResourceId.VACCINE, regionId, 1);
                     environment.transferResourceToPerson(VaccineResourceId.VACCINE, personId.get(), 1);
                     // Reporting data
-                    PopulationDescription populationDescription = environment.getGlobalPropertyValue(
-                            GlobalProperty.POPULATION_DESCRIPTION);
                     List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
                     int ageGroupIndex = environment.getPersonPropertyValue(personId.get(), PersonProperty.AGE_GROUP_INDEX);
                     environment.setGlobalPropertyValue(VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA,
@@ -826,6 +835,15 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
             }
             // No vaccine available, so pause vaccinating for now and wait for vaccine delivery
+        }
+
+        private long getPopulationByFipsCodeAndAgeGroup(Environment environment, FipsCode fipsCode, AgeGroup ageGroup, Boolean isHighRisk) {
+            return environment.getPartitionSize(VACCINE_PARTITION_KEY,
+                    LabelSet.builder()
+                            .setRegionLabel(fipsCode)
+                            .setPropertyLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                            .setResourceLabel(VaccineResourceId.VACCINE, 0L)
+                            .setPropertyLabel(PersonProperty.IS_HIGH_RISK, isHighRisk).build());
         }
 
         private void toggleFipsCodePersonArrivalObservation(Environment environment, FipsCode fipsCode, boolean observe) {

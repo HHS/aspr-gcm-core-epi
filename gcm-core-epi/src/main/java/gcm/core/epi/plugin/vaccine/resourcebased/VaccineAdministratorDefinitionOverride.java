@@ -17,6 +17,9 @@ public interface VaccineAdministratorDefinitionOverride {
     AgeWeights vaccineUptakeWeights();
 
     @Nullable
+    VaccineAdministratorDefinition.UptakeNormalization vaccineUptakeNormalization();
+
+    @Nullable
     AgeWeights vaccineHighRiskUptakeWeights();
 
     // Don't think this needs overrides
