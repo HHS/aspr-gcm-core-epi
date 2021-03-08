@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.type.TypeFactory;
 import gcm.scenario.PropertyDefinition;
 import gcm.scenario.TimeTrackingPolicy;
 import org.immutables.value.Value;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
