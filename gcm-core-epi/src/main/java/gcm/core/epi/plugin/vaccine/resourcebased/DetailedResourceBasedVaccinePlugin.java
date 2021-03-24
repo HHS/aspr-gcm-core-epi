@@ -44,8 +44,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
     @Override
     public Set<DefinedGlobalProperty> getGlobalProperties() {
-        Set<DefinedGlobalProperty> globalProperties = new HashSet<>(EnumSet.allOf(VaccineGlobalProperty.class));
-        return globalProperties;
+        return new HashSet<>(EnumSet.allOf(VaccineGlobalProperty.class));
     }
 
     @Override
@@ -298,6 +297,10 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         private final Map<VaccineAdministratorId, Map<FipsCode, RealDistribution>> interVaccinationDelayDistributions = new LinkedHashMap<>();
         // Map holding prioritized people for second doses by VaccineAdministrator
         private final Map<VaccineAdministratorId, Map<VaccineId, ArrayDeque<PersonId>>> secondDosePriorityMap = new HashMap<>();
+        // Map holding the current set of administration events postponed by up to a day by VaccineAdministrator
+        private final Map<VaccineAdministratorId, Set<Integer>> secondDosePostponementMap = new HashMap<>();
+        // Map holding the vaccine attempt counter by VaccineAdministrator
+        private final Map<VaccineAdministratorId, Integer> vaccinationAttemptCounter = new HashMap<>();
         // Map indicating the set of FipsCodes in what at the moment there are no more people to whom to give first doses
         private final Map<VaccineAdministratorId, Set<FipsCode>> fipsCodesWithNoFirstDosesPeople = new HashMap<>();
         // Map for VaccineAdministrators by id
@@ -657,21 +660,68 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
             } else if (plan.getClass() == SecondDoseQueuePlan.class) {
                 SecondDoseQueuePlan secondDoseQueuePlan = (SecondDoseQueuePlan) plan;
                 VaccineAdministratorId vaccineAdministratorId = secondDoseQueuePlan.vaccineAdministratorId;
-                secondDosePriorityMap.get(vaccineAdministratorId).get(secondDoseQueuePlan.vaccineId)
-                        .addLast(secondDoseQueuePlan.personId);
-                // Restart vaccination if needed
-                RegionId regionId = environment.getPersonRegion(secondDoseQueuePlan.personId);
-                FipsCode fipsCode = administrationScope.getFipsSubCode(regionId);
-                MultiKey multiKey = new MultiKey(vaccineAdministratorId, fipsCode);
-                if (!environment.getPlan(multiKey).isPresent()) {
-                    vaccinateAndScheduleNext(environment, vaccineAdministratorId, fipsCode);
+                VaccineId vaccineId = secondDoseQueuePlan.vaccineId;
+                PersonId personId = secondDoseQueuePlan.personId;
+                // See if there is a postponed attempt to use
+                Set<Integer> postponedAttempts = secondDosePostponementMap
+                        .computeIfAbsent(vaccineAdministratorId, x -> new LinkedHashSet<>());
+                boolean addToQueue = true;
+
+                if (!postponedAttempts.isEmpty()) {
+                    // Vaccinate the person, delivering vaccine to the appropriate region just in time
+                    RegionId regionId = environment.getPersonRegion(personId);
+                    FipsCode fipsCode = administrationScope.getFipsSubCode(regionId);
+                    boolean useReserve = vaccineAdministratorMap.get(vaccineAdministratorId).reserveSecondDoses();
+                    VaccineDoseFipsContainer vaccineDoseFipsContainer = vaccineDeliveries
+                            .get(vaccineAdministratorId).get(vaccineId);
+                    if (vaccineDoseFipsContainer.getDosesAvailableTo(fipsCode) > 0) {
+                        vaccineDoseFipsContainer.removeDoseFrom(administrationScope.getFipsSubCode(regionId), useReserve);
+                        environment.addResourceToRegion(VaccineResourceId.VACCINE, regionId, 1);
+                        environment.transferResourceToPerson(VaccineResourceId.VACCINE, personId, 1);
+                        Integer attempt = postponedAttempts.iterator().next();
+                        postponedAttempts.remove(attempt);
+                        addToQueue = false;
+                    }
+                    // Reporting data
+                    PopulationDescription populationDescription = environment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
+                    List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
+                    int ageGroupIndex = environment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
+                    environment.setGlobalPropertyValue(VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA,
+                            Optional.of(
+                                    ImmutableDetailedResourceVaccinationData.builder()
+                                            .regionId(regionId)
+                                            .vaccineAdministratorId(vaccineAdministratorId)
+                                            .vaccineId(vaccineId)
+                                            .ageGroup(ageGroups.get(ageGroupIndex))
+                                            .doseType(DetailedResourceVaccinationData.DoseType.SECOND_DOSE)
+                                            .build()
+                            ));
                 }
+
+                if (addToQueue) {
+                    secondDosePriorityMap.get(vaccineAdministratorId).get(secondDoseQueuePlan.vaccineId)
+                            .addLast(secondDoseQueuePlan.personId);
+                    // Restart vaccination if needed
+                    RegionId regionId = environment.getPersonRegion(secondDoseQueuePlan.personId);
+                    FipsCode fipsCode = administrationScope.getFipsSubCode(regionId);
+                    MultiKey multiKey = new MultiKey(vaccineAdministratorId, fipsCode);
+                    if (!environment.getPlan(multiKey).isPresent()) {
+                        vaccinateAndScheduleNext(environment, vaccineAdministratorId, fipsCode);
+                    }
+                }
+            } else if (plan.getClass() == RemovePostponedAttemptPlan.class) {
+                RemovePostponedAttemptPlan removePostponedAttemptPlan = (RemovePostponedAttemptPlan) plan;
+                Set<Integer> postponedAttempts = secondDosePostponementMap
+                        .computeIfAbsent(removePostponedAttemptPlan.vaccineAdministratorId, x -> new LinkedHashSet<>());
+                postponedAttempts.remove(removePostponedAttemptPlan.vaccinationAttempt);
             } else {
                 throw new RuntimeException("Unhandled Vaccine Plan");
             }
         }
 
         private void vaccinateAndScheduleNext(Environment environment, VaccineAdministratorId vaccineAdministratorId, FipsCode fipsCode) {
+            Integer vaccinationAttempt = vaccinationAttemptCounter.getOrDefault(vaccineAdministratorId, -1) + 1;
+            vaccinationAttemptCounter.put(vaccineAdministratorId, vaccinationAttempt);
             // First check that at least some vaccine is available in the FIPS hierarchy
             // We will ignore vaccines for which there is nobody to use that vaccine
             final AtomicBoolean someoneToGiveFirstDosesTo = new AtomicBoolean(!fipsCodesWithNoFirstDosesPeople
@@ -722,6 +772,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
                 // Next select the person to vaccinate
                 final Optional<PersonId> personId;
+                boolean postponedAttempt = false;
                 // If this is a two-dose vaccine need to choose between vaccinating a new person and giving the second dose
                 //  We randomly proportionally allocate effort taking into account the fraction that will return for a second dose
                 if (!someoneToGiveFirstDosesTo.get() || (vaccineDefinition.type() == VaccineDefinition.DoseType.TWO_DOSE &&
@@ -731,6 +782,13 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                     // Vaccinate a person with a second dose if needed
                     ArrayDeque<PersonId> secondDosePriority = secondDosePriorityMap.get(vaccineAdministratorId).get(vaccineId);
                     if (secondDosePriority.isEmpty()) {
+                        // Postpone the attempt for up to one day
+                        Set<Integer> postponedAttempts = secondDosePostponementMap
+                                .computeIfAbsent(vaccineAdministratorId, x -> new LinkedHashSet<>());
+                        postponedAttempts.add(vaccinationAttempt);
+                        environment.addPlan(new RemovePostponedAttemptPlan(vaccineAdministratorId, vaccinationAttempt),
+                                environment.getTime() + 1.0);
+                        postponedAttempt = true;
                         personId = Optional.empty();
                     } else {
                         personId = Optional.of(secondDosePriority.removeFirst());
@@ -825,7 +883,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                     toggleFipsCodePersonArrivalObservation(environment, fipsCode, true);
                 }
 
-                if (someoneToGiveFirstDosesTo.get() || someoneToGiveSecondDosesTo.containsValue(true)) {
+                if (someoneToGiveFirstDosesTo.get() || someoneToGiveSecondDosesTo.containsValue(true) || postponedAttempt) {
                     // Schedule next vaccination
                     final double vaccinationTime = environment.getTime() +
                             interVaccinationDelayDistributions.get(vaccineAdministratorId).get(fipsCode).sample();
@@ -896,6 +954,19 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 this.vaccineAdministratorId = vaccineAdministratorId;
                 this.personId = personId;
                 this.vaccineId = vaccineId;
+            }
+        }
+
+        /*
+            A plan to remove a postponed vaccination attempt
+         */
+        private static class RemovePostponedAttemptPlan implements Plan {
+            private final VaccineAdministratorId vaccineAdministratorId;
+            private final Integer vaccinationAttempt;
+
+            private RemovePostponedAttemptPlan(VaccineAdministratorId vaccineAdministratorId, Integer vaccinationAttempt) {
+                this.vaccineAdministratorId = vaccineAdministratorId;
+                this.vaccinationAttempt = vaccinationAttempt;
             }
         }
 
