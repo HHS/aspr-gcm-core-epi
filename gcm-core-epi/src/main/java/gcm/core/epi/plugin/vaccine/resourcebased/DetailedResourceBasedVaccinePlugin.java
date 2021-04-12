@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
@@ -142,6 +143,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                             overrideProperty = VaccineGlobalProperty.VACCINE_ADMINISTRATOR_SETTINGS;
                         } else if (propertyIdString.equals(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION.toString())) {
                             overrideProperty = VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION_OVERRIDES;
+                        } else if (propertyIdString.equals(VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE.toString())) {
+                            overrideProperty = VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE;
                         } else {
                             throw new RuntimeException("Unhandled override property");
                         }
@@ -442,6 +445,8 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         VaccineGlobalProperty.VACCINE_ADMINISTRATOR_SETTINGS);
                 environment.observeGlobalPropertyChange(true,
                         VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION_OVERRIDES);
+                environment.observeGlobalPropertyChange(true,
+                        VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE);
 
                 // Register to observe people being added to the simulation to determine coverage
                 environment.observeGlobalPersonArrival(true);
@@ -556,6 +561,64 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                         }
                 );
                 environment.setGlobalPropertyValue(VaccineGlobalProperty.VACCINE_ADMINISTRATOR_ALLOCATION, allocation);
+            } else if (globalPropertyId.equals(VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE)) {
+                // Note: this code assumes coverage overrides are non-decreasing
+                PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+                        GlobalProperty.POPULATION_DESCRIPTION);
+                List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
+                // Create a partition to examine people by whether they will receive vaccine by age
+                Object COVERAGE_PARTITION_KEY = new Object();
+                environment.addPartition(Partition.builder()
+                        // Partition by vaccine receipt status
+                        .setPersonPropertyFunction(VaccinePersonProperty.WILL_GET_VACCINE, Function.identity())
+                        // Partition by age group
+                        .setPersonPropertyFunction(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                        .build(), COVERAGE_PARTITION_KEY);
+                // Iterate over age groups and increase maximum coverage as needed;
+                AgeWeights vaccinationMaximumCoverage = environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINATION_MAXIMUM_COVERAGE);
+                for (AgeGroup ageGroup : ageGroups) {
+                    int population = environment.getPartitionSize(COVERAGE_PARTITION_KEY,
+                            LabelSet.builder()
+                                    .setPropertyLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                                    .build());
+                    int populationToBeVaccinated = environment.getPartitionSize(COVERAGE_PARTITION_KEY,
+                            LabelSet.builder()
+                                    .setPropertyLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                                    .setPropertyLabel(VaccinePersonProperty.WILL_GET_VACCINE, true)
+                                    .build());
+                    double fractionToBeVaccinated = (double) populationToBeVaccinated / population;
+                    double fractionToAdd = Math.max(vaccinationMaximumCoverage.getWeight(ageGroup) - fractionToBeVaccinated, 0);
+                    int numberToAdd = (int) Math.round((double) population * fractionToAdd);
+                    IntStream.range(0, numberToAdd).forEach(x -> {
+                            Optional<PersonId> personId = environment.samplePartition(COVERAGE_PARTITION_KEY,
+                                    PartitionSampler.builder()
+                                            .setLabelSet(LabelSet.builder()
+                                                    .setPropertyLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
+                                                    .setPropertyLabel(VaccinePersonProperty.WILL_GET_VACCINE, false)
+                                                    .build())
+                                            .setRandomNumberGeneratorId(VaccineRandomId.COVERAGE_ID)
+                                            .build());
+                            if (personId.isPresent()) {
+                                environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.WILL_GET_VACCINE, true);
+                            }
+                    });
+                }
+                // Remove partition
+                environment.removePartition(COVERAGE_PARTITION_KEY);
+                // Restart vaccination if needed due to coverage changes
+                double vaccinationStartDay = environment.getGlobalPropertyValue(VaccineGlobalProperty.VACCINATION_START_DAY);
+                if (environment.getTime() >= vaccinationStartDay) {
+                    for (VaccineAdministratorId vaccineAdministratorId : vaccineAdministratorMap.keySet()) {
+                        fipsCodesWithNoFirstDosesPeople.put(vaccineAdministratorId, new HashSet<>());
+                        for (FipsCode fipsCode : fipsCodeRegionMap.keySet()) {
+                            // If has a delay distribution (so nonzero rate) and not already planned then vaccinate
+                            if (interVaccinationDelayDistributions.get(vaccineAdministratorId).containsKey(fipsCode) &
+                                    !environment.getPlan(new MultiKey(vaccineAdministratorId, fipsCode)).isPresent()) {
+                                vaccinateAndScheduleNext(environment, vaccineAdministratorId, fipsCode);
+                            }
+                        }
+                    }
+                }
             } else {
                 throw new RuntimeException("VaccineManager observed unexpected global property change");
             }

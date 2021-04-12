@@ -2,3 +2,5 @@
 .DS_Store
 
 gcm-core-epi/.vscode/
+
+.idea/
