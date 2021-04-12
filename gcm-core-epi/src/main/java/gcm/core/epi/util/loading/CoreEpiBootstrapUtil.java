@@ -146,7 +146,11 @@ public class CoreEpiBootstrapUtil {
         Return the Path that corresponds to the given string after substituting for home directory if applicable
      */
     public static Path getPathFromRelativeString(String stringPath) {
-        return Paths.get(stringPath.replaceFirst("^~", System.getProperty("user.home")));
+        if (stringPath.startsWith("~")) {
+            return Paths.get(System.getProperty("user.home"), stringPath.substring(1));
+        } else {
+            return Paths.get(stringPath);
+        }
     }
 
     /**
