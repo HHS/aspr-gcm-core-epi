@@ -1,17 +1,15 @@
 package gcm.core.epi.reports;
 
 import gcm.core.epi.identifiers.ContactGroupType;
-import gcm.output.reports.AbstractReport;
-import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportItem;
-import gcm.output.reports.StateChange;
-import gcm.scenario.GroupId;
-import gcm.scenario.PersonId;
-import gcm.simulation.ObservableEnvironment;
+import nucleus.ReportContext;
+import plugins.groups.datacontainers.PersonGroupDataView;
+import plugins.groups.support.GroupId;
+import plugins.people.support.PersonId;
+import plugins.reports.support.AbstractReport;
+import plugins.reports.support.ReportHeader;
+import plugins.reports.support.ReportItem;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class GroupMembershipReport extends AbstractReport {
 
@@ -29,33 +27,35 @@ public class GroupMembershipReport extends AbstractReport {
         return reportHeader;
     }
 
+    PersonGroupDataView personGroupDataView;
+
     @Override
-    public void close(ObservableEnvironment observableEnvironment) {
+    public void init(ReportContext reportContext) {
+        super.init(reportContext);
+
+        personGroupDataView = reportContext.getDataView(PersonGroupDataView.class).get();
+    }
+
+    @Override
+    public void close() {
         for (ContactGroupType contactGroupType : ContactGroupType.values()) {
-            List<GroupId> groupIds = observableEnvironment.getGroupsForGroupType(contactGroupType);
+            List<GroupId> groupIds = personGroupDataView.getGroupsForGroupType(contactGroupType);
             for (GroupId groupId : groupIds) {
-                List<PersonId> people = observableEnvironment.getPeopleForGroup(groupId);
+                List<PersonId> people = personGroupDataView.getPeopleForGroup(groupId);
                 for (PersonId personId : people) {
                     ReportItem.Builder reportItemBuilder = ReportItem.builder();
                     reportItemBuilder.setReportType(getClass());
                     reportItemBuilder.setReportHeader(getReportHeader());
-                    reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
-                    reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
 
                     reportItemBuilder.addValue(groupId);
                     reportItemBuilder.addValue(contactGroupType);
                     reportItemBuilder.addValue(personId);
 
-                    observableEnvironment.releaseOutputItem(reportItemBuilder.build());
+                    releaseOutputItem(reportItemBuilder.build());
                 }
             }
         }
 
-    }
-
-    @Override
-    public Set<StateChange> getListenedStateChanges() {
-        return new HashSet<>();
     }
 
 }

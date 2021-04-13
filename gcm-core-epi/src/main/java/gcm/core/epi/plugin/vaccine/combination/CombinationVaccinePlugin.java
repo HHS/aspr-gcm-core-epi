@@ -1,6 +1,5 @@
 package gcm.core.epi.plugin.vaccine.combination;
 
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.plugin.vaccine.VaccinePlugin;
@@ -14,17 +13,24 @@ import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.variants.VariantId;
-import gcm.scenario.*;
-import gcm.simulation.Environment;
-import gcm.simulation.Equality;
-import gcm.simulation.Plan;
-import gcm.simulation.partition.Filter;
-import gcm.simulation.partition.Partition;
-import gcm.simulation.partition.PartitionSampler;
-import gcm.util.MultiKey;
+import nucleus.Plan;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.globals.support.GlobalPropertyId;
+import plugins.partitions.support.Equality;
+import plugins.partitions.support.Partition;
+import plugins.partitions.support.PartitionSampler;
+import plugins.people.support.PersonId;
+import plugins.personproperties.support.PersonPropertyId;
+import plugins.personproperties.support.PersonPropertyLabeler;
+import plugins.personproperties.support.PropertyFilter;
+import plugins.regions.support.RegionPropertyId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
+import util.MultiKey;
 
 import java.util.*;
 
@@ -241,10 +247,12 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
                     }
                     environment.addPartition(Partition.builder()
                                     // Filter by vaccine status
-                                    .setFilter(Filter.property(getPropertyIdForVaccine(vaccineId, VaccinePersonProperty.VACCINE_STATUS),
+                                    .setFilter(new PropertyFilter(environment.getContext(),
+                                            getPropertyIdForVaccine(vaccineId, VaccinePersonProperty.VACCINE_STATUS),
                                             Equality.EQUAL, notVaccinatedStatus))
                                     // Partition by age group
-                                    .setPersonPropertyFunction(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                                    .addLabeler(new PersonPropertyLabeler(PersonProperty.AGE_GROUP_INDEX,
+                                            ageGroupIndex -> ageGroups.get((int) ageGroupIndex)))
                                     .build(),
                             partitionKey);
                     perVaccinePartitionKeys.put(vaccineId, partitionKey);
@@ -297,10 +305,10 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
 
 
             final Optional<PersonId> personId = environment.samplePartition(vaccinePartitionKey, PartitionSampler.builder()
-                    .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {
-                        // We know this labelSetInfo will have a label for this person property
+                    .setLabelSetWeightingFunction((context, labelSet) -> {
+                        // We know this labelSet will have a label for this person property
                         //noinspection OptionalGetWithoutIsPresent
-                        AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
+                        AgeGroup ageGroup = (AgeGroup) labelSet.getLabel(PersonProperty.AGE_GROUP_INDEX).get();
                         return vaccineUptakeWeights.getWeight(ageGroup);
                     })
                     .setRandomNumberGeneratorId(VaccineRandomId.ID)

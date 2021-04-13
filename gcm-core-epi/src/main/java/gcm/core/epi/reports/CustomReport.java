@@ -5,8 +5,8 @@ import gcm.core.epi.util.loading.CoreEpiBootstrapUtil;
 import gcm.core.epi.util.loading.LoadableReport;
 import gcm.core.epi.util.loading.ReportLoader;
 import gcm.core.epi.util.loading.ReportWrapperItem;
-import gcm.experiment.ExperimentExecutor;
-import gcm.scenario.PersonPropertyId;
+import plugins.gcm.experiment.ExperimentExecutor;
+import plugins.personproperties.support.PersonPropertyId;
 
 import java.nio.file.Path;
 import java.util.List;

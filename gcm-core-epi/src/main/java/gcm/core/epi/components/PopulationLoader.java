@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.*;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.HospitalData;
@@ -15,17 +14,22 @@ import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.util.loading.HospitalDataFileRecord;
-import gcm.scenario.GroupId;
-import gcm.scenario.PersonId;
-import gcm.scenario.RegionId;
-import gcm.simulation.Environment;
-import gcm.simulation.PersonConstructionInfo;
-import gcm.simulation.Plan;
-import gcm.simulation.partition.LabelSet;
-import gcm.simulation.partition.Partition;
-import gcm.simulation.partition.PartitionSampler;
-import gcm.util.geolocator.GeoLocator;
+import nucleus.Plan;
 import org.apache.commons.math3.distribution.BinomialDistribution;
+import plugins.compartments.support.CompartmentId;
+import plugins.compartments.support.CompartmentLabeler;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.groups.support.GroupId;
+import plugins.partitions.support.LabelSet;
+import plugins.partitions.support.Partition;
+import plugins.partitions.support.PartitionSampler;
+import plugins.people.support.PersonId;
+import plugins.personproperties.support.PersonPropertyInitialization;
+import plugins.regions.support.RegionId;
+import plugins.regions.support.RegionLabeler;
+import util.geolocator.GeoLocator;
+import util.objectrepository.ObjectRepository;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -81,15 +85,15 @@ public class PopulationLoader extends AbstractComponent {
             int ageGroupIndex = populationDescription.ageGroupIndexByPersonId().get(personIdInt);
             AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
             double fractionHighRiskForAgeGroup = fractionHighRisk.getWeight(ageGroup);
-            PersonConstructionInfo personConstructionInfo = PersonConstructionInfo.builder()
-                    .setPersonRegionId(regionId)
-                    .setPersonCompartmentId(Compartment.SUSCEPTIBLE)
-                    .setPersonPropertyValue(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex)
-                    .setPersonPropertyValue(PersonProperty.IS_HIGH_RISK,
+            ObjectRepository personInitialData = ObjectRepository.builder()
+                    .add(regionId)
+                    .add(Compartment.SUSCEPTIBLE)
+                    .add(new PersonPropertyInitialization(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex))
+                    .add(new PersonPropertyInitialization(PersonProperty.IS_HIGH_RISK,
                             environment.getRandomGeneratorFromId(RandomId.HIGH_RISK_FRACTION)
-                                    .nextDouble() < fractionHighRiskForAgeGroup)
+                                    .nextDouble() < fractionHighRiskForAgeGroup))
                     .build();
-            PersonId personId = environment.addPerson(personConstructionInfo);
+            PersonId personId = environment.addPerson(personInitialData);
             if (personId.getValue() != personIdInt) {
                 throw new RuntimeException("Person ID assignment expected to be sequential");
             }
@@ -248,22 +252,22 @@ public class PopulationLoader extends AbstractComponent {
 
         // Make a partition for susceptible people
         environment.addPartition(Partition.builder()
-                        .setRegionFunction(regionId -> initialInfectionSpecification.scope().getFipsSubCode(regionId))
-                        .setCompartmentFunction(compartmentId -> compartmentId == Compartment.SUSCEPTIBLE)
+                        .addLabeler(new RegionLabeler(regionId -> initialInfectionSpecification.scope().getFipsSubCode(regionId)))
+                        .addLabeler(new CompartmentLabeler(compartmentId -> compartmentId == Compartment.SUSCEPTIBLE))
                         .build(),
                 initialInfectionPartitionKey);
 
         // Infect random susceptible people from the selected regions
         initialInfections.forEach(
-                (key, value) -> IntStream.range(0, (int) Math.round(value))
+                (fipsCode, peopleToInfect) -> IntStream.range(0, (int) Math.round(peopleToInfect))
                         .forEach(
                                 i -> {
                                     Optional<PersonId> targetPersonId = environment.samplePartition(
                                             initialInfectionPartitionKey, PartitionSampler.builder()
                                                     .setLabelSet(LabelSet.builder()
-                                                            .setRegionLabel(key)
+                                                            .setLabel(RegionId.class, fipsCode)
                                                             // Only use those in the susceptible compartment
-                                                            .setCompartmentLabel(true)
+                                                            .setLabel(CompartmentId.class, true)
                                                             .build())
                                                     .setRandomNumberGeneratorId(RandomId.INITIAL_INFECTIONS)
                                                     .build());

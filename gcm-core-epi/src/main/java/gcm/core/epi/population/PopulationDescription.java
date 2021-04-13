@@ -1,8 +1,8 @@
 package gcm.core.epi.population;
 
 import gcm.core.epi.identifiers.StringRegionId;
-import gcm.scenario.RegionId;
 import org.immutables.value.Value;
+import plugins.regions.support.RegionId;
 
 import java.util.LinkedHashMap;
 import java.util.List;

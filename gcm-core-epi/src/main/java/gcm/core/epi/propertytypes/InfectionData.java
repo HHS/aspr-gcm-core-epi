@@ -1,8 +1,8 @@
 package gcm.core.epi.propertytypes;
 
 import gcm.core.epi.identifiers.ContactGroupType;
-import gcm.scenario.PersonId;
 import org.immutables.value.Value;
+import plugins.people.support.PersonId;
 
 import java.util.Optional;
 

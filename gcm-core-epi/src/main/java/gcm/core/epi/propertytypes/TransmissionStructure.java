@@ -7,8 +7,10 @@ import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.PopulationDescription;
-import gcm.simulation.group.GroupWeightingFunction;
 import org.immutables.value.Value;
+import plugins.globals.datacontainers.GlobalDataView;
+import plugins.groups.support.GroupWeightingFunction;
+import plugins.personproperties.datacontainers.PersonPropertyDataView;
 
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -68,12 +70,14 @@ public abstract class TransmissionStructure {
                     .computeIfAbsent(entryForContactGroup.getKey(), x -> new HashMap<>());
             for (Map.Entry<AgeGroup, Map<AgeGroup, Double>> entryForAgeGroup : entryForContactGroup.getValue().entrySet()) {
                 groupWeightingFunctionMap.put(entryForAgeGroup.getKey(),
-                        (environment, personId, groupId) -> {
-                            PopulationDescription populationDescription = environment.getGlobalPropertyValue(
+                        (context, personId, groupId) -> {
+                            GlobalDataView globalDataView = context.getDataView(GlobalDataView.class).get();
+                            PersonPropertyDataView personPropertyDataView = context.getDataView(PersonPropertyDataView.class).get();
+                            PopulationDescription populationDescription = globalDataView.getGlobalPropertyValue(
                                     GlobalProperty.POPULATION_DESCRIPTION);
                             AgeGroupPartition ageGroupPartition = populationDescription.ageGroupPartition();
                             AgeGroup ageGroup = ageGroupPartition.getAgeGroupFromIndex(
-                                    environment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX));
+                                    personPropertyDataView.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX));
                             return entryForAgeGroup.getValue().getOrDefault(ageGroup, 0.0);
                         });
             }

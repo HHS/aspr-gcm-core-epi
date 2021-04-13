@@ -1,6 +1,5 @@
 package gcm.core.epi.components;
 
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.*;
 import gcm.core.epi.plugin.behavior.BehaviorPlugin;
 import gcm.core.epi.plugin.infection.InfectionPlugin;
@@ -16,19 +15,26 @@ import gcm.core.epi.propertytypes.TransmissionStructure;
 import gcm.core.epi.variants.VariantDefinition;
 import gcm.core.epi.variants.VariantsDescription;
 import gcm.core.epi.variants.WaningImmunityFunction;
-import gcm.scenario.*;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
-import gcm.simulation.group.GroupSampler;
-import gcm.simulation.group.GroupWeightingFunction;
-import gcm.simulation.partition.LabelSet;
-import gcm.simulation.partition.Partition;
-import gcm.simulation.partition.PartitionSampler;
-import gcm.util.geolocator.GeoLocator;
+import nucleus.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.groups.support.GroupId;
+import plugins.groups.support.GroupSampler;
+import plugins.groups.support.GroupWeightingFunction;
+import plugins.partitions.support.LabelSet;
+import plugins.partitions.support.Partition;
+import plugins.partitions.support.PartitionSampler;
+import plugins.people.support.PersonId;
+import plugins.personproperties.support.PersonPropertyId;
+import plugins.personproperties.support.PersonPropertyLabeler;
+import plugins.regions.support.RegionId;
+import plugins.regions.support.RegionLabeler;
+import plugins.stochastics.support.RandomNumberGeneratorId;
+import util.geolocator.GeoLocator;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -72,11 +78,11 @@ public class ContactManager extends AbstractComponent {
 
             return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY,
                     PartitionSampler.builder()
-                            .setLabelSet(LabelSet.builder().setRegionLabel(targetRegionId).build())
-                            .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {
-                                // We know this labelSetInfo will have a label for this person property
+                            .setLabelSet(LabelSet.builder().setLabel(RegionId.class, targetRegionId).build())
+                            .setLabelSetWeightingFunction((context, labelSet) -> {
+                                // We know this labelSet will have a label for this person property
                                 //noinspection OptionalGetWithoutIsPresent
-                                AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
+                                AgeGroup ageGroup = (AgeGroup) labelSet.getLabel(PersonProperty.AGE_GROUP_INDEX).get();
                                 return ageGroupSelectionWeights.get(ageGroup);
                             })
                             .setRandomNumberGeneratorId(RandomId.CONTACT_MANAGER)
@@ -85,7 +91,7 @@ public class ContactManager extends AbstractComponent {
 
         } else {
             return environment.samplePartition(RADIATION_MODEL_PARTITION_KEY, PartitionSampler.builder()
-                    .setLabelSet(LabelSet.builder().setRegionLabel(targetRegionId).build())
+                    .setLabelSet(LabelSet.builder().setLabel(RegionId.class, targetRegionId).build())
                     .setRandomNumberGeneratorId(RandomId.CONTACT_MANAGER)
                     .setExcludedPerson(sourcePersonId)
                     .build());
@@ -202,12 +208,13 @@ public class ContactManager extends AbstractComponent {
                 radiationTargetDistributions);
 
         // Add partition for radiation flow
-        Partition.Builder radiationModelPartitionBuilder = Partition.builder().setRegionFunction(regionId -> regionId);
+        Partition.Builder radiationModelPartitionBuilder = Partition.builder()
+                .addLabeler(new RegionLabeler(regionId -> regionId));
         if (transmissionStructure.groupBiWeightingFunctionsMap().containsKey(ContactGroupType.GLOBAL)) {
             List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
             // Partition by age group
-            radiationModelPartitionBuilder.setPersonPropertyFunction(PersonProperty.AGE_GROUP_INDEX,
-                    ageGroupIndex -> ageGroups.get((int) ageGroupIndex));
+            radiationModelPartitionBuilder.addLabeler(new PersonPropertyLabeler(PersonProperty.AGE_GROUP_INDEX,
+                    ageGroupIndex -> ageGroups.get((int) ageGroupIndex)));
         }
         environment.addPartition(radiationModelPartitionBuilder.build(), RADIATION_MODEL_PARTITION_KEY);
 

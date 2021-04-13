@@ -1,8 +1,8 @@
 package gcm.core.epi.population;
 
-import gcm.scenario.GroupTypeId;
-import gcm.scenario.RegionId;
 import org.immutables.value.Value;
+import plugins.groups.support.GroupTypeId;
+import plugins.regions.support.RegionId;
 
 import java.util.List;
 import java.util.Optional;

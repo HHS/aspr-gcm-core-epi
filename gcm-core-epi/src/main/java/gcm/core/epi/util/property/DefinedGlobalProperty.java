@@ -1,6 +1,6 @@
 package gcm.core.epi.util.property;
 
-import gcm.scenario.GlobalPropertyId;
+import plugins.globals.support.GlobalPropertyId;
 
 public interface DefinedGlobalProperty extends DefinedProperty, GlobalPropertyId {
 

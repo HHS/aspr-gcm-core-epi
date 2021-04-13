@@ -4,11 +4,11 @@ import gcm.core.epi.util.distributions.GammaHelper;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
-import gcm.scenario.PersonId;
-import gcm.simulation.Environment;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.GammaDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
+import plugins.gcm.agents.Environment;
+import plugins.people.support.PersonId;
 
 import java.util.EnumSet;
 import java.util.HashSet;

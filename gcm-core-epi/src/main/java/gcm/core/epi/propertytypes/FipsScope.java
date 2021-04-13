@@ -2,8 +2,8 @@ package gcm.core.epi.propertytypes;
 
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.population.PopulationDescription;
-import gcm.scenario.RegionId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.regions.support.RegionId;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;

@@ -1,8 +1,8 @@
 package gcm.core.epi.trigger;
 
-import gcm.scenario.RegionId;
-import gcm.scenario.RegionPropertyId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.regions.support.RegionId;
+import plugins.regions.support.RegionPropertyId;
 
 import java.util.HashSet;
 import java.util.Map;

@@ -14,13 +14,13 @@ import gcm.core.epi.population.ImmutablePopulationDescription;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.util.loading.CoreEpiBootstrapUtil;
 import gcm.core.epi.util.loading.PopulationDescriptionFileRecord;
-import gcm.scenario.GroupTypeId;
-import gcm.scenario.RegionId;
 import org.apache.commons.math3.util.Pair;
 import org.junit.jupiter.api.Test;
 import org.openjdk.jol.info.GraphLayout;
 import org.simpleflatmapper.csv.CsvParser;
 import org.simpleflatmapper.util.CloseableIterator;
+import plugins.groups.support.GroupTypeId;
+import plugins.regions.support.RegionId;
 
 import java.io.IOException;
 import java.nio.file.Path;

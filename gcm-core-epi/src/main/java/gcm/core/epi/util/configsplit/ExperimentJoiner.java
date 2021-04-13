@@ -1,8 +1,8 @@
 package gcm.core.epi.util.configsplit;
 
-import gcm.util.TimeElapser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.TimeElapser;
 
 import java.io.*;
 import java.nio.file.Path;

@@ -1,8 +1,8 @@
 package gcm.core.epi.population;
 
-import gcm.scenario.PersonPropertyId;
-import gcm.scenario.RegionId;
 import org.immutables.value.Value;
+import plugins.personproperties.support.PersonPropertyId;
+import plugins.regions.support.RegionId;
 
 import java.util.Map;
 

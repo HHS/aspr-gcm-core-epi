@@ -2,8 +2,8 @@ package gcm.core.epi.plugin.vaccine.resourcebased;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import gcm.core.epi.population.AgeGroup;
-import gcm.scenario.RegionId;
 import org.immutables.value.Value;
+import plugins.regions.support.RegionId;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableDetailedResourceVaccinationData.class)

@@ -6,11 +6,11 @@ import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
-import gcm.scenario.PersonId;
-import gcm.scenario.RandomNumberGeneratorId;
-import gcm.scenario.RegionId;
-import gcm.scenario.TimeTrackingPolicy;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.people.support.PersonId;
+import plugins.properties.support.TimeTrackingPolicy;
+import plugins.regions.support.RegionId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.util.*;
 

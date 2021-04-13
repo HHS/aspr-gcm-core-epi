@@ -1,9 +1,11 @@
 package gcm.core.epi.identifiers;
 
-import gcm.components.Component;
+
 import gcm.core.epi.components.compartment.InfectedCompartment;
 import gcm.core.epi.components.compartment.SusceptibleCompartment;
-import gcm.scenario.CompartmentId;
+
+import plugins.compartments.support.CompartmentId;
+import plugins.components.agents.Component;
 
 public enum Compartment implements CompartmentId {
 

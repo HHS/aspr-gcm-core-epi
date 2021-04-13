@@ -1,6 +1,6 @@
 package gcm.core.epi.identifiers;
 
-import gcm.scenario.ResourceId;
+import plugins.resources.support.ResourceId;
 
 public enum Resource implements ResourceId {
 

@@ -23,11 +23,10 @@ import gcm.core.epi.trigger.TriggerDescription;
 import gcm.core.epi.util.loading.*;
 import gcm.core.epi.util.logging.LogItemHandler;
 import gcm.core.epi.util.property.DefinedRegionProperty;
-import gcm.experiment.Experiment;
-import gcm.experiment.ExperimentExecutor;
-import gcm.output.simstate.NIOProfileItemHandler;
-import gcm.scenario.ExperimentBuilder;
-import gcm.scenario.RegionId;
+import plugins.gcm.experiment.Experiment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.gcm.experiment.ExperimentExecutor;
+import plugins.regions.support.RegionId;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -205,17 +204,8 @@ public class Runner {
         if (configuration.includeExperimentColumnReport()) {
             experimentExecutor.addExperimentColumnReport(outputPath.resolve("experiment_column_report.tsv"));
         }
-        if (configuration.runProfilingReport()) {
-            experimentExecutor.addOutputItemHandler(new NIOProfileItemHandler(outputPath.resolve("profiling_report.tsv")));
-        }
         if (configuration.useProgressLog()) {
             experimentExecutor.setExperimentProgressLog(outputPath.resolve("progress_log.tsv"));
-        }
-        if (configuration.runMemoryReport()) {
-            experimentExecutor.setMemoryReport(outputPath.resolve("memory_report.tsv"), configuration.memoryReportInterval());
-        }
-        if (configuration.runPlanningQueueReport()) {
-            experimentExecutor.setPlanningQueueReport(outputPath.resolve("planning_queue_report.tsv"), configuration.planningQueueReportThreshold());
         }
 
         experimentExecutor.execute();

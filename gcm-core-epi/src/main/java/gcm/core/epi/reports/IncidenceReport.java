@@ -3,11 +3,18 @@ package gcm.core.epi.reports;
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.identifiers.Resource;
-import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportItem;
-import gcm.output.reports.StateChange;
-import gcm.scenario.*;
-import gcm.simulation.ObservableEnvironment;
+import nucleus.ReportContext;
+import plugins.compartments.events.observation.PersonCompartmentChangeObservationEvent;
+import plugins.people.support.PersonId;
+import plugins.personproperties.datacontainers.PersonPropertyDataView;
+import plugins.personproperties.events.observation.PersonPropertyChangeObservationEvent;
+import plugins.personproperties.support.PersonPropertyId;
+import plugins.regions.datacontainers.RegionDataView;
+import plugins.regions.datacontainers.RegionLocationDataView;
+import plugins.regions.support.RegionId;
+import plugins.reports.support.ReportHeader;
+import plugins.reports.support.ReportItem;
+import plugins.resources.events.observation.PersonResourceChangeObservationEvent;
 
 import java.util.*;
 
@@ -32,50 +39,43 @@ public class IncidenceReport extends RegionAggregationPeriodicReport {
         return reportHeader;
     }
 
-    @Override
-    public void handlePersonPropertyValueAssignment(ObservableEnvironment observableEnvironment, PersonId personId, PersonPropertyId personPropertyId, Object oldPersonPropertyValue) {
+    private void handlePersonPropertyChangeObservationEvent(PersonPropertyChangeObservationEvent personPropertyChangeObservationEvent) {
+        PersonPropertyId personPropertyId = personPropertyChangeObservationEvent.getPersonPropertyId();
+        PersonId personId = personPropertyChangeObservationEvent.getPersonId();
         if (personPropertyId == PersonProperty.IS_SYMPTOMATIC) {
-            boolean isSymptomatic = observableEnvironment.getPersonPropertyValue(personId, PersonProperty.IS_SYMPTOMATIC);
+            boolean isSymptomatic = (boolean) personPropertyChangeObservationEvent.getCurrentPropertyValue();
             // Only count new assignments of IS_SYMPTOMATIC (even though re-assignment would likely indicate a modeling error)
-            if (isSymptomatic & !(boolean) oldPersonPropertyValue) {
-                setCurrentReportingPeriod(observableEnvironment);
-                RegionId regionId = observableEnvironment.getPersonRegion(personId);
+            if (isSymptomatic & !(boolean) personPropertyChangeObservationEvent.getPreviousPropertyValue()) {
+                RegionId regionId = regionLocationDataView.getPersonRegion(personId);
                 regionCounterMap.get(getFipsString(regionId)).get(CounterType.CASES).count++;
             }
         } else if (personPropertyId == PersonProperty.DID_NOT_RECEIVE_HOSPITAL_BED) {
-            setCurrentReportingPeriod(observableEnvironment);
-            RegionId regionId = observableEnvironment.getPersonRegion(personId);
+            RegionId regionId = regionLocationDataView.getPersonRegion(personId);
             regionCounterMap.get(getFipsString(regionId)).get(CounterType.HOSPITALIZATIONS_WITHOUT_BED).count++;
         } else if (personPropertyId == PersonProperty.IS_DEAD) {
-            setCurrentReportingPeriod(observableEnvironment);
-            RegionId regionId = observableEnvironment.getPersonRegion(personId);
+            RegionId regionId = regionLocationDataView.getPersonRegion(personId);
             regionCounterMap.get(getFipsString(regionId)).get(CounterType.DEATHS).count++;
         }
     }
 
-    @Override
-    public void handleCompartmentAssignment(ObservableEnvironment observableEnvironment, PersonId personId, CompartmentId sourceCompartmentId) {
-        if (sourceCompartmentId == Compartment.SUSCEPTIBLE) {
-            CompartmentId targetCompartmentId = observableEnvironment.getPersonCompartment(personId);
-            if (targetCompartmentId == Compartment.INFECTED) {
-                setCurrentReportingPeriod(observableEnvironment);
-                RegionId regionId = observableEnvironment.getPersonRegion(personId);
-                regionCounterMap.get(getFipsString(regionId)).get(CounterType.INFECTIONS).count++;
-            }
+    private void handlePersonCompartmentChangeObservationEvent(PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
+        if (personCompartmentChangeObservationEvent.getPreviousCompartmentId() == Compartment.SUSCEPTIBLE &&
+                personCompartmentChangeObservationEvent.getCurrentCompartmentId() == Compartment.INFECTED) {
+            RegionId regionId = regionLocationDataView.getPersonRegion(personCompartmentChangeObservationEvent.getPersonId());
+            regionCounterMap.get(getFipsString(regionId)).get(CounterType.INFECTIONS).count++;
         }
     }
 
-    @Override
-    public void handleRegionResourceTransferToPerson(ObservableEnvironment observableEnvironment, PersonId personId, ResourceId resourceId, long amount) {
-        if (resourceId == Resource.HOSPITAL_BED) {
-            setCurrentReportingPeriod(observableEnvironment);
-            RegionId regionId = observableEnvironment.getPersonRegion(personId);
+    private void handlePersonResourceChangeObservationEvent(PersonResourceChangeObservationEvent personResourceChangeObservationEvent) {
+        if (personResourceChangeObservationEvent.getResourceId() == Resource.HOSPITAL_BED &&
+                personResourceChangeObservationEvent.getCurrentResourceLevel() > 0) {
+            RegionId regionId = regionLocationDataView.getPersonRegion(personResourceChangeObservationEvent.getPersonId());
             regionCounterMap.get(getFipsString(regionId)).get(CounterType.HOSPITALIZATIONS_WITH_BED).count++;
         }
     }
 
     @Override
-    protected void flush(ObservableEnvironment observableEnvironment) {
+    protected void flush() {
 
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
@@ -89,8 +89,6 @@ public class IncidenceReport extends RegionAggregationPeriodicReport {
             if (infections > 0 | cases > 0 | hospitalizationsWithBed > 0 | hospitalizationsWithoutBed > 0 | deaths > 0) {
                 reportItemBuilder.setReportHeader(getReportHeader());
                 reportItemBuilder.setReportType(getClass());
-                reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
-                reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
 
                 buildTimeFields(reportItemBuilder);
                 reportItemBuilder.addValue(regionId);
@@ -100,7 +98,7 @@ public class IncidenceReport extends RegionAggregationPeriodicReport {
                 reportItemBuilder.addValue(hospitalizationsWithoutBed);
                 reportItemBuilder.addValue(deaths);
 
-                observableEnvironment.releaseOutputItem(reportItemBuilder.build());
+                releaseOutputItem(reportItemBuilder.build());
 
                 // Reset counters
                 for (CounterType counterType : CounterType.values()) {
@@ -111,25 +109,29 @@ public class IncidenceReport extends RegionAggregationPeriodicReport {
 
     }
 
+    RegionDataView regionDataView;
+    RegionLocationDataView regionLocationDataView;
+    PersonPropertyDataView personPropertyDataView;
+
     @Override
-    public Set<StateChange> getListenedStateChanges() {
-        final Set<StateChange> result = new LinkedHashSet<>();
+    public void init(ReportContext reportContext) {
+        super.init(reportContext);
+
         // Changes to PersonProperty.IS_SYMPTOMATIC or PersonProperty.DID_NOT_RECEIVE_HOSPITAL_BED flags
-        result.add(StateChange.PERSON_PROPERTY_VALUE_ASSIGNMENT);
-        // Moves from Compartment.SUSCEPTIBLE to Compartment.INFECTED
-        result.add(StateChange.COMPARTMENT_ASSIGNMENT);
-        // People receiving HOSPITAL_BED resources
-        result.add(StateChange.REGION_RESOURCE_TRANSFER_TO_PERSON);
-        return result;
-    }
+        reportContext.subscribeToEvent(PersonPropertyChangeObservationEvent.class);
+        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class);
+        reportContext.subscribeToEvent(PersonResourceChangeObservationEvent.class);
 
-    @Override
-    public void init(ObservableEnvironment observableEnvironment, Set<Object> initialData) {
-        super.init(observableEnvironment, initialData);
+        setConsumer(PersonPropertyChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
+        setConsumer(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
+        setConsumer(PersonResourceChangeObservationEvent.class, this::handlePersonResourceChangeObservationEvent);
 
+        regionDataView = reportContext.getDataView(RegionDataView.class).get();
+        regionLocationDataView = reportContext.getDataView(RegionLocationDataView.class).get();
+        personPropertyDataView = reportContext.getDataView(PersonPropertyDataView.class).get();
 
         // Initialize regionCounterMap
-        for (RegionId regionId : observableEnvironment.getRegionIds()) {
+        for (RegionId regionId : regionDataView.getRegionIds()) {
             Map<CounterType, Counter> counterMap = new EnumMap<>(CounterType.class);
             for (CounterType counterType : CounterType.values()) {
                 counterMap.put(counterType, new Counter());

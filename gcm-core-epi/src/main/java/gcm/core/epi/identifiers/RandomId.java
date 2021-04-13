@@ -1,6 +1,6 @@
 package gcm.core.epi.identifiers;
 
-import gcm.scenario.RandomNumberGeneratorId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 public enum RandomId implements RandomNumberGeneratorId {
 

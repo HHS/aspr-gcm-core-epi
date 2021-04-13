@@ -1,7 +1,7 @@
 package gcm.core.epi.util.property;
 
-import gcm.scenario.GlobalPropertyId;
 import org.immutables.value.Value;
+import plugins.globals.support.GlobalPropertyId;
 
 @Value.Immutable(builder = false)
 public interface PropertyGroup extends GlobalPropertyId {

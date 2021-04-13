@@ -1,7 +1,6 @@
 package gcm.core.epi.plugin.vaccine.resourcebased;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.plugin.Plugin;
@@ -16,15 +15,24 @@ import gcm.core.epi.trigger.ImmutableAbsoluteTimeTrigger;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.util.property.*;
 import gcm.core.epi.variants.VariantId;
-import gcm.scenario.*;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
-import gcm.simulation.partition.LabelSet;
-import gcm.simulation.partition.Partition;
-import gcm.simulation.partition.PartitionSampler;
+import nucleus.Plan;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.partitions.support.LabelSet;
+import plugins.partitions.support.Partition;
+import plugins.partitions.support.PartitionSampler;
+import plugins.people.support.PersonId;
+import plugins.personproperties.support.PersonPropertyLabeler;
+import plugins.properties.support.TimeTrackingPolicy;
+import plugins.regions.support.RegionId;
+import plugins.regions.support.RegionLabeler;
+import plugins.resources.support.ResourceId;
+import plugins.resources.support.ResourceLabeler;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.util.*;
 import java.util.function.Function;
@@ -330,13 +338,14 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
                 environment.addPartition(Partition.builder()
                                 // Partition regions by FIPS code
-                                .setRegionFunction(regionId -> vaccinationRatePerDayFipsCodeValues.scope().getFipsSubCode(regionId))
+                                .addLabeler(new RegionLabeler(regionId -> vaccinationRatePerDayFipsCodeValues.scope().getFipsSubCode(regionId)))
                                 // Partition by age group
-                                .setPersonPropertyFunction(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex -> ageGroups.get((int) ageGroupIndex))
+                                .addLabeler(new PersonPropertyLabeler(PersonProperty.AGE_GROUP_INDEX,
+                                        ageGroupIndex -> ageGroups.get((int) ageGroupIndex)))
                                 // Partition by risk status
-                                .setPersonPropertyFunction(PersonProperty.IS_HIGH_RISK, Function.identity())
+                                .addLabeler(new PersonPropertyLabeler(PersonProperty.IS_HIGH_RISK, Function.identity()))
                                 // Partition by number of doses
-                                .setPersonResourceFunction(VaccineId.VACCINE_ONE, numberOfDoses -> numberOfDoses)
+                                .addLabeler(new ResourceLabeler(DetailedResourceBasedVaccinePlugin.VaccineResourceId.VACCINE, numberOfDoses -> numberOfDoses))
                                 .build(),
                         VACCINE_PARTITION_KEY);
 
@@ -351,7 +360,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         }
 
         @Override
-        public void observeRegionPersonArrival(Environment environment, PersonId personId) {
+        public void observeRegionPersonArrival(Environment environment, RegionId regionId, PersonId personId) {
             /*
              * A new person has been added to the simulation and we must have
              * already started vaccinating because we only start observing arrivals
@@ -359,7 +368,6 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
              */
             FipsCodeDouble vaccinationRatePerDay = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINATION_RATE_PER_DAY);
-            RegionId regionId = environment.getPersonRegion(personId);
             FipsCode fipsCode = vaccinationRatePerDay.scope().getFipsSubCode(regionId);
             final double vaccinationStartDay = environment.getGlobalPropertyValue(
                     VaccineGlobalProperty.VACCINATION_START_DAY);
@@ -445,16 +453,16 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
 
                 final Optional<PersonId> personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
                         .setLabelSet(LabelSet.builder()
-                                .setRegionLabel(fipsCode)
+                                .setLabel(RegionId.class, fipsCode)
                                 // Be careful to use long and not int 0
-                                .setResourceLabel(VaccineId.VACCINE_ONE, 0L)
+                                .setLabel(VaccineId.VACCINE_ONE, 0L)
                                 .build())
-                        .setLabelSetWeightingFunction((observableEnvironment, labelSetInfo) -> {
-                            // We know this labelSetInfo will have a label for this person property
+                        .setLabelSetWeightingFunction((context, labelSet) -> {
+                            // We know this labelSet will have a label for this person property
                             //noinspection OptionalGetWithoutIsPresent
-                            AgeGroup ageGroup = (AgeGroup) labelSetInfo.getPersonPropertyLabel(PersonProperty.AGE_GROUP_INDEX).get();
+                            AgeGroup ageGroup = (AgeGroup) labelSet.getLabel(PersonProperty.AGE_GROUP_INDEX).get();
                             //noinspection OptionalGetWithoutIsPresent
-                            boolean isHighRisk = (boolean) labelSetInfo.getPersonPropertyLabel(PersonProperty.IS_HIGH_RISK).get();
+                            boolean isHighRisk = (boolean) labelSet.getLabel(PersonProperty.IS_HIGH_RISK).get();
                             return vaccineUptakeWeights.getWeight(ageGroup) *
                                     (isHighRisk ? vaccineHighRiskUptakeWeights.getWeight(ageGroup) : 1.0);
                         })

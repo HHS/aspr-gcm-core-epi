@@ -3,10 +3,10 @@ package gcm.core.epi.components.trigger;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.trigger.*;
-import gcm.scenario.RegionId;
-import gcm.scenario.RegionPropertyId;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
+import nucleus.Plan;
+import plugins.gcm.agents.Environment;
+import plugins.regions.support.RegionId;
+import plugins.regions.support.RegionPropertyId;
 
 import java.util.Map;
 import java.util.Set;

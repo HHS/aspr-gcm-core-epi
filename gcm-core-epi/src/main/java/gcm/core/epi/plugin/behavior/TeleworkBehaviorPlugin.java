@@ -1,7 +1,6 @@
 package gcm.core.epi.plugin.behavior;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.propertytypes.FipsCodeValue;
@@ -9,11 +8,18 @@ import gcm.core.epi.propertytypes.ImmutableFipsCodeValue;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.*;
-import gcm.scenario.*;
-import gcm.simulation.Environment;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.util.Pair;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.globals.support.GlobalComponentId;
+import plugins.groups.support.GroupId;
+import plugins.people.support.PersonId;
+import plugins.properties.support.TimeTrackingPolicy;
+import plugins.regions.support.RegionId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.util.*;
 import java.util.stream.Collectors;

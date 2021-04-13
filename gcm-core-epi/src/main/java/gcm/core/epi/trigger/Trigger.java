@@ -1,10 +1,10 @@
 package gcm.core.epi.trigger;
 
-import gcm.components.Component;
 import gcm.core.epi.reports.TriggerReport;
 import gcm.core.epi.util.property.DefinedRegionProperty;
-import gcm.scenario.RegionId;
-import gcm.simulation.Environment;
+import plugins.components.agents.Component;
+import plugins.gcm.agents.Environment;
+import plugins.regions.support.RegionId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +14,7 @@ public interface Trigger {
 
     static void performCallback(TriggerId<? extends Trigger> triggerId, TriggerCallback callback, Environment environment, RegionId regionId) {
         if (environment.isActiveReport(TriggerReport.class)) {
-            environment.releaseOutputItem(TriggerReport.getReportItemFor(environment.getObservableEnvironment(), triggerId, regionId));
+            environment.releaseOutput(TriggerReport.getReportItemFor(environment.getTime(), triggerId, regionId));
         }
         callback.trigger(environment, regionId);
     }

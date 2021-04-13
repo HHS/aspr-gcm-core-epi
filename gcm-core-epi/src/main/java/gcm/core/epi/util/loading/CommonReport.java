@@ -2,11 +2,11 @@ package gcm.core.epi.util.loading;
 
 import gcm.core.epi.identifiers.Resource;
 import gcm.core.epi.plugin.Plugin;
-import gcm.experiment.ExperimentExecutor;
-import gcm.output.reports.commonreports.GroupPropertyReport;
-import gcm.scenario.GlobalPropertyId;
-import gcm.scenario.PersonPropertyId;
-import gcm.scenario.RegionPropertyId;
+import plugins.gcm.experiment.ExperimentExecutor;
+import plugins.globals.support.GlobalPropertyId;
+import plugins.groups.reports.GroupPropertyReport;
+import plugins.personproperties.support.PersonPropertyId;
+import plugins.regions.support.RegionPropertyId;
 
 import java.nio.file.Path;
 import java.util.List;

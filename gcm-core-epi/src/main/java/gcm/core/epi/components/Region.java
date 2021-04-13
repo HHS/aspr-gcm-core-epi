@@ -1,7 +1,7 @@
 package gcm.core.epi.components;
 
-import gcm.components.AbstractComponent;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
 
 public class Region extends AbstractComponent {
 

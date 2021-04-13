@@ -1,16 +1,16 @@
 package gcm.core.epi.trigger;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import gcm.components.Component;
 import gcm.core.epi.components.trigger.IncidenceTriggerComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AbstractFipsCodeDouble;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsScope;
-import gcm.scenario.RegionId;
-import gcm.simulation.Environment;
 import org.immutables.value.Value;
+import plugins.components.agents.Component;
+import plugins.gcm.agents.Environment;
+import plugins.regions.support.RegionId;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;

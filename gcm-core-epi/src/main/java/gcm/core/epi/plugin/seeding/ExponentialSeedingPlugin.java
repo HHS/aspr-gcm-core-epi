@@ -1,7 +1,7 @@
 package gcm.core.epi.plugin.seeding;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import gcm.components.AbstractComponent;
+import gcm.core.epi.components.ContactManager;
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.GlobalProperty;
@@ -14,22 +14,23 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.core.epi.variants.VariantId;
 import gcm.core.epi.variants.VariantsDescription;
-import gcm.scenario.ExperimentBuilder;
-import gcm.scenario.GlobalComponentId;
-import gcm.scenario.PersonId;
-import gcm.scenario.RandomNumberGeneratorId;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
-import gcm.simulation.partition.LabelSet;
-import gcm.simulation.partition.Partition;
-import gcm.simulation.partition.PartitionSampler;
+import nucleus.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.util.Pair;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.globals.support.GlobalComponentId;
+import plugins.partitions.support.LabelSet;
+import plugins.partitions.support.Partition;
+import plugins.partitions.support.PartitionSampler;
+import plugins.people.support.PersonId;
+import plugins.regions.support.RegionId;
+import plugins.regions.support.RegionLabeler;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.util.*;
-
-import static gcm.core.epi.components.ContactManager.infectPerson;
 
 public class ExponentialSeedingPlugin implements Plugin {
 
@@ -127,7 +128,7 @@ public class ExponentialSeedingPlugin implements Plugin {
 
                 // Create partition TODO: Could be redundant with ContactManager
                 environment.addPartition(Partition.builder()
-                                .setRegionFunction(regionId -> seedingRateSpecification.scope().getFipsSubCode(regionId))
+                                .addLabeler(new RegionLabeler(regionId -> seedingRateSpecification.scope().getFipsSubCode(regionId)))
                                 .build(),
                         SEEDING_PARTITION_KEY);
 
@@ -150,7 +151,7 @@ public class ExponentialSeedingPlugin implements Plugin {
                 // Pick random person to infect
                 SeedingPlan seedingPlan = (SeedingPlan) plan;
                 Optional<PersonId> personId = environment.samplePartition(SEEDING_PARTITION_KEY, PartitionSampler.builder()
-                        .setLabelSet(LabelSet.builder().setRegionLabel(seedingPlan.fipsCode).build())
+                        .setLabelSet(LabelSet.builder().setLabel(RegionId.class, seedingPlan.fipsCode).build())
                         .setRandomNumberGeneratorId(ExponentialSeedingRandomId.ID)
                         .build());
                 if (personId.isPresent()) {
@@ -160,9 +161,9 @@ public class ExponentialSeedingPlugin implements Plugin {
                         double variantSeedingStartDay = environment.getGlobalPropertyValue(ExponentialSeedingGlobalProperty.SEEDING_VARIANT_START_DAY);
                         if (environment.getTime() >= variantSeedingStartDay) {
                             int variantIndex = variantSamplingDistribution.sample();
-                            ContactManager:infectPerson(environment, personId.get(), variantIndex);
+                            ContactManager.infectPerson(environment, personId.get(), variantIndex);
                         } else {
-                            ContactManager:infectPerson(environment, personId.get(), 0);
+                            ContactManager.infectPerson(environment, personId.get(), 0);
                         }
                         environment.setGlobalPropertyValue(GlobalProperty.MOST_RECENT_INFECTION_DATA,
                                 Optional.of(ImmutableInfectionData.builder()

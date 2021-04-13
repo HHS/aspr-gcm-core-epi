@@ -1,7 +1,6 @@
 package gcm.core.epi.plugin.transmission;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
@@ -9,14 +8,15 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.core.epi.variants.VariantId;
 import gcm.core.epi.variants.VariantsDescription;
-import gcm.scenario.ExperimentBuilder;
-import gcm.scenario.GlobalComponentId;
-import gcm.scenario.PersonId;
-import gcm.scenario.RandomNumberGeneratorId;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
+import nucleus.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.util.Pair;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.globals.support.GlobalComponentId;
+import plugins.people.support.PersonId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.util.*;
 

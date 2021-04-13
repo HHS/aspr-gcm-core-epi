@@ -1,19 +1,18 @@
 package gcm.core.epi.reports;
 
-import gcm.output.reports.AbstractReport;
-import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportItem;
-import gcm.output.reports.StateChange;
-import gcm.scenario.PersonId;
-import gcm.scenario.PersonPropertyId;
-import gcm.simulation.ObservableEnvironment;
+import nucleus.ReportContext;
+import plugins.people.datacontainers.PersonDataView;
+import plugins.people.support.PersonId;
+import plugins.personproperties.datacontainers.PersonPropertyDataView;
+import plugins.personproperties.events.observation.PersonPropertyChangeObservationEvent;
+import plugins.personproperties.support.PersonPropertyId;
+import plugins.reports.support.AbstractReport;
+import plugins.reports.support.ReportHeader;
+import plugins.reports.support.ReportItem;
 
-import java.util.Arrays;
+
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 public final class IndividualPersonPropertyChangeReport extends AbstractReport {
 
     private final Set<PersonPropertyId> personPropertyIds = new LinkedHashSet<>();
@@ -31,61 +30,65 @@ public final class IndividualPersonPropertyChangeReport extends AbstractReport {
         return reportHeader;
     }
 
-    @Override
-    public Set<StateChange> getListenedStateChanges() {
-        return Stream.of(StateChange.PERSON_PROPERTY_VALUE_ASSIGNMENT).collect(Collectors.toSet());
-    }
-
-    @Override
-    public void handlePersonPropertyValueAssignment(ObservableEnvironment observableEnvironment, PersonId personId, PersonPropertyId personPropertyId, Object oldPersonPropertyValue) {
-
+    private void handlePersonPropertyChangeObservationEvent(PersonPropertyChangeObservationEvent personPropertyChangeObservationEvent) {
+        PersonPropertyId personPropertyId = personPropertyChangeObservationEvent.getPersonPropertyId();
         if (personPropertyIds.contains(personPropertyId)) {
             ReportItem.Builder reportItemBuilder = ReportItem.builder();
             reportItemBuilder.setReportType(getClass());
             reportItemBuilder.setReportHeader(getReportHeader());
-            reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
-            reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
 
-            reportItemBuilder.addValue(observableEnvironment.getTime());
-            reportItemBuilder.addValue(personId);
+            reportItemBuilder.addValue(getTime());
+            reportItemBuilder.addValue(personPropertyChangeObservationEvent.getPersonId());
             reportItemBuilder.addValue(personPropertyId);
-            reportItemBuilder.addValue(observableEnvironment.getPersonPropertyValue(personId, personPropertyId));
+            reportItemBuilder.addValue(personPropertyChangeObservationEvent.getCurrentPropertyValue());
 
-            observableEnvironment.releaseOutputItem(reportItemBuilder.build());
+            releaseOutputItem(reportItemBuilder.build());
         }
+    }
 
+    private PersonDataView personDataView;
+    private PersonPropertyDataView personPropertyDataView;
+
+    @Override
+    public void setInitializingData(Set<Object> initialData) {
+        super.setInitializingData(initialData);
+        for (Object initialDatum : initialData) {
+            if (initialDatum instanceof PersonPropertyId) {
+                PersonPropertyId personPropertyId = (PersonPropertyId) initialDatum;
+                personPropertyIds.add(personPropertyId);
+            }
+        }
     }
 
     @Override
-    public void init(ObservableEnvironment observableEnvironment, Set<Object> initialData) {
-        super.init(observableEnvironment, initialData);
+    public void init(ReportContext reportContext) {
+        super.init(reportContext);
 
-        for (Object initialDatum : initialData) {
-            if (initialDatum instanceof PersonPropertyId[]) {
-                personPropertyIds.addAll(Arrays.asList((PersonPropertyId[]) initialDatum));
-            } else {
-                throw new RuntimeException("Invalid initial data passed to IndividualPersonPropertyChangeReport");
-            }
+        reportContext.subscribeToEvent(PersonPropertyChangeObservationEvent.class);
+        setConsumer(PersonPropertyChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
+
+        personDataView = reportContext.getDataView(PersonDataView.class).get();
+        personPropertyDataView = reportContext.getDataView(PersonPropertyDataView.class).get();
+
+        /*
+         * If no person properties were specified, then assume all are wanted
+         */
+        if (personPropertyIds.size() == 0) {
+            personPropertyIds.addAll(personPropertyDataView.getPersonPropertyIds());
         }
 
-        if (initialData.size() == 0) {
-            personPropertyIds.addAll(observableEnvironment.getPersonPropertyIds());
-        }
-
-        for (PersonId personId : observableEnvironment.getPeople()) {
+        for (PersonId personId : personDataView.getPeople()) {
             for (PersonPropertyId personPropertyId : personPropertyIds) {
                 ReportItem.Builder reportItemBuilder = ReportItem.builder();
                 reportItemBuilder.setReportType(getClass());
                 reportItemBuilder.setReportHeader(getReportHeader());
-                reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
-                reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
 
-                reportItemBuilder.addValue(observableEnvironment.getTime());
+                reportItemBuilder.addValue(getTime());
                 reportItemBuilder.addValue(personId);
                 reportItemBuilder.addValue(personPropertyId);
-                reportItemBuilder.addValue(observableEnvironment.getPersonPropertyValue(personId, personPropertyId));
+                reportItemBuilder.addValue(personPropertyDataView.getPersonPropertyValue(personId, personPropertyId));
 
-                observableEnvironment.releaseOutputItem(reportItemBuilder.build());
+                releaseOutputItem(reportItemBuilder.build());
             }
         }
 

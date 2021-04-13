@@ -4,18 +4,17 @@ import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.InfectionData;
-import gcm.output.reports.AbstractReport;
-import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportItem;
-import gcm.output.reports.StateChange;
-import gcm.scenario.GlobalPropertyId;
-import gcm.scenario.PersonId;
-import gcm.simulation.ObservableEnvironment;
+import nucleus.ReportContext;
+import plugins.globals.datacontainers.GlobalDataView;
+import plugins.globals.events.GlobalPropertyChangeObservationEvent;
+import plugins.people.support.PersonId;
+import plugins.personproperties.datacontainers.PersonPropertyDataView;
+import plugins.reports.support.AbstractReport;
+import plugins.reports.support.ReportHeader;
+import plugins.reports.support.ReportItem;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class InfectionReport extends AbstractReport {
 
@@ -40,8 +39,7 @@ public class InfectionReport extends AbstractReport {
     }
 
     @Override
-    public void init(ObservableEnvironment observableEnvironment, Set<Object> initialData) {
-        super.init(observableEnvironment, initialData);
+    public void setInitializingData(Set<Object> initialData) {
         for (Object initialDatum : initialData) {
             if (initialDatum instanceof Boolean) {
                 showTransmissionAttempts = (Boolean) initialDatum;
@@ -49,44 +47,44 @@ public class InfectionReport extends AbstractReport {
                 throw new RuntimeException("Invalid initial data passed to InfectionReport");
             }
         }
-
-        handleMostRecentInfectionDataAssignment(observableEnvironment);
-
     }
 
+    GlobalDataView globalDataView;
+    PersonPropertyDataView personPropertyDataView;
+
     @Override
-    public Set<StateChange> getListenedStateChanges() {
-        return Stream.of(StateChange.GLOBAL_PROPERTY_VALUE_ASSIGNMENT).collect(Collectors.toSet());
+    public void init(ReportContext reportContext) {
+        super.init(reportContext);
+        reportContext.subscribeToEvent(GlobalPropertyChangeObservationEvent.class);
+        setConsumer(GlobalPropertyChangeObservationEvent.class, this::handleGlobalPropertyChangeObservationEvent);
+        globalDataView = reportContext.getDataView(GlobalDataView.class).get();
+        personPropertyDataView = reportContext.getDataView(PersonPropertyDataView.class).get();
+        handleMostRecentInfectionDataAssignment();
     }
 
-    @Override
-    public void handleGlobalPropertyValueAssignment(ObservableEnvironment observableEnvironment, GlobalPropertyId propertyId) {
-
-        if (propertyId == GlobalProperty.MOST_RECENT_INFECTION_DATA) {
-            handleMostRecentInfectionDataAssignment(observableEnvironment);
+    private void handleGlobalPropertyChangeObservationEvent(GlobalPropertyChangeObservationEvent globalPropertyChangeObservationEvent) {
+        if (globalPropertyChangeObservationEvent.getGlobalPropertyId() == GlobalProperty.MOST_RECENT_INFECTION_DATA) {
+            handleMostRecentInfectionDataAssignment();
         }
-
     }
 
-    private void handleMostRecentInfectionDataAssignment(ObservableEnvironment observableEnvironment) {
+    private void handleMostRecentInfectionDataAssignment() {
 
-        Optional<InfectionData> optionalInfectionData = observableEnvironment.getGlobalPropertyValue(GlobalProperty.MOST_RECENT_INFECTION_DATA);
+        Optional<InfectionData> optionalInfectionData = globalDataView.getGlobalPropertyValue(GlobalProperty.MOST_RECENT_INFECTION_DATA);
 
         optionalInfectionData.ifPresent(infectionData -> {
             if (infectionData.transmissionOccurred() | showTransmissionAttempts) {
                 final ReportItem.Builder reportItemBuilder = ReportItem.builder();
                 reportItemBuilder.setReportType(getClass());
                 reportItemBuilder.setReportHeader(getReportHeader());
-                reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
-                reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
 
-                reportItemBuilder.addValue(observableEnvironment.getTime());
-                PopulationDescription populationDescription = observableEnvironment.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
+                reportItemBuilder.addValue(getTime());
+                PopulationDescription populationDescription = globalDataView.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
 
                 if (infectionData.sourcePersonId().isPresent()) {
                     PersonId sourcePersonId = infectionData.sourcePersonId().get();
                     reportItemBuilder.addValue(sourcePersonId);
-                    Integer sourcePersonAgeGroupIndex = observableEnvironment.getPersonPropertyValue(sourcePersonId, PersonProperty.AGE_GROUP_INDEX);
+                    Integer sourcePersonAgeGroupIndex = personPropertyDataView.getPersonPropertyValue(sourcePersonId, PersonProperty.AGE_GROUP_INDEX);
                     reportItemBuilder.addValue(populationDescription.ageGroupPartition().getAgeGroupFromIndex(sourcePersonAgeGroupIndex));
                 } else {
                     reportItemBuilder.addValue("");
@@ -96,7 +94,7 @@ public class InfectionReport extends AbstractReport {
                 if (infectionData.targetPersonId().isPresent()) {
                     PersonId targetPersonId = infectionData.targetPersonId().get();
                     reportItemBuilder.addValue(targetPersonId);
-                    Integer targetPersonAgeGroupIndex = observableEnvironment.getPersonPropertyValue(targetPersonId, PersonProperty.AGE_GROUP_INDEX);
+                    Integer targetPersonAgeGroupIndex = personPropertyDataView.getPersonPropertyValue(targetPersonId, PersonProperty.AGE_GROUP_INDEX);
                     reportItemBuilder.addValue(populationDescription.ageGroupPartition().getAgeGroupFromIndex(targetPersonAgeGroupIndex));
                 } else {
                     reportItemBuilder.addValue("");
@@ -108,7 +106,7 @@ public class InfectionReport extends AbstractReport {
                     reportItemBuilder.addValue(infectionData.transmissionOccurred());
                 }
 
-                observableEnvironment.releaseOutputItem(reportItemBuilder.build());
+                releaseOutputItem(reportItemBuilder.build());
             }
         });
 

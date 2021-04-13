@@ -1,10 +1,10 @@
 package gcm.core.epi.components.compartment;
 
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.Compartment;
-import gcm.scenario.PersonId;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
+import nucleus.Plan;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.people.support.PersonId;
 
 abstract class DiseaseCompartment extends AbstractComponent {
 

@@ -2,7 +2,7 @@ package gcm.core.epi.identifiers;
 
 import gcm.core.epi.util.property.DefinedGroupProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
-import gcm.scenario.RegionId;
+import plugins.regions.support.RegionId;
 
 public enum WorkplaceProperty implements DefinedGroupProperty {
 

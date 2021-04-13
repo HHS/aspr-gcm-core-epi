@@ -1,8 +1,8 @@
 package gcm.core.epi.identifiers;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import gcm.scenario.RegionId;
 import org.immutables.value.Value;
+import plugins.regions.support.RegionId;
 
 @Value.Immutable(builder = false)
 @JsonDeserialize(as = ImmutableStringRegionId.class)

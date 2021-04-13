@@ -1,18 +1,25 @@
 package gcm.core.epi.reports;
 
-import gcm.output.reports.PersonInfo;
-import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportItem;
-import gcm.output.reports.StateChange;
-import gcm.scenario.CompartmentId;
-import gcm.scenario.PersonId;
-import gcm.scenario.RegionId;
-import gcm.simulation.ObservableEnvironment;
-import gcm.util.annotations.Source;
-import gcm.util.annotations.TestStatus;
+
+import nucleus.ReportContext;
+import plugins.compartments.datacontainers.CompartmentDataView;
+import plugins.compartments.datacontainers.CompartmentLocationDataView;
+import plugins.compartments.events.observation.PersonCompartmentChangeObservationEvent;
+import plugins.compartments.support.CompartmentId;
+import plugins.people.datacontainers.PersonDataView;
+import plugins.people.events.observation.PersonCreationObservationEvent;
+import plugins.people.events.observation.PersonImminentRemovalObservationEvent;
+import plugins.people.support.PersonId;
+import plugins.regions.datacontainers.RegionDataView;
+import plugins.regions.datacontainers.RegionLocationDataView;
+import plugins.regions.events.observation.PersonRegionChangeObservationEvent;
+import plugins.regions.support.RegionId;
+import plugins.reports.support.ReportHeader;
+import plugins.reports.support.ReportItem;
+import util.annotations.Source;
+import util.annotations.TestStatus;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -70,7 +77,7 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
     }
 
     @Override
-    protected void flush(ObservableEnvironment observableEnvironment) {
+    protected void flush() {
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
         /*
          * Report the population count for all region/compartment pairs that are
@@ -84,60 +91,47 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
                 if (personCount > 0) {
                     reportItemBuilder.setReportHeader(getReportHeader());
                     reportItemBuilder.setReportType(getClass());
-                    reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
-                    reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
                     buildTimeFields(reportItemBuilder);
 
                     reportItemBuilder.addValue(regionId);
                     reportItemBuilder.addValue(compartmentId.toString());
                     reportItemBuilder.addValue(personCount);
-                    observableEnvironment.releaseOutputItem(reportItemBuilder.build());
+                    releaseOutputItem(reportItemBuilder.build());
                 }
             }
         }
     }
 
-    @Override
-    public Set<StateChange> getListenedStateChanges() {
-        final Set<StateChange> result = new LinkedHashSet<>();
-        result.add(StateChange.PERSON_ADDITION);
-        result.add(StateChange.PERSON_REMOVAL);
-        result.add(StateChange.COMPARTMENT_ASSIGNMENT);
-        result.add(StateChange.REGION_ASSIGNMENT);
-        return result;
-    }
-
-    @Override
-    public void handleRegionAssignment(ObservableEnvironment observableEnvironment, final PersonId personId, final RegionId sourceRegionId) {
-        setCurrentReportingPeriod(observableEnvironment);
-        final CompartmentId compartmentId = observableEnvironment.getPersonCompartment(personId);
-        final RegionId destinationRegionId = observableEnvironment.getPersonRegion(personId);
+    private void handlePersonRegionChangeObservationEvent(PersonRegionChangeObservationEvent personRegionChangeObservationEvent) {
+        PersonId personId = personRegionChangeObservationEvent.getPersonId();
+        RegionId sourceRegionId = personRegionChangeObservationEvent.getPreviousRegionId();
+        final RegionId destinationRegionId = personRegionChangeObservationEvent.getCurrentRegionId();
+        final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
         decrement(sourceRegionId, compartmentId);
         increment(destinationRegionId, compartmentId);
     }
 
-    @Override
-    public void handleCompartmentAssignment(ObservableEnvironment observableEnvironment, final PersonId personId, final CompartmentId sourceCompartmentId) {
-
-        setCurrentReportingPeriod(observableEnvironment);
-        final RegionId regionId = observableEnvironment.getPersonRegion(personId);
-        final CompartmentId destinationCompartmentId = observableEnvironment.getPersonCompartment(personId);
+    private void handlePersonCompartmentChangeObservationEvent(PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
+        CompartmentId sourceCompartmentId = personCompartmentChangeObservationEvent.getPreviousCompartmentId();
+        PersonId personId = personCompartmentChangeObservationEvent.getPersonId();
+        final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+        final CompartmentId destinationCompartmentId = compartmentLocationDataView.getPersonCompartment(personId);
         decrement(regionId, sourceCompartmentId);
         increment(regionId, destinationCompartmentId);
     }
 
-    @Override
-    public void handlePersonAddition(ObservableEnvironment observableEnvironment, final PersonId personId) {
-        setCurrentReportingPeriod(observableEnvironment);
-        final RegionId regionId = observableEnvironment.getPersonRegion(personId);
-        final CompartmentId compartmentId = observableEnvironment.getPersonCompartment(personId);
+    private void handlePersonCreationObservationEvent(PersonCreationObservationEvent personCreationObservationEvent) {
+        PersonId personId = personCreationObservationEvent.getPersonId();
+        final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+        final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
         increment(regionId, compartmentId);
     }
 
-    @Override
-    public void handlePersonRemoval(ObservableEnvironment observableEnvironment, PersonInfo personInfo) {
-        setCurrentReportingPeriod(observableEnvironment);
-        decrement(personInfo.getRegionId(), personInfo.getCompartmentId());
+    private void handlePersonImminentRemovalObservationEvent(PersonImminentRemovalObservationEvent personImminentRemovalObservationEvent) {
+        PersonId personId = personImminentRemovalObservationEvent.getPersonId();
+        RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+        CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
+        decrement(regionId, compartmentId);
     }
 
     /*
@@ -149,15 +143,32 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
         counter.count++;
     }
 
+    private CompartmentLocationDataView compartmentLocationDataView;
+    private RegionLocationDataView regionLocationDataView;
+
     @Override
-    public void init(final ObservableEnvironment observableEnvironment, Set<Object> initialData) {
-        super.init(observableEnvironment, initialData);
+    public void init(ReportContext reportContext) {
+        super.init(reportContext);
+
+        reportContext.subscribeToEvent(PersonCreationObservationEvent.class);
+        reportContext.subscribeToEvent(PersonImminentRemovalObservationEvent.class);
+        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class);
+        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class);
+
+        setConsumer(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
+        setConsumer(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
+        setConsumer(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
+        setConsumer(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
+
+        PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();
+        compartmentLocationDataView = reportContext.getDataView(CompartmentLocationDataView.class).get();
+        regionLocationDataView = reportContext.getDataView(RegionLocationDataView.class).get();
 
         /*
          * Fill the region map with empty counters
          */
-        final Set<CompartmentId> compartmentIds = observableEnvironment.getCompartmentIds();
-        final Set<RegionId> regionIds = observableEnvironment.getRegionIds();
+        final Set<CompartmentId> compartmentIds = reportContext.getDataView(CompartmentDataView.class).get().getCompartmentIds();
+        final Set<RegionId> regionIds = reportContext.getDataView(RegionDataView.class).get().getRegionIds();
         for (final RegionId regionId : regionIds) {
             final Map<CompartmentId, Counter> compartmentMap = new LinkedHashMap<>();
             regionMap.put(getFipsString(regionId), compartmentMap);
@@ -167,9 +178,8 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
             }
         }
 
-        setCurrentReportingPeriod(observableEnvironment);
-        for (PersonId personId : observableEnvironment.getPeople()) {
-            increment(observableEnvironment.getPersonRegion(personId), observableEnvironment.getPersonCompartment(personId));
+        for (PersonId personId : personDataView.getPeople()) {
+            increment(regionLocationDataView.getPersonRegion(personId), compartmentLocationDataView.getPersonCompartment(personId));
         }
     }
 

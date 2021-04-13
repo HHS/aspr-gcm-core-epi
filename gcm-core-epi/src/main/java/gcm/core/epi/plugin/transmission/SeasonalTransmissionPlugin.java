@@ -2,8 +2,8 @@ package gcm.core.epi.plugin.transmission;
 
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
-import gcm.scenario.PersonId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.people.support.PersonId;
 
 import java.util.EnumSet;
 import java.util.HashSet;

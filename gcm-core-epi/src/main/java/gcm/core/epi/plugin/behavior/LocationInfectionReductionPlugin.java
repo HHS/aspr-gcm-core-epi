@@ -13,8 +13,12 @@ import gcm.core.epi.util.property.DefinedGlobalAndRegionProperty;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
-import gcm.scenario.*;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.people.support.PersonId;
+import plugins.properties.support.TimeTrackingPolicy;
+import plugins.regions.support.RegionId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.util.*;
 import java.util.stream.Collectors;

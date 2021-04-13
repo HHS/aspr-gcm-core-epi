@@ -7,11 +7,11 @@ import gcm.core.epi.population.Util;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.*;
-import gcm.scenario.ExperimentBuilder;
-import gcm.scenario.PersonId;
-import gcm.scenario.RandomNumberGeneratorId;
-import gcm.scenario.RegionId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.people.support.PersonId;
+import plugins.regions.support.RegionId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.util.*;
 

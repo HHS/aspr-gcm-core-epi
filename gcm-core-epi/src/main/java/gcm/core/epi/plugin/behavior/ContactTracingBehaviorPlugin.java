@@ -1,7 +1,6 @@
 package gcm.core.epi.plugin.behavior;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import gcm.components.AbstractComponent;
 import gcm.core.epi.components.ContactManager;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.GlobalProperty;
@@ -13,11 +12,21 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
-import gcm.scenario.*;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
-import gcm.simulation.partition.LabelSet;
-import gcm.simulation.partition.Partition;
+import nucleus.Plan;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.globals.support.GlobalComponentId;
+import plugins.globals.support.GlobalPropertyId;
+import plugins.groups.support.GroupId;
+import plugins.partitions.support.LabelSet;
+import plugins.partitions.support.Partition;
+import plugins.people.support.PersonId;
+import plugins.personproperties.support.PersonPropertyId;
+import plugins.personproperties.support.PersonPropertyLabeler;
+import plugins.properties.support.TimeTrackingPolicy;
+import plugins.regions.support.RegionId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.util.*;
 import java.util.function.Function;
@@ -250,13 +259,13 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
             if (maximumInfectionsToTrace.values().stream().anyMatch(value -> value != 0)) {
                 // Create partitions
                 environment.addPartition(Partition.builder()
-                                .setPersonPropertyFunction(ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID,
-                                        Function.identity())
+                                .addLabeler(new PersonPropertyLabeler(ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID,
+                                        Function.identity()))
                                 .build(),
                         GLOBAL_INFECTION_SOURCE_PARTITION_KEY);
                 environment.addPartition(Partition.builder()
-                                .setPersonPropertyFunction(ContactTracingPersonProperty.NON_GLOBAL_INFECTION_SOURCE_PERSON_ID,
-                                        Function.identity())
+                                .addLabeler(new PersonPropertyLabeler(ContactTracingPersonProperty.NON_GLOBAL_INFECTION_SOURCE_PERSON_ID,
+                                        Function.identity()))
                                 .build(),
                         NON_GLOBAL_INFECTION_SOURCE_PARTITION_KEY);
                 // Begin observing
@@ -345,7 +354,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                             //TODO: If identified cases don't shelter & continue infecting people, then this logic is flawed.
                             infectionsFromContact = environment.getPartitionPeople(NON_GLOBAL_INFECTION_SOURCE_PARTITION_KEY,
                                     LabelSet.builder()
-                                            .setPropertyLabel(ContactTracingPersonProperty.NON_GLOBAL_INFECTION_SOURCE_PERSON_ID,
+                                            .setLabel(ContactTracingPersonProperty.NON_GLOBAL_INFECTION_SOURCE_PERSON_ID,
                                                     personId.getValue())
                                             .build());
                         }
@@ -362,7 +371,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
                                 // Get global infections
                                 peopleInGroup = environment.getPartitionPeople(GLOBAL_INFECTION_SOURCE_PARTITION_KEY,
                                         LabelSet.builder()
-                                                .setPropertyLabel(ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID,
+                                                .setLabel(ContactTracingPersonProperty.GLOBAL_INFECTION_SOURCE_PERSON_ID,
                                                         personId.getValue())
                                                 .build());
 

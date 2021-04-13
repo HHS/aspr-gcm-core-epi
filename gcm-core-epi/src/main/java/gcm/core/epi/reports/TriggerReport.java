@@ -2,15 +2,10 @@ package gcm.core.epi.reports;
 
 import gcm.core.epi.trigger.Trigger;
 import gcm.core.epi.trigger.TriggerId;
-import gcm.output.reports.AbstractReport;
-import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportItem;
-import gcm.output.reports.StateChange;
-import gcm.scenario.RegionId;
-import gcm.simulation.ObservableEnvironment;
-
-import java.util.HashSet;
-import java.util.Set;
+import plugins.regions.support.RegionId;
+import plugins.reports.support.AbstractReport;
+import plugins.reports.support.ReportHeader;
+import plugins.reports.support.ReportItem;
 
 public class TriggerReport extends AbstractReport {
 
@@ -20,21 +15,14 @@ public class TriggerReport extends AbstractReport {
             .add("Region")
             .build();
 
-    public static ReportItem getReportItemFor(ObservableEnvironment environment, TriggerId<? extends Trigger> triggerId, RegionId regionId) {
+    public static ReportItem getReportItemFor(double time, TriggerId<? extends Trigger> triggerId, RegionId regionId) {
         return ReportItem.builder()
                 .setReportHeader(reportHeader)
                 .setReportType(TriggerReport.class)
-                .setScenarioId(environment.getScenarioId())
-                .setReplicationId(environment.getReplicationId())
-                .addValue(environment.getTime())
+                .addValue(time)
                 .addValue(triggerId.id())
                 .addValue(regionId)
                 .build();
-    }
-
-    @Override
-    public Set<StateChange> getListenedStateChanges() {
-        return new HashSet<>();
     }
 
 }

@@ -2,10 +2,9 @@ package gcm.core.epi.components.compartment;
 
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.PersonProperty;
-import gcm.scenario.PersonId;
-import gcm.scenario.PersonPropertyId;
-import gcm.simulation.Environment;
-
+import plugins.gcm.agents.Environment;
+import plugins.people.support.PersonId;
+import plugins.personproperties.support.PersonPropertyId;
 
 public class SusceptibleCompartment extends DiseaseCompartment {
 

@@ -2,8 +2,8 @@ package gcm.core.epi.propertytypes;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import gcm.core.epi.identifiers.GlobalProperty;
-import gcm.simulation.Environment;
 import org.immutables.value.Value;
+import plugins.gcm.agents.Environment;
 
 import java.time.DayOfWeek;
 import java.util.Set;

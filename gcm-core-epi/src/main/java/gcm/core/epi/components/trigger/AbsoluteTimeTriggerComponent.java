@@ -1,13 +1,13 @@
 package gcm.core.epi.components.trigger;
 
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.trigger.*;
-import gcm.scenario.RegionId;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
+import nucleus.Plan;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.regions.support.RegionId;
 
 import java.util.ArrayList;
 import java.util.List;

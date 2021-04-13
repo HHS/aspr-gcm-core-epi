@@ -2,8 +2,8 @@ package gcm.core.epi.plugin.vaccine.resourcebased;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import gcm.scenario.ResourceId;
 import org.immutables.value.Value;
+import plugins.resources.support.ResourceId;
 
 @Value.Immutable(builder = false)
 @JsonDeserialize(as = ImmutableVaccineId.class)

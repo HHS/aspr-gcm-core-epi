@@ -2,8 +2,8 @@ package gcm.core.epi.population;
 
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
-import gcm.scenario.PersonId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.people.support.PersonId;
 
 public class Util {
 

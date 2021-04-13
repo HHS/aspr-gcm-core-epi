@@ -1,8 +1,8 @@
 package gcm.core.epi.plugin.vaccine.twodose;
 
-import gcm.scenario.PersonId;
-import gcm.scenario.PersonPropertyId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.people.support.PersonId;
+import plugins.personproperties.support.PersonPropertyId;
 
 public class TwoDoseVaccineHelper {
 

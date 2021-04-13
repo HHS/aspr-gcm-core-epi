@@ -10,11 +10,11 @@ import gcm.core.epi.propertytypes.FipsCodeValue;
 import gcm.core.epi.trigger.*;
 import gcm.core.epi.util.loading.CoreEpiBootstrapUtil;
 import gcm.core.epi.util.property.*;
-import gcm.scenario.ExperimentBuilder;
-import gcm.scenario.RandomNumberGeneratorId;
-import gcm.scenario.RegionId;
-import gcm.scenario.ResourceId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.regions.support.RegionId;
+import plugins.resources.support.ResourceId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.io.IOException;
 import java.util.*;

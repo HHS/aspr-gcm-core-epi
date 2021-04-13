@@ -1,13 +1,13 @@
 package gcm.core.epi.components;
 
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.trigger.Trigger;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.trigger.TriggerContainer;
 import gcm.core.epi.trigger.TriggerId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
 
 import java.util.*;
 import java.util.stream.Collectors;

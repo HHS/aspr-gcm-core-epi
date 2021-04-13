@@ -1,8 +1,8 @@
 package gcm.core.epi.identifiers;
 
-import gcm.components.Component;
 import gcm.core.epi.components.*;
-import gcm.scenario.GlobalComponentId;
+import plugins.components.agents.Component;
+import plugins.globals.support.GlobalComponentId;
 
 public enum GlobalComponent implements GlobalComponentId {
 

@@ -5,9 +5,9 @@ import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.AgeGroupPartition;
 import gcm.core.epi.population.ImmutableAgeGroup;
 import gcm.core.epi.population.ImmutableAgeGroupPartition;
-import gcm.scenario.GroupTypeId;
-import gcm.scenario.RegionId;
 import org.immutables.value.Value;
+import plugins.groups.support.GroupTypeId;
+import plugins.regions.support.RegionId;
 
 import java.util.List;
 import java.util.Map;

@@ -1,6 +1,6 @@
 package gcm.core.epi.util.property;
 
-import gcm.scenario.ResourcePropertyId;
+import plugins.resources.support.ResourcePropertyId;
 
 public interface DefinedResourceProperty extends DefinedProperty, ResourcePropertyId {
 

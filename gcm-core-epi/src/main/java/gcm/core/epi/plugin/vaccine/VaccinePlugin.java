@@ -5,11 +5,11 @@ import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.variants.VariantId;
 import gcm.core.epi.variants.VariantsDescription;
-import gcm.scenario.ExperimentBuilder;
-import gcm.scenario.GlobalComponentId;
-import gcm.scenario.PersonId;
-import gcm.scenario.RandomNumberGeneratorId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.globals.support.GlobalComponentId;
+import plugins.people.support.PersonId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.util.Optional;
 

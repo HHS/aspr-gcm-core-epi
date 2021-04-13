@@ -1,9 +1,10 @@
 package gcm.core.epi.components;
 
-import gcm.components.AbstractComponent;
+
 import gcm.core.epi.identifiers.GlobalProperty;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
+import nucleus.Plan;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
 
 public class SimulationStopManager extends AbstractComponent {
 

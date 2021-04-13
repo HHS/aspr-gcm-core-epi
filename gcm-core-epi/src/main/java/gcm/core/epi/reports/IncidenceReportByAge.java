@@ -8,11 +8,19 @@ import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.variants.VariantId;
 import gcm.core.epi.variants.VariantsDescription;
-import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportItem;
-import gcm.output.reports.StateChange;
-import gcm.scenario.*;
-import gcm.simulation.ObservableEnvironment;
+import nucleus.ReportContext;
+import plugins.compartments.events.observation.PersonCompartmentChangeObservationEvent;
+import plugins.globals.datacontainers.GlobalDataView;
+import plugins.people.support.PersonId;
+import plugins.personproperties.datacontainers.PersonPropertyDataView;
+import plugins.personproperties.events.observation.PersonPropertyChangeObservationEvent;
+import plugins.personproperties.support.PersonPropertyId;
+import plugins.regions.datacontainers.RegionDataView;
+import plugins.regions.datacontainers.RegionLocationDataView;
+import plugins.regions.support.RegionId;
+import plugins.reports.support.ReportHeader;
+import plugins.reports.support.ReportItem;
+import plugins.resources.events.observation.PersonResourceChangeObservationEvent;
 
 import java.util.*;
 
@@ -21,10 +29,10 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
     private final Map<String, Map<AgeGroup, Map<VariantId, Map<CounterType, Counter>>>> counterMap = new LinkedHashMap<>();
     private ReportHeader reportHeader;
 
-    private static AgeGroup getPersonAgeGroup(ObservableEnvironment observableEnvironment, PersonId personId) {
-        PopulationDescription populationDescription = observableEnvironment.getGlobalPropertyValue(
+    private AgeGroup getPersonAgeGroup(PersonId personId) {
+        PopulationDescription populationDescription =  globalDataView.getGlobalPropertyValue(
                 GlobalProperty.POPULATION_DESCRIPTION);
-        Integer ageGroupIndex = observableEnvironment.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
+        Integer ageGroupIndex = personPropertyDataView.getPersonPropertyValue(personId, PersonProperty.AGE_GROUP_INDEX);
         return populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
     }
 
@@ -43,12 +51,36 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
         return reportHeader;
     }
 
-    private Counter getCounter(ObservableEnvironment observableEnvironment, PersonId personId, CounterType counterType) {
-        RegionId regionId = observableEnvironment.getPersonRegion(personId);
-        AgeGroup ageGroup = getPersonAgeGroup(observableEnvironment, personId);
-        VariantsDescription variantsDescription = observableEnvironment.getGlobalPropertyValue(GlobalProperty.VARIANTS_DESCRIPTION);
+    GlobalDataView globalDataView;
+    RegionDataView regionDataView;
+    RegionLocationDataView regionLocationDataView;
+    PersonPropertyDataView personPropertyDataView;
+
+    @Override
+    public void init(ReportContext reportContext) {
+        super.init(reportContext);
+
+        // Changes to PersonProperty.IS_SYMPTOMATIC or PersonProperty.DID_NOT_RECEIVE_HOSPITAL_BED flags
+        reportContext.subscribeToEvent(PersonPropertyChangeObservationEvent.class);
+        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class);
+        reportContext.subscribeToEvent(PersonResourceChangeObservationEvent.class);
+
+        setConsumer(PersonPropertyChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
+        setConsumer(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
+        setConsumer(PersonResourceChangeObservationEvent.class, this::handlePersonResourceChangeObservationEvent);
+
+        globalDataView = reportContext.getDataView(GlobalDataView.class).get();
+        regionDataView = reportContext.getDataView(RegionDataView.class).get();
+        regionLocationDataView = reportContext.getDataView(RegionLocationDataView.class).get();
+        personPropertyDataView = reportContext.getDataView(PersonPropertyDataView.class).get();
+    }
+
+    private Counter getCounter(PersonId personId, CounterType counterType) {
+        RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+        AgeGroup ageGroup = getPersonAgeGroup(personId);
+        VariantsDescription variantsDescription = globalDataView.getGlobalPropertyValue(GlobalProperty.VARIANTS_DESCRIPTION);
         // Handle case that infection index has not been set yet from initial seeding
-        int strainIndex = Math.max(observableEnvironment.getPersonPropertyValue(personId,
+        int strainIndex = Math.max(personPropertyDataView.getPersonPropertyValue(personId,
                 PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1), 0);
         VariantId variantId = variantsDescription.variantIdList().get(strainIndex);
         return counterMap
@@ -58,45 +90,42 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
                 .computeIfAbsent(counterType, x -> new Counter());
     }
 
-    @Override
-    public void handlePersonPropertyValueAssignment(ObservableEnvironment observableEnvironment, PersonId personId, PersonPropertyId personPropertyId, Object oldPersonPropertyValue) {
+    private void handlePersonPropertyChangeObservationEvent(PersonPropertyChangeObservationEvent personPropertyChangeObservationEvent) {
+        PersonPropertyId personPropertyId = personPropertyChangeObservationEvent.getPersonPropertyId();
+        PersonId personId = personPropertyChangeObservationEvent.getPersonId();
         if (personPropertyId == PersonProperty.IS_SYMPTOMATIC) {
-            boolean isSymptomatic = observableEnvironment.getPersonPropertyValue(personId, PersonProperty.IS_SYMPTOMATIC);
+            boolean isSymptomatic = (boolean) personPropertyChangeObservationEvent.getCurrentPropertyValue();
             // Only count new assignments of IS_SYMPTOMATIC (even though re-assignment would likely indicate a modeling error)
-            if (isSymptomatic & !(boolean) oldPersonPropertyValue) {
-                setCurrentReportingPeriod(observableEnvironment);
-                getCounter(observableEnvironment, personId, CounterType.CASES).count++;
+            if (isSymptomatic & !(boolean) personPropertyChangeObservationEvent.getPreviousPropertyValue()) {
+                RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+                getCounter(personId, CounterType.CASES).count++;
             }
         } else if (personPropertyId == PersonProperty.DID_NOT_RECEIVE_HOSPITAL_BED) {
-            setCurrentReportingPeriod(observableEnvironment);
-            getCounter(observableEnvironment, personId, CounterType.HOSPITALIZATIONS_WITHOUT_BED).count++;
+            RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+            getCounter(personId, CounterType.HOSPITALIZATIONS_WITHOUT_BED).count++;
         } else if (personPropertyId == PersonProperty.IS_DEAD) {
-            setCurrentReportingPeriod(observableEnvironment);
-            getCounter(observableEnvironment, personId, CounterType.DEATHS).count++;
+            RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+            getCounter(personId, CounterType.DEATHS).count++;
+        }
+    }
+
+    private void handlePersonCompartmentChangeObservationEvent(PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
+        if (personCompartmentChangeObservationEvent.getPreviousCompartmentId() == Compartment.SUSCEPTIBLE &&
+                personCompartmentChangeObservationEvent.getCurrentCompartmentId() == Compartment.INFECTED) {
+            RegionId regionId = regionLocationDataView.getPersonRegion(personCompartmentChangeObservationEvent.getPersonId());
+            getCounter(personCompartmentChangeObservationEvent.getPersonId(), CounterType.INFECTIONS).count++;
+        }
+    }
+
+    private void handlePersonResourceChangeObservationEvent(PersonResourceChangeObservationEvent personResourceChangeObservationEvent) {
+        if (personResourceChangeObservationEvent.getResourceId() == Resource.HOSPITAL_BED &&
+                personResourceChangeObservationEvent.getCurrentResourceLevel() > 0) {
+            getCounter(personResourceChangeObservationEvent.getPersonId(), CounterType.HOSPITALIZATIONS_WITH_BED).count++;
         }
     }
 
     @Override
-    public void handleCompartmentAssignment(ObservableEnvironment observableEnvironment, PersonId personId, CompartmentId sourceCompartmentId) {
-        if (sourceCompartmentId == Compartment.SUSCEPTIBLE) {
-            CompartmentId targetCompartmentId = observableEnvironment.getPersonCompartment(personId);
-            if (targetCompartmentId == Compartment.INFECTED) {
-                setCurrentReportingPeriod(observableEnvironment);
-                getCounter(observableEnvironment, personId, CounterType.INFECTIONS).count++;
-            }
-        }
-    }
-
-    @Override
-    public void handleRegionResourceTransferToPerson(ObservableEnvironment observableEnvironment, PersonId personId, ResourceId resourceId, long amount) {
-        if (resourceId == Resource.HOSPITAL_BED) {
-            setCurrentReportingPeriod(observableEnvironment);
-            getCounter(observableEnvironment, personId, CounterType.HOSPITALIZATIONS_WITH_BED).count++;
-        }
-    }
-
-    @Override
-    protected void flush(ObservableEnvironment observableEnvironment) {
+    protected void flush() {
 
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
@@ -111,8 +140,6 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
                         if (count > 0) {
                             reportItemBuilder.setReportHeader(getReportHeader());
                             reportItemBuilder.setReportType(getClass());
-                            reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
-                            reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
                             buildTimeFields(reportItemBuilder);
 
                             reportItemBuilder.addValue(regionId);
@@ -121,25 +148,13 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
                             reportItemBuilder.addValue(counterType.toString());
                             reportItemBuilder.addValue(count);
 
-                            observableEnvironment.releaseOutputItem(reportItemBuilder.build());
+                            releaseOutputItem(reportItemBuilder.build());
                             counters.get(counterType).count = 0;
                         }
                     }
                 }
             }
         }
-    }
-
-    @Override
-    public Set<StateChange> getListenedStateChanges() {
-        final Set<StateChange> result = new LinkedHashSet<>();
-        // Changes to PersonProperty.IS_SYMPTOMATIC or PersonProperty.DID_NOT_RECEIVE_HOSPITAL_BED flags
-        result.add(StateChange.PERSON_PROPERTY_VALUE_ASSIGNMENT);
-        // Moves from Compartment.SUSCEPTIBLE to Compartment.INFECTED
-        result.add(StateChange.COMPARTMENT_ASSIGNMENT);
-        // People receiving HOSPITAL_BED resources
-        result.add(StateChange.REGION_RESOURCE_TRANSFER_TO_PERSON);
-        return result;
     }
 
     /*

@@ -1,11 +1,11 @@
 package gcm.core.epi.components.trigger;
 
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.trigger.*;
-import gcm.scenario.RegionId;
-import gcm.scenario.RegionPropertyId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.regions.support.RegionId;
+import plugins.regions.support.RegionPropertyId;
 
 import java.util.Map;
 import java.util.Set;

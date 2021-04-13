@@ -1,23 +1,24 @@
 package gcm.core.epi.plugin.behavior;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
-import gcm.scenario.ExperimentBuilder;
-import gcm.scenario.GlobalComponentId;
-import gcm.scenario.PersonId;
-import gcm.scenario.RandomNumberGeneratorId;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
-import gcm.simulation.partition.Filter;
-import gcm.simulation.partition.Partition;
-import gcm.simulation.partition.PartitionSampler;
+import nucleus.Plan;
 import org.apache.commons.math3.distribution.BinomialDistribution;
+import plugins.compartments.support.CompartmentFilter;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.globals.support.GlobalComponentId;
+import plugins.partitions.support.Filter;
+import plugins.partitions.support.Partition;
+import plugins.partitions.support.PartitionSampler;
+import plugins.people.support.PersonId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.util.*;
 import java.util.stream.IntStream;
@@ -180,7 +181,9 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
             double startTestingTime = environment.getGlobalPropertyValue(RandomTestingGlobalProperty.TESTING_START_DAY);
             environment.addPlan(new RandomTestingPlan(), startTestingTime);
             // Add index
-            environment.addPartition(Partition.builder().setFilter(Filter.compartment(Compartment.INFECTED)).build(),
+            environment.addPartition(Partition.builder()
+                            .setFilter(new CompartmentFilter(environment.getContext(), Compartment.INFECTED))
+                            .build(),
                     INFECTED_PARTITION_KEY);
         }
 

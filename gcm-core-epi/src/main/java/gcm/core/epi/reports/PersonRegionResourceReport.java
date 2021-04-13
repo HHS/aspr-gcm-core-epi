@@ -1,18 +1,31 @@
 package gcm.core.epi.reports;
 
-import gcm.output.reports.PersonInfo;
-import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportItem;
-import gcm.output.reports.StateChange;
-import gcm.scenario.CompartmentId;
-import gcm.scenario.PersonId;
-import gcm.scenario.RegionId;
-import gcm.scenario.ResourceId;
-import gcm.simulation.ObservableEnvironment;
-import gcm.util.annotations.Source;
-import gcm.util.annotations.TestStatus;
+import nucleus.ReportContext;
+import plugins.compartments.datacontainers.CompartmentDataView;
+import plugins.compartments.datacontainers.CompartmentLocationDataView;
+import plugins.compartments.events.observation.PersonCompartmentChangeObservationEvent;
+import plugins.compartments.support.CompartmentId;
+import plugins.gcm.reports.PersonResourceReport;
+import plugins.people.datacontainers.PersonDataView;
+import plugins.people.events.observation.PersonCreationObservationEvent;
+import plugins.people.events.observation.PersonImminentRemovalObservationEvent;
+import plugins.people.support.PersonId;
+import plugins.regions.datacontainers.RegionDataView;
+import plugins.regions.datacontainers.RegionLocationDataView;
+import plugins.regions.events.observation.PersonRegionChangeObservationEvent;
+import plugins.regions.support.RegionId;
+import plugins.reports.support.ReportHeader;
+import plugins.reports.support.ReportItem;
+import plugins.resources.datacontainers.ResourceDataView;
+import plugins.resources.events.observation.PersonResourceChangeObservationEvent;
+import plugins.resources.support.ResourceId;
+import util.annotations.Source;
+import util.annotations.TestStatus;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A periodic Report that displays number of people who have/do not have any
@@ -60,6 +73,9 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
      * The derived header for this report
      */
     private ReportHeader reportHeader;
+    private CompartmentLocationDataView compartmentLocationDataView;
+    private RegionLocationDataView regionLocationDataView;
+    private ResourceDataView resourceDataView;
 
     private ReportHeader getReportHeader() {
         if (reportHeader == null) {
@@ -87,7 +103,7 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
     }
 
     @Override
-    protected void flush(ObservableEnvironment observableEnvironment) {
+    protected void flush() {
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
         for (final String regionId : regionMap.keySet()) {
             final Map<CompartmentId, Map<ResourceId, Map<InventoryType, Set<PersonId>>>> compartmentMap = regionMap.get(regionId);
@@ -107,8 +123,6 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
                     if (shouldReport) {
                         reportItemBuilder.setReportHeader(getReportHeader());
                         reportItemBuilder.setReportType(getClass());
-                        reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
-                        reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
                         buildTimeFields(reportItemBuilder);
                         reportItemBuilder.addValue(regionId);
                         reportItemBuilder.addValue(compartmentId.toString());
@@ -117,37 +131,21 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
                         if (reportPeopleWithoutResources) {
                             reportItemBuilder.addValue(zeroCount);
                         }
-                        observableEnvironment.releaseOutputItem(reportItemBuilder.build());
+                        releaseOutputItem(reportItemBuilder.build());
                     }
                 }
             }
         }
     }
 
-    @Override
-    public Set<StateChange> getListenedStateChanges() {
-        final Set<StateChange> result = new LinkedHashSet<>();
-        result.add(StateChange.PERSON_ADDITION);
-        result.add(StateChange.PERSON_REMOVAL);
-        result.add(StateChange.REGION_ASSIGNMENT);
-        result.add(StateChange.COMPARTMENT_ASSIGNMENT);
-        result.add(StateChange.PERSON_RESOURCE_REMOVAL);
-        result.add(StateChange.PERSON_RESOURCE_TRANSFER_TO_REGION);
-        result.add(StateChange.REGION_RESOURCE_TRANSFER_TO_PERSON);
-        result.add(StateChange.PERSON_RESOURCE_ADDITION);
-        return result;
-    }
-
-    @Override
-    public void handleCompartmentAssignment(ObservableEnvironment observableEnvironment, final PersonId personId, final CompartmentId sourceCompartmentId) {
-        setCurrentReportingPeriod(observableEnvironment);
-        final RegionId regionId = observableEnvironment.getPersonRegion(personId);
-        final CompartmentId compartmentId = observableEnvironment.getPersonCompartment(personId);
+    private void handlePersonCompartmentChangeObservationEvent(PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
+        PersonId personId = personCompartmentChangeObservationEvent.getPersonId();
+        CompartmentId sourceCompartmentId = personCompartmentChangeObservationEvent.getPreviousCompartmentId();
+        final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+        final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
 
         for (final ResourceId resourceId : resourceIds) {
-
-            final long personResourceLevel = observableEnvironment.getPersonResourceLevel(personId, resourceId);
-
+            final long personResourceLevel = resourceDataView.getPersonResourceLevel(resourceId, personId);
             if (personResourceLevel > 0) {
                 remove(regionId, sourceCompartmentId, resourceId, InventoryType.POSITIVE, personId);
                 add(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
@@ -160,14 +158,13 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
         }
     }
 
-    @Override
-    public void handlePersonAddition(ObservableEnvironment observableEnvironment, final PersonId personId) {
-        setCurrentReportingPeriod(observableEnvironment);
-        final RegionId regionId = observableEnvironment.getPersonRegion(personId);
-        final CompartmentId compartmentId = observableEnvironment.getPersonCompartment(personId);
+    private void handlePersonCreationObservationEvent(PersonCreationObservationEvent personCreationObservationEvent) {
+        PersonId personId = personCreationObservationEvent.getPersonId();
+        final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+        final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
 
         for (final ResourceId resourceId : resourceIds) {
-            final long personResourceLevel = observableEnvironment.getPersonResourceLevel(personId, resourceId);
+            final long personResourceLevel = resourceDataView.getPersonResourceLevel(resourceId, personId);
             if (personResourceLevel > 0) {
                 add(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
             } else {
@@ -178,113 +175,82 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
         }
     }
 
-    @Override
-    public void handlePersonRemoval(ObservableEnvironment observableEnvironment, PersonInfo personInfo) {
-        setCurrentReportingPeriod(observableEnvironment);
-        Map<ResourceId, Long> resourceValues = personInfo.getResourceValues();
-        RegionId regionId = personInfo.getRegionId();
-        CompartmentId compartmentId = personInfo.getCompartmentId();
-        PersonId personId = personInfo.getPersonId();
-        for (final ResourceId resourceId : resourceIds) {
-            final Long resourceValue = resourceValues.get(resourceId);
-            if (resourceValue != null) {
-                if (resourceValue > 0) {
-                    remove(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
-                } else {
-                    if (reportPeopleWithoutResources) {
-                        remove(regionId, compartmentId, resourceId, InventoryType.ZERO, personId);
-                    }
-                }
-            }
-        }
-    }
-
-    @Override
-    public void handlePersonResourceAddition(ObservableEnvironment observableEnvironment, final PersonId personId, final ResourceId resourceId, final long amount) {
-        if (amount > 0 && resourceIds.contains(resourceId)) {
-            setCurrentReportingPeriod(observableEnvironment);
-            final long personResourceLevel = observableEnvironment.getPersonResourceLevel(personId, resourceId);
-            if (personResourceLevel == amount) {
-                final RegionId regionId = observableEnvironment.getPersonRegion(personId);
-                final CompartmentId compartmentId = observableEnvironment.getPersonCompartment(personId);
-                if (reportPeopleWithoutResources) {
-                    remove(regionId, compartmentId, resourceId, InventoryType.ZERO, personId);
-                }
-                add(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
-            }
-        }
-    }
-
-    @Override
-    public void handlePersonResourceRemoval(ObservableEnvironment observableEnvironment, final PersonId personId, final ResourceId resourceId, final long amount) {
-        if (amount > 0 && resourceIds.contains(resourceId)) {
-            setCurrentReportingPeriod(observableEnvironment);
-            final long personResourceLevel = observableEnvironment.getPersonResourceLevel(personId, resourceId);
-            if (personResourceLevel == 0) {
-                final RegionId regionId = observableEnvironment.getPersonRegion(personId);
-                final CompartmentId compartmentId = observableEnvironment.getPersonCompartment(personId);
+    private void handlePersonImminentRemovalObservationEvent(PersonImminentRemovalObservationEvent personImminentRemovalObservationEvent) {
+        PersonId personId = personImminentRemovalObservationEvent.getPersonId();
+        RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+        CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
+        for (ResourceId resourceId : resourceIds) {
+            long amount = resourceDataView.getPersonResourceLevel(resourceId, personId);
+            if (amount > 0) {
                 remove(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
-                if (reportPeopleWithoutResources) {
-                    add(regionId, compartmentId, resourceId, InventoryType.ZERO, personId);
-                }
-            }
-        }
-    }
-
-    @Override
-    public void handlePersonResourceTransferToRegion(ObservableEnvironment observableEnvironment, final PersonId personId, final ResourceId resourceId, final long amount) {
-        if (amount > 0 && resourceIds.contains(resourceId)) {
-            setCurrentReportingPeriod(observableEnvironment);
-            final long personResourceLevel = observableEnvironment.getPersonResourceLevel(personId, resourceId);
-            if (personResourceLevel == 0) {
-                final RegionId regionId = observableEnvironment.getPersonRegion(personId);
-                final CompartmentId compartmentId = observableEnvironment.getPersonCompartment(personId);
-                remove(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
-                if (reportPeopleWithoutResources) {
-                    add(regionId, compartmentId, resourceId, InventoryType.ZERO, personId);
-                }
-            }
-        }
-    }
-
-    @Override
-    public void handleRegionAssignment(ObservableEnvironment observableEnvironment, final PersonId personId, final RegionId sourceRegionId) {
-        setCurrentReportingPeriod(observableEnvironment);
-        final RegionId regionId = observableEnvironment.getPersonRegion(personId);
-        final CompartmentId compartmentId = observableEnvironment.getPersonCompartment(personId);
-        for (final ResourceId resourceId : resourceIds) {
-            final long personResourceLevel = observableEnvironment.getPersonResourceLevel(personId, resourceId);
-            if (personResourceLevel > 0) {
-                remove(sourceRegionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
-                add(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
             } else {
                 if (reportPeopleWithoutResources) {
-                    remove(sourceRegionId, compartmentId, resourceId, InventoryType.ZERO, personId);
+                    remove(regionId, compartmentId, resourceId, InventoryType.ZERO, personId);
+                }
+            }
+        }
+    }
+
+    private void handlePersonResourceChangeObservationEvent(PersonResourceChangeObservationEvent personResourceChangeObservationEvent) {
+        ResourceId resourceId = personResourceChangeObservationEvent.getResourceId();
+        if (!resourceIds.contains(resourceId)) {
+            return;
+        }
+        PersonId personId = personResourceChangeObservationEvent.getPersonId();
+        long currentLevel = personResourceChangeObservationEvent.getCurrentResourceLevel();
+        long previousLevel = personResourceChangeObservationEvent.getPreviousResourceLevel();
+        long amount = currentLevel - previousLevel;
+
+        if (amount == 0) {
+            return;
+        }
+        if (amount > 0) {
+            final long personResourceLevel = resourceDataView.getPersonResourceLevel(resourceId, personId);
+            if (personResourceLevel == amount) {
+                final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+                final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
+                if (reportPeopleWithoutResources) {
+                    remove(regionId, compartmentId, resourceId, InventoryType.ZERO, personId);
+                }
+                add(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
+            }
+        } else {
+            amount = -amount;
+            final long personResourceLevel = resourceDataView.getPersonResourceLevel(resourceId, personId);
+            if (personResourceLevel == 0) {
+                final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+                final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
+                remove(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
+                if (reportPeopleWithoutResources) {
                     add(regionId, compartmentId, resourceId, InventoryType.ZERO, personId);
                 }
             }
         }
     }
 
-    @Override
-    public void handleRegionResourceTransferToPerson(ObservableEnvironment observableEnvironment, final PersonId personId, final ResourceId resourceId, final long amount) {
-        if (amount > 0 && resourceIds.contains(resourceId)) {
-            setCurrentReportingPeriod(observableEnvironment);
-            final long personResourceLevel = observableEnvironment.getPersonResourceLevel(personId, resourceId);
-            if (personResourceLevel == amount) {
-                final RegionId regionId = observableEnvironment.getPersonRegion(personId);
-                final CompartmentId compartmentId = observableEnvironment.getPersonCompartment(personId);
+    private void handlePersonRegionChangeObservationEvent(PersonRegionChangeObservationEvent personRegionChangeObservationEvent) {
+        PersonId personId = personRegionChangeObservationEvent.getPersonId();
+        RegionId previousRegionId = personRegionChangeObservationEvent.getPreviousRegionId();
+        RegionId currentRegionId = personRegionChangeObservationEvent.getCurrentRegionId();
+
+        final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
+        for (final ResourceId resourceId : resourceIds) {
+            final long personResourceLevel = resourceDataView.getPersonResourceLevel(resourceId, personId);
+            if (personResourceLevel > 0) {
+                remove(previousRegionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
+                add(currentRegionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
+            } else {
                 if (reportPeopleWithoutResources) {
-                    remove(regionId, compartmentId, resourceId, InventoryType.ZERO, personId);
+                    remove(previousRegionId, compartmentId, resourceId, InventoryType.ZERO, personId);
+                    add(currentRegionId, compartmentId, resourceId, InventoryType.ZERO, personId);
                 }
-                add(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
             }
         }
     }
 
     @Override
-    public void init(final ObservableEnvironment observableEnvironment, Set<Object> initialData) {
-        super.init(observableEnvironment, initialData);
+    public void setInitializingData(Set<Object> initialData) {
+        super.setInitializingData(initialData);
         /*
          * Determine the resources and display options from the initial data
          */
@@ -292,8 +258,8 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
             if (initialDatum instanceof ResourceId) {
                 ResourceId resourceId = (ResourceId) initialDatum;
                 resourceIds.add(resourceId);
-            } else if (initialDatum instanceof PersonResourceReportOption) {
-                PersonResourceReportOption personResourceReportOption = (PersonResourceReportOption) initialDatum;
+            } else if (initialDatum instanceof PersonResourceReport.PersonResourceReportOption) {
+                PersonResourceReport.PersonResourceReportOption personResourceReportOption = (PersonResourceReport.PersonResourceReportOption) initialDatum;
                 switch (personResourceReportOption) {
                     case REPORT_PEOPLE_WITHOUT_RESOURCES:
                         reportPeopleWithoutResources = true;
@@ -307,17 +273,44 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
             }
         }
 
+    }
+
+    @Override
+    public void init(final ReportContext reportContext) {
+        super.init(reportContext);
+
+        reportContext.subscribeToEvent(PersonResourceChangeObservationEvent.class);
+        reportContext.subscribeToEvent(PersonCreationObservationEvent.class);
+        reportContext.subscribeToEvent(PersonImminentRemovalObservationEvent.class);
+        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class);
+        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class);
+
+        setConsumer(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
+        setConsumer(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
+        setConsumer(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
+        setConsumer(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
+        setConsumer(PersonResourceChangeObservationEvent.class, this::handlePersonResourceChangeObservationEvent);
+
+        resourceDataView = reportContext.getDataView(ResourceDataView.class).get();
+
+        PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();
+        compartmentLocationDataView = reportContext.getDataView(CompartmentLocationDataView.class).get();
+        regionLocationDataView = reportContext.getDataView(RegionLocationDataView.class).get();
+
+        CompartmentDataView compartmentDataView = reportContext.getDataView(CompartmentDataView.class).get();
+        RegionDataView regionDataView = reportContext.getDataView(RegionDataView.class).get();
+
         /*
          * If no resources were selected, then assume that all are desired.
          */
         if (resourceIds.size() == 0) {
-            resourceIds.addAll(observableEnvironment.getResourceIds());
+            resourceIds.addAll(resourceDataView.getResourceIds());
         }
 
         /*
          * Ensure that the resources are valid
          */
-        final Set<ResourceId> validResourceIds = observableEnvironment.getResourceIds();
+        final Set<ResourceId> validResourceIds = resourceDataView.getResourceIds();
         for (final ResourceId resourceId : resourceIds) {
             if (!validResourceIds.contains(resourceId)) {
                 throw new RuntimeException("invalid resource id " + resourceId);
@@ -328,17 +321,18 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
          * Build the tuple map to empty sets of people in preparation for people
          * being added to the simulation
          */
-        for (final RegionId regionId : observableEnvironment.getRegionIds()) {
+        Set<CompartmentId> compartmentIds = compartmentDataView.getCompartmentIds();
+        for (final RegionId regionId : regionDataView.getRegionIds()) {
             final Map<CompartmentId, Map<ResourceId, Map<InventoryType, Set<PersonId>>>> compartmentMap = new LinkedHashMap<>();
             regionMap.put(getFipsString(regionId), compartmentMap);
-            for (final CompartmentId compartmentId : observableEnvironment.getCompartmentIds()) {
+            for (final CompartmentId compartmentId : compartmentIds) {
                 final Map<ResourceId, Map<InventoryType, Set<PersonId>>> resourceMap = new LinkedHashMap<>();
                 compartmentMap.put(compartmentId, resourceMap);
                 for (final ResourceId resourceId : resourceIds) {
                     final Map<InventoryType, Set<PersonId>> inventoryMap = new LinkedHashMap<>();
                     resourceMap.put(resourceId, inventoryMap);
                     for (final InventoryType inventoryType : InventoryType.values()) {
-                        final Set<PersonId> people = new HashSet<>();
+                        final Set<PersonId> people = new LinkedHashSet<>();
                         inventoryMap.put(inventoryType, people);
                     }
                 }
@@ -348,12 +342,11 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
         /*
          * Place the initial population in the mapping
          */
-        setCurrentReportingPeriod(observableEnvironment);
-        for (final PersonId personId : observableEnvironment.getPeople()) {
+        for (final PersonId personId : personDataView.getPeople()) {
             for (final ResourceId resourceId : resourceIds) {
-                final RegionId regionId = observableEnvironment.getPersonRegion(personId);
-                final CompartmentId compartmentId = observableEnvironment.getPersonCompartment(personId);
-                final long personResourceLevel = observableEnvironment.getPersonResourceLevel(personId, resourceId);
+                final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
+                final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
+                final long personResourceLevel = resourceDataView.getPersonResourceLevel(resourceId, personId);
                 if (personResourceLevel > 0) {
                     add(regionId, compartmentId, resourceId, InventoryType.POSITIVE, personId);
                 } else {

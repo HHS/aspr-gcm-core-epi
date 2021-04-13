@@ -1,6 +1,5 @@
 package gcm.core.epi.components;
 
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.*;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.HospitalData;
@@ -9,17 +8,18 @@ import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.util.distributions.GammaHelper;
 import gcm.core.epi.variants.VariantDefinition;
 import gcm.core.epi.variants.VariantsDescription;
-import gcm.scenario.PersonId;
-import gcm.scenario.PersonPropertyId;
-import gcm.scenario.RegionId;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
-import gcm.util.geolocator.GeoLocator;
+import nucleus.Plan;
 import org.apache.commons.math3.distribution.GammaDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.people.support.PersonId;
+import plugins.personproperties.support.PersonPropertyId;
+import plugins.regions.support.RegionId;
+import util.geolocator.GeoLocator;
 
 import java.util.List;
 import java.util.Map;

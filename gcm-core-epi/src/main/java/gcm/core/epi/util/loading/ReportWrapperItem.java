@@ -2,8 +2,8 @@ package gcm.core.epi.util.loading;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import gcm.core.epi.propertytypes.FipsScope;
-import gcm.output.reports.ReportPeriod;
 import org.immutables.value.Value;
+import plugins.reports.support.ReportPeriod;
 
 import java.util.Set;
 

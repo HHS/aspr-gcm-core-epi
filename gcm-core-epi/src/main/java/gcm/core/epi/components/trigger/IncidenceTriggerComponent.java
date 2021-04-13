@@ -1,6 +1,5 @@
 package gcm.core.epi.components.trigger;
 
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
@@ -8,9 +7,14 @@ import gcm.core.epi.identifiers.Resource;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsScope;
 import gcm.core.epi.trigger.*;
-import gcm.scenario.*;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
+import nucleus.Plan;
+import plugins.compartments.support.CompartmentId;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.people.support.PersonId;
+import plugins.personproperties.support.PersonPropertyId;
+import plugins.regions.support.RegionId;
+import plugins.resources.support.ResourceId;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -85,9 +89,8 @@ public class IncidenceTriggerComponent extends AbstractComponent {
     }
 
     @Override
-    public void observeCompartmentPersonArrival(Environment environment, PersonId personId) {
-        CompartmentId compartment = environment.getPersonCompartment(personId);
-        if (compartment == Compartment.INFECTED) {
+    public void observeCompartmentPersonArrival(Environment environment, CompartmentId compartmentId, PersonId personId) {
+        if (compartmentId == Compartment.INFECTED) {
             RegionId regionId = environment.getPersonRegion(personId);
             handleIncrement(environment, regionId);
         } else {

@@ -1,7 +1,7 @@
 package gcm.core.epi.trigger;
 
-import gcm.scenario.RegionId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.regions.support.RegionId;
 
 public interface TriggerCallback {
 

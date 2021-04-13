@@ -12,9 +12,10 @@ import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.variants.VariantId;
 import gcm.core.epi.variants.VariantsDescription;
-import gcm.scenario.PersonId;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
+import nucleus.Plan;
+import plugins.compartments.support.CompartmentId;
+import plugins.gcm.agents.Environment;
+import plugins.people.support.PersonId;
 
 import java.util.Optional;
 
@@ -29,7 +30,7 @@ public class InfectedCompartment extends DiseaseCompartment {
     }
 
     @Override
-    public void observeCompartmentPersonArrival(final Environment environment, final PersonId personId) {
+    public void observeCompartmentPersonArrival(final Environment environment, CompartmentId compartmentId, final PersonId personId) {
 
         // Handle seeded infections that have no strain assigned
         int strainIndex = environment.getPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1);

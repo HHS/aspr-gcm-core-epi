@@ -1,7 +1,7 @@
 package gcm.core.epi.trigger;
 
-import gcm.scenario.GlobalComponentId;
 import org.immutables.value.Value;
+import plugins.globals.support.GlobalComponentId;
 
 @Value.Immutable
 @Value.Style(allParameters = true, defaults = @Value.Immutable(builder = false))

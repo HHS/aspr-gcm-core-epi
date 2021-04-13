@@ -5,7 +5,7 @@ import gcm.core.epi.trigger.TriggerUtils;
 import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
 
 import java.util.*;
 

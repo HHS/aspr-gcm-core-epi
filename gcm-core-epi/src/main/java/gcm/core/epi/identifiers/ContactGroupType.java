@@ -1,6 +1,6 @@
 package gcm.core.epi.identifiers;
 
-import gcm.scenario.GroupTypeId;
+import plugins.groups.support.GroupTypeId;
 
 public enum ContactGroupType implements GroupTypeId {
 

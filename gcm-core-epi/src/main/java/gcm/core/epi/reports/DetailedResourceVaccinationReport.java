@@ -5,12 +5,14 @@ import gcm.core.epi.plugin.vaccine.resourcebased.DetailedResourceVaccinationData
 import gcm.core.epi.plugin.vaccine.resourcebased.VaccineAdministratorId;
 import gcm.core.epi.plugin.vaccine.resourcebased.VaccineId;
 import gcm.core.epi.population.AgeGroup;
-import gcm.output.reports.ReportHeader;
-import gcm.output.reports.ReportItem;
-import gcm.output.reports.StateChange;
-import gcm.scenario.GlobalPropertyId;
-import gcm.scenario.RegionId;
-import gcm.simulation.ObservableEnvironment;
+import nucleus.ReportContext;
+import plugins.globals.datacontainers.GlobalDataView;
+import plugins.globals.events.GlobalPropertyChangeObservationEvent;
+import plugins.globals.events.GlobalPropertyValueAssignmentEvent;
+import plugins.regions.datacontainers.RegionDataView;
+import plugins.regions.support.RegionId;
+import plugins.reports.support.ReportHeader;
+import plugins.reports.support.ReportItem;
 
 import java.util.*;
 
@@ -36,26 +38,34 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
         return reportHeader;
     }
 
+    private GlobalDataView globalDataView;
+    private RegionDataView regionDataView;
+
     @Override
-    public void init(ObservableEnvironment observableEnvironment, Set<Object> initialData) {
-        if (!observableEnvironment.getGlobalPropertyIds().contains(
+    public void init(final ReportContext reportContext) {
+        super.init(reportContext);
+
+        globalDataView = reportContext.getDataView(GlobalDataView.class).get();
+        if (!globalDataView.getGlobalPropertyIds().contains(
                 DetailedResourceBasedVaccinePlugin.VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA)) {
             throw new RuntimeException("Detailed Resource Vaccination Report requires the corresponding plugin");
         }
-        super.init(observableEnvironment, initialData);
+        regionDataView = reportContext.getDataView(RegionDataView.class).get();
+
+        reportContext.subscribeToEvent(GlobalPropertyChangeObservationEvent.class);
+        setConsumer(GlobalPropertyChangeObservationEvent.class, this::handleGlobalPropertyChangeObservationEvent);
 
         // Initialize regionCounterMap
-        for (RegionId regionId : observableEnvironment.getRegionIds()) {
+        for (RegionId regionId : regionDataView.getRegionIds()) {
             regionCounterMap.put(getFipsString(regionId), new HashMap<>());
         }
     }
 
-    @Override
-    public void handleGlobalPropertyValueAssignment(ObservableEnvironment observableEnvironment, GlobalPropertyId globalPropertyId) {
-        if (globalPropertyId.equals(DetailedResourceBasedVaccinePlugin
+
+    public void handleGlobalPropertyChangeObservationEvent(GlobalPropertyChangeObservationEvent globalPropertyChangeObservationEvent) {
+        if (globalPropertyChangeObservationEvent.getGlobalPropertyId().equals(DetailedResourceBasedVaccinePlugin
                 .VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA)) {
-            setCurrentReportingPeriod(observableEnvironment);
-            Optional<DetailedResourceVaccinationData> vaccinationDataOptional = observableEnvironment.getGlobalPropertyValue(
+            Optional<DetailedResourceVaccinationData> vaccinationDataOptional = globalDataView.getGlobalPropertyValue(
                     DetailedResourceBasedVaccinePlugin.VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA);
             if (vaccinationDataOptional.isPresent()) {
                 DetailedResourceVaccinationData vaccinationData = vaccinationDataOptional.get();
@@ -72,7 +82,7 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
     }
 
     @Override
-    protected void flush(ObservableEnvironment observableEnvironment) {
+    protected void flush() {
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
         regionCounterMap.forEach(
@@ -80,8 +90,6 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
                         (administrationData, doseTypeCounterMap) -> {
                             reportItemBuilder.setReportHeader(getReportHeader());
                             reportItemBuilder.setReportType(getClass());
-                            reportItemBuilder.setScenarioId(observableEnvironment.getScenarioId());
-                            reportItemBuilder.setReplicationId(observableEnvironment.getReplicationId());
 
                             buildTimeFields(reportItemBuilder);
                             reportItemBuilder.addValue(regionId);
@@ -93,7 +101,7 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
                             reportItemBuilder.addValue(doseTypeCounterMap
                                     .computeIfAbsent(DetailedResourceVaccinationData.DoseType.SECOND_DOSE, x -> new Counter()).count);
 
-                            observableEnvironment.releaseOutputItem(reportItemBuilder.build());
+                            releaseOutputItem(reportItemBuilder.build());
 
                             // Reset counters
                             for (DetailedResourceVaccinationData.DoseType doseType :
@@ -103,13 +111,6 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
                         }
                 )
         );
-    }
-
-    @Override
-    public Set<StateChange> getListenedStateChanges() {
-        final Set<StateChange> result = new LinkedHashSet<>();
-        result.add(StateChange.GLOBAL_PROPERTY_VALUE_ASSIGNMENT);
-        return result;
     }
 
     /*

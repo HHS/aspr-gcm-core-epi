@@ -1,7 +1,7 @@
 package gcm.core.epi.util.loading;
 
 import gcm.core.epi.plugin.Plugin;
-import gcm.experiment.ExperimentExecutor;
+import plugins.gcm.experiment.ExperimentExecutor;
 
 import java.nio.file.Path;
 import java.util.List;

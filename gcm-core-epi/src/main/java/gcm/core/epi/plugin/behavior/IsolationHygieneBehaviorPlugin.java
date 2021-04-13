@@ -1,6 +1,5 @@
 package gcm.core.epi.plugin.behavior;
 
-import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.ContactGroupType;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
@@ -10,9 +9,17 @@ import gcm.core.epi.util.property.DefinedGlobalProperty;
 import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
-import gcm.scenario.*;
-import gcm.simulation.Environment;
-import gcm.simulation.Plan;
+import nucleus.Plan;
+import plugins.gcm.agents.AbstractComponent;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.globals.support.GlobalComponentId;
+import plugins.groups.support.GroupId;
+import plugins.people.support.PersonId;
+import plugins.personproperties.support.PersonPropertyId;
+import plugins.regions.support.RegionId;
+import plugins.regions.support.RegionPropertyId;
+import plugins.stochastics.support.RandomNumberGeneratorId;
 
 import java.util.*;
 

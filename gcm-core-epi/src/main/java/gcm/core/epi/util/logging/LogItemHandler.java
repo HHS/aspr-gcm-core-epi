@@ -1,15 +1,15 @@
 package gcm.core.epi.util.logging;
 
 import gcm.core.epi.Runner;
-import gcm.experiment.progress.ExperimentProgressLog;
-import gcm.output.OutputItem;
-import gcm.output.OutputItemHandler;
-import gcm.output.simstate.LogItem;
-import gcm.output.simstate.LogStatus;
-import gcm.scenario.ReplicationId;
-import gcm.scenario.ScenarioId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import plugins.components.support.OutputItem;
+import plugins.gcm.experiment.ReplicationId;
+import plugins.gcm.experiment.ScenarioId;
+import plugins.gcm.experiment.output.LogItem;
+import plugins.gcm.experiment.output.LogStatus;
+import plugins.gcm.experiment.output.OutputItemHandler;
+import plugins.gcm.experiment.progress.ExperimentProgressLog;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -39,14 +39,14 @@ public class LogItemHandler implements OutputItemHandler {
     }
 
     @Override
-    public void handle(OutputItem outputItem) {
+    public void handle(ScenarioId scenarioId, ReplicationId replicationId, OutputItem outputItem) {
         LogItem logItem = (LogItem) outputItem;
         StringBuilder sb = new StringBuilder();
-        if (logItem.getScenarioId().getValue() != 0 || logItem.getReplicationId().getValue() != 0) {
+        if (scenarioId.getValue() != -1 || replicationId.getValue() != -1) {
             sb.append("[Scenario = ");
-            sb.append(logItem.getScenarioId().getValue());
+            sb.append(scenarioId.getValue());
             sb.append(", Replication = ");
-            sb.append(logItem.getReplicationId().getValue());
+            sb.append(replicationId.getValue());
             sb.append("] - ");
         }
         sb.append(logItem.getMessage());

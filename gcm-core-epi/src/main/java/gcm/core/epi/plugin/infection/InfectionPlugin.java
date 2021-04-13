@@ -2,9 +2,9 @@ package gcm.core.epi.plugin.infection;
 
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.plugin.Plugin;
-import gcm.scenario.ExperimentBuilder;
-import gcm.scenario.PersonId;
-import gcm.simulation.Environment;
+import plugins.gcm.agents.Environment;
+import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.people.support.PersonId;
 
 public interface InfectionPlugin extends Plugin {
 

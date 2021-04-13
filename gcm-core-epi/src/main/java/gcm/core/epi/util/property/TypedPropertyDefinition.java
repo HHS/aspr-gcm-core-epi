@@ -3,9 +3,9 @@ package gcm.core.epi.util.property;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import gcm.scenario.PropertyDefinition;
-import gcm.scenario.TimeTrackingPolicy;
 import org.immutables.value.Value;
+import plugins.properties.support.PropertyDefinition;
+import plugins.properties.support.TimeTrackingPolicy;
 
 import java.util.Optional;
 
