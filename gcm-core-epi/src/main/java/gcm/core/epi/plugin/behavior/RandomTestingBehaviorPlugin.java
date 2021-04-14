@@ -182,7 +182,7 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
             environment.addPlan(new RandomTestingPlan(), startTestingTime);
             // Add index
             environment.addPartition(Partition.builder()
-                            .setFilter(new CompartmentFilter(environment.getContext(), Compartment.INFECTED))
+                            .setFilter(new CompartmentFilter(Compartment.INFECTED))
                             .build(),
                     INFECTED_PARTITION_KEY);
         }

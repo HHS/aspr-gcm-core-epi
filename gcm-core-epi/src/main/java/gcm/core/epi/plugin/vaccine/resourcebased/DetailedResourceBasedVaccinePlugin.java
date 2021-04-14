@@ -407,7 +407,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
                 environment.addPartition(Partition.builder()
                                 // Limit coverage
-                                .setFilter(new PropertyFilter(environment.getContext(), VaccinePersonProperty.WILL_GET_VACCINE,
+                                .setFilter(new PropertyFilter(VaccinePersonProperty.WILL_GET_VACCINE,
                                         Equality.EQUAL, true))
                                 // Partition regions by FIPS code
                                 .addLabeler(new RegionLabeler(regionId -> administrationScope.getFipsSubCode(regionId)))

@@ -174,7 +174,7 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
                 List<AgeGroup> ageGroups = populationDescription.ageGroupPartition().ageGroupList();
                 environment.addPartition(Partition.builder()
                                 // Filter by vaccine status
-                                .setFilter(new PropertyFilter(environment.getContext(), VaccinePersonProperty.VACCINE_STATUS,
+                                .setFilter(new PropertyFilter(VaccinePersonProperty.VACCINE_STATUS,
                                         Equality.EQUAL, OneDoseVaccineStatus.NOT_VACCINATED))
                                 // Partition by age group
                                 .addLabeler(new PersonPropertyLabeler(PersonProperty.AGE_GROUP_INDEX,

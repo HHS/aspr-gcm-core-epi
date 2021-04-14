@@ -247,9 +247,8 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
                     }
                     environment.addPartition(Partition.builder()
                                     // Filter by vaccine status
-                                    .setFilter(new PropertyFilter(environment.getContext(),
-                                            getPropertyIdForVaccine(vaccineId, VaccinePersonProperty.VACCINE_STATUS),
-                                            Equality.EQUAL, notVaccinatedStatus))
+                                    .setFilter(new PropertyFilter(getPropertyIdForVaccine(vaccineId,
+                                            VaccinePersonProperty.VACCINE_STATUS), Equality.EQUAL, notVaccinatedStatus))
                                     // Partition by age group
                                     .addLabeler(new PersonPropertyLabeler(PersonProperty.AGE_GROUP_INDEX,
                                             ageGroupIndex -> ageGroups.get((int) ageGroupIndex)))
