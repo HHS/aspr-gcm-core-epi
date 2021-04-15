@@ -24,6 +24,7 @@ import plugins.groups.support.GroupId;
 import plugins.partitions.support.LabelSet;
 import plugins.partitions.support.Partition;
 import plugins.partitions.support.PartitionSampler;
+import plugins.people.events.mutation.PersonContructionData;
 import plugins.people.support.PersonId;
 import plugins.personproperties.support.PersonPropertyInitialization;
 import plugins.regions.support.RegionId;
@@ -85,7 +86,7 @@ public class PopulationLoader extends AbstractComponent {
             int ageGroupIndex = populationDescription.ageGroupIndexByPersonId().get(personIdInt);
             AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
             double fractionHighRiskForAgeGroup = fractionHighRisk.getWeight(ageGroup);
-            ObjectRepository personInitialData = ObjectRepository.builder()
+            PersonContructionData personConstructionData = PersonContructionData.builder()
                     .add(regionId)
                     .add(Compartment.SUSCEPTIBLE)
                     .add(new PersonPropertyInitialization(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex))
@@ -93,7 +94,7 @@ public class PopulationLoader extends AbstractComponent {
                             environment.getRandomGeneratorFromId(RandomId.HIGH_RISK_FRACTION)
                                     .nextDouble() < fractionHighRiskForAgeGroup))
                     .build();
-            PersonId personId = environment.addPerson(personInitialData);
+            PersonId personId = environment.addPerson(personConstructionData);
             if (personId.getValue() != personIdInt) {
                 throw new RuntimeException("Person ID assignment expected to be sequential");
             }
