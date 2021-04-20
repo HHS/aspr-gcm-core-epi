@@ -20,17 +20,18 @@ import plugins.compartments.support.CompartmentId;
 import plugins.compartments.support.CompartmentLabeler;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
+import plugins.groups.support.BulkGroupMembershipData;
 import plugins.groups.support.GroupId;
 import plugins.partitions.support.LabelSet;
 import plugins.partitions.support.Partition;
 import plugins.partitions.support.PartitionSampler;
-import plugins.people.events.mutation.PersonContructionData;
+import plugins.people.support.BulkPersonContructionData;
+import plugins.people.support.PersonContructionData;
 import plugins.people.support.PersonId;
 import plugins.personproperties.support.PersonPropertyInitialization;
 import plugins.regions.support.RegionId;
 import plugins.regions.support.RegionLabeler;
 import util.geolocator.GeoLocator;
-import util.objectrepository.ObjectRepository;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -67,6 +68,27 @@ public class PopulationLoader extends AbstractComponent {
         }
     }
 
+    /*
+        Adds a the specified person to the group with id given by groupIdInteger
+        If the group does not exist it adds it to the builder it with the specified type
+        This function requires that new groups when added by integer id are added sequentially
+    */
+    private static void addPersonToGroupWithType(BulkGroupMembershipData.Builder builder, int personIndex, int groupIndex,
+                                                 ContactGroupType contactGroupType, List<ContactGroupType> groupTypes) {
+        if (!(groupIndex == PopulationDescription.NO_GROUP_ASSIGNED.intValue())) {
+            if (groupIndex > groupTypes.size()) {
+                throw new RuntimeException("Group ID assignment expected to be sequential");
+            }
+            if (groupIndex == groupTypes.size()) {
+                builder.addGroup(contactGroupType);
+                groupTypes.add(contactGroupType);
+            } else if (groupTypes.get(groupIndex) != contactGroupType ) {
+                throw new RuntimeException("Group ID has the incorrect type");
+            }
+            builder.addPersonToGroup(personIndex, groupIndex);
+        }
+    }
+
     @Override
     public void init(Environment environment) {
         environment.addPlan(new InitializePopulationPlan(), 0.0);
@@ -78,36 +100,89 @@ public class PopulationLoader extends AbstractComponent {
                 GlobalProperty.POPULATION_DESCRIPTION);
         AgeWeights fractionHighRisk = environment.getGlobalPropertyValue(GlobalProperty.FRACTION_HIGH_RISK);
 
-        // Iterate over people, adding them to the simulation together with their groups
-        for (RegionId regionId : populationDescription.regionByPersonId()) {
-            // Add person and set properties
-            // This relies on the fact that person ids are assigned sequentially
-            int personIdInt = environment.getPopulationCount();
-            int ageGroupIndex = populationDescription.ageGroupIndexByPersonId().get(personIdInt);
-            AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
-            double fractionHighRiskForAgeGroup = fractionHighRisk.getWeight(ageGroup);
-            PersonContructionData personConstructionData = PersonContructionData.builder()
-                    .add(regionId)
-                    .add(Compartment.SUSCEPTIBLE)
-                    .add(new PersonPropertyInitialization(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex))
-                    .add(new PersonPropertyInitialization(PersonProperty.IS_HIGH_RISK,
-                            environment.getRandomGeneratorFromId(RandomId.HIGH_RISK_FRACTION)
-                                    .nextDouble() < fractionHighRiskForAgeGroup))
-                    .build();
-            PersonId personId = environment.addPerson(personConstructionData);
-            if (personId.getValue() != personIdInt) {
-                throw new RuntimeException("Person ID assignment expected to be sequential");
+        boolean USE_BULK_LOAD = true;
+        if (USE_BULK_LOAD) {
+            List<ContactGroupType> groupTypeList = new ArrayList<>();
+            BulkGroupMembershipData.Builder groupBuilder = BulkGroupMembershipData.builder();
+            BulkPersonContructionData.Builder personBuilder = BulkPersonContructionData.builder();
+            // Iterate over people, adding them and their group data to the builder
+            int personIndex = 0;
+            for (RegionId regionId : populationDescription.regionByPersonId()) {
+                // Add person and set properties
+                // This relies on the fact that person ids are assigned sequentially
+                int ageGroupIndex = populationDescription.ageGroupIndexByPersonId().get(personIndex);
+                AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
+                double fractionHighRiskForAgeGroup = fractionHighRisk.getWeight(ageGroup);
+                personBuilder.add(
+                        PersonContructionData.builder()
+                                .add(regionId)
+                                .add(Compartment.SUSCEPTIBLE)
+                                .add(new PersonPropertyInitialization(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex))
+                                .add(new PersonPropertyInitialization(PersonProperty.IS_HIGH_RISK,
+                                        environment.getRandomGeneratorFromId(RandomId.HIGH_RISK_FRACTION)
+                                                .nextDouble() < fractionHighRiskForAgeGroup))
+                                .build()
+                );
+
+                // Add groups
+                addPersonToGroupWithType(groupBuilder, personIndex, populationDescription.homeGroupIdByPersonId().get(personIndex),
+                        ContactGroupType.HOME, groupTypeList);
+
+                addPersonToGroupWithType(groupBuilder, personIndex, populationDescription.schoolGroupIdByPersonId().get(personIndex),
+                        ContactGroupType.SCHOOL, groupTypeList);
+
+                addPersonToGroupWithType(groupBuilder, personIndex, populationDescription.workGroupIdByPersonId().get(personIndex),
+                        ContactGroupType.WORK, groupTypeList);
+
+                personIndex++;
             }
+            // Add group data to person builder
+            personBuilder.addAuxiliaryData(groupBuilder.build());
 
-            // Add groups
-            addPersonToGroupWithType(environment, personId, populationDescription.homeGroupIdByPersonId().get(personIdInt),
-                    ContactGroupType.HOME, populationDescription.regionByGroupId());
+            // Add all people and groups to the simulation
+            environment.addBulkPeople(personBuilder.build());
 
-            addPersonToGroupWithType(environment, personId, populationDescription.schoolGroupIdByPersonId().get(personIdInt),
-                    ContactGroupType.SCHOOL, populationDescription.regionByGroupId());
+            // Iterate over groups and set properties
+            // TODO: Have group properties added to the group builder
+            int groupIndex = 0;
+            for (RegionId groupRegionId : populationDescription.regionByGroupId()) {
+                if (!groupRegionId.equals(PopulationDescription.NO_REGION_ID)) {
+                    environment.setGroupPropertyValue(new GroupId(groupIndex), WorkplaceProperty.REGION_ID, groupRegionId);
+                }
+                groupIndex++;
+            }
+        } else {
+            // Iterate over people, adding them to the simulation together with their groups
+            for (RegionId regionId : populationDescription.regionByPersonId()) {
+                // Add person and set properties
+                // This relies on the fact that person ids are assigned sequentially
+                int personIdInt = environment.getPopulationCount();
+                int ageGroupIndex = populationDescription.ageGroupIndexByPersonId().get(personIdInt);
+                AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
+                double fractionHighRiskForAgeGroup = fractionHighRisk.getWeight(ageGroup);
+                PersonContructionData personConstructionData = PersonContructionData.builder()
+                        .add(regionId)
+                        .add(Compartment.SUSCEPTIBLE)
+                        .add(new PersonPropertyInitialization(PersonProperty.AGE_GROUP_INDEX, ageGroupIndex))
+                        .add(new PersonPropertyInitialization(PersonProperty.IS_HIGH_RISK,
+                                environment.getRandomGeneratorFromId(RandomId.HIGH_RISK_FRACTION)
+                                        .nextDouble() < fractionHighRiskForAgeGroup))
+                        .build();
+                PersonId personId = environment.addPerson(personConstructionData);
+                if (personId.getValue() != personIdInt) {
+                    throw new RuntimeException("Person ID assignment expected to be sequential");
+                }
 
-            addPersonToGroupWithType(environment, personId, populationDescription.workGroupIdByPersonId().get(personIdInt),
-                    ContactGroupType.WORK, populationDescription.regionByGroupId());
+                // Add groups
+                addPersonToGroupWithType(environment, personId, populationDescription.homeGroupIdByPersonId().get(personIdInt),
+                        ContactGroupType.HOME, populationDescription.regionByGroupId());
+
+                addPersonToGroupWithType(environment, personId, populationDescription.schoolGroupIdByPersonId().get(personIdInt),
+                        ContactGroupType.SCHOOL, populationDescription.regionByGroupId());
+
+                addPersonToGroupWithType(environment, personId, populationDescription.workGroupIdByPersonId().get(personIdInt),
+                        ContactGroupType.WORK, populationDescription.regionByGroupId());
+            }
         }
 
         // Set up hospitals, if needed
