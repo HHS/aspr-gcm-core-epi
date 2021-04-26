@@ -65,7 +65,7 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
         VaccinePlugin.super.load(experimentBuilder);
         // Track when last dose of vaccine was received
         experimentBuilder.setResourceTimeTracking(VaccineId.VACCINE_ONE, TimeTrackingPolicy.TRACK_TIME);
-        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, VaccineManager.class);
+        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, () -> new VaccineManager()::init);
     }
 
     @Override

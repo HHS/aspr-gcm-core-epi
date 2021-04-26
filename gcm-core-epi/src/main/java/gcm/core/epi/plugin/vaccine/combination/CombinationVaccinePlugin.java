@@ -142,7 +142,7 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
     @Override
     public void load(ExperimentBuilder experimentBuilder) {
         VaccinePlugin.super.load(experimentBuilder);
-        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, VaccineManager.class);
+        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, () -> new VaccineManager()::init);
     }
 
     public enum VaccineType {

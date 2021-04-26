@@ -113,7 +113,7 @@ public class IsolationHygieneBehaviorPlugin extends BehaviorPlugin {
     @Override
     public void load(ExperimentBuilder experimentBuilder) {
         super.load(experimentBuilder);
-        experimentBuilder.addGlobalComponentId(INFECTION_AWARENESS_MANAGER_ID, InfectionAwarenessManager.class);
+        experimentBuilder.addGlobalComponentId(INFECTION_AWARENESS_MANAGER_ID, () -> new InfectionAwarenessManager()::init);
     }
 
     @Override

@@ -7,8 +7,8 @@ import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AbstractFipsCodeDouble;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsScope;
+import nucleus.AgentContext;
 import org.immutables.value.Value;
-import plugins.components.agents.Component;
 import plugins.gcm.agents.Environment;
 import plugins.regions.support.RegionId;
 
@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.summingLong;
@@ -88,8 +89,8 @@ public abstract class IncidenceTrigger extends AbstractFipsCodeDouble implements
         return thresholdsByFipsCode;
     }
 
-    public Class<? extends Component> triggerComponent() {
-        return IncidenceTriggerComponent.class;
+    public Consumer<AgentContext> triggerInit() {
+        return new IncidenceTriggerComponent()::init;
     }
 
     public enum Metric {

@@ -2,13 +2,14 @@ package gcm.core.epi.trigger;
 
 import gcm.core.epi.reports.TriggerReport;
 import gcm.core.epi.util.property.DefinedRegionProperty;
-import plugins.components.agents.Component;
+import nucleus.AgentContext;
 import plugins.gcm.agents.Environment;
 import plugins.regions.support.RegionId;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public interface Trigger {
 
@@ -19,7 +20,7 @@ public interface Trigger {
         callback.trigger(environment, regionId);
     }
 
-    Class<? extends Component> triggerComponent();
+    Consumer<AgentContext> triggerInit();
 
     default List<String> startingTriggers() {
         return new ArrayList<>();

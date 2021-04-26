@@ -56,7 +56,7 @@ public class ExponentialSeedingPlugin implements Plugin {
     @Override
     public void load(ExperimentBuilder experimentBuilder) {
         Plugin.super.load(experimentBuilder);
-        experimentBuilder.addGlobalComponentId(SEEDING_MANAGER_ID, SeedingManager.class);
+        experimentBuilder.addGlobalComponentId(SEEDING_MANAGER_ID, () -> new SeedingManager()::init);
     }
 
     public enum ExponentialSeedingGlobalProperty implements DefinedGlobalProperty {

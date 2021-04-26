@@ -14,7 +14,6 @@ import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
 import plugins.gcm.experiment.ExperimentBuilder;
 import plugins.globals.support.GlobalComponentId;
-import plugins.partitions.support.Filter;
 import plugins.partitions.support.Partition;
 import plugins.partitions.support.PartitionSampler;
 import plugins.people.support.PersonId;
@@ -93,7 +92,7 @@ public class RandomTestingBehaviorPlugin extends BehaviorPlugin {
     @Override
     public void load(ExperimentBuilder experimentBuilder) {
         super.load(experimentBuilder);
-        experimentBuilder.addGlobalComponentId(RANDOM_TESTING_MANAGER_ID, RandomTestingManager.class);
+        experimentBuilder.addGlobalComponentId(RANDOM_TESTING_MANAGER_ID, () -> new RandomTestingManager()::init);
     }
 
     public enum RandomTestingGlobalProperty implements DefinedGlobalProperty {

@@ -46,9 +46,6 @@ public final class IndividualPersonPropertyChangeReport extends AbstractReport {
         }
     }
 
-    private PersonDataView personDataView;
-    private PersonPropertyDataView personPropertyDataView;
-
     @Override
     public void setInitializingData(Set<Object> initialData) {
         super.setInitializingData(initialData);
@@ -67,8 +64,8 @@ public final class IndividualPersonPropertyChangeReport extends AbstractReport {
         reportContext.subscribeToEvent(PersonPropertyChangeObservationEvent.class);
         setConsumer(PersonPropertyChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
 
-        personDataView = reportContext.getDataView(PersonDataView.class).get();
-        personPropertyDataView = reportContext.getDataView(PersonPropertyDataView.class).get();
+        PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();
+        PersonPropertyDataView personPropertyDataView = reportContext.getDataView(PersonPropertyDataView.class).get();
 
         /*
          * If no person properties were specified, then assume all are wanted

@@ -180,15 +180,15 @@ public class CombinationBehaviorPlugin extends BehaviorPlugin {
         super.load(experimentBuilder);
 
         experimentBuilder.addGlobalComponentId(TeleworkBehaviorPlugin.WORKPLACE_TELEWORK_MANAGER_ID,
-                TeleworkBehaviorPlugin.TeleworkManager.class);
+                () -> new TeleworkBehaviorPlugin.TeleworkManager()::init);
         experimentBuilder.addGlobalComponentId(SchoolClosureBehaviorPlugin.SCHOOL_CLOSURE_MANAGER_ID,
-                SchoolClosureBehaviorPlugin.SchoolClosureManager.class);
+                () -> new SchoolClosureBehaviorPlugin.SchoolClosureManager()::init);
         experimentBuilder.addGlobalComponentId(IsolationHygieneBehaviorPlugin.INFECTION_AWARENESS_MANAGER_ID,
-                IsolationHygieneBehaviorPlugin.InfectionAwarenessManager.class);
+                () -> new IsolationHygieneBehaviorPlugin.InfectionAwarenessManager()::init);
         experimentBuilder.addGlobalComponentId(ContactTracingBehaviorPlugin.CONTACT_TRACING_MANAGER_ID,
-                ContactTracingBehaviorPlugin.ContactTracingManager.class);
+                () -> new ContactTracingBehaviorPlugin.ContactTracingManager()::init);
         experimentBuilder.addGlobalComponentId(RandomTestingBehaviorPlugin.RANDOM_TESTING_MANAGER_ID,
-                RandomTestingBehaviorPlugin.RandomTestingManager.class);
+                () -> new RandomTestingBehaviorPlugin.RandomTestingManager()::init);
     }
 
     public enum CombinationBehaviorGlobalProperty implements DefinedGlobalProperty {

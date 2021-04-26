@@ -114,7 +114,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         VaccinePlugin.super.load(experimentBuilder);
         // Track when last dose of vaccine was received
         experimentBuilder.setResourceTimeTracking(VaccineResourceId.VACCINE, TimeTrackingPolicy.TRACK_TIME);
-        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, VaccineManager.class);
+        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, () -> new VaccineManager()::init);
     }
 
     @Override
@@ -605,9 +605,7 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                                                     .build())
                                             .setRandomNumberGeneratorId(VaccineRandomId.COVERAGE_ID)
                                             .build());
-                            if (personId.isPresent()) {
-                                environment.setPersonPropertyValue(personId.get(), VaccinePersonProperty.WILL_GET_VACCINE, true);
-                            }
+                        personId.ifPresent(id -> environment.setPersonPropertyValue(id, VaccinePersonProperty.WILL_GET_VACCINE, true));
                     });
                 }
                 // Remove partition

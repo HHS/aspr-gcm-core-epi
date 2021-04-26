@@ -4,23 +4,26 @@ package gcm.core.epi.identifiers;
 import gcm.core.epi.components.compartment.InfectedCompartment;
 import gcm.core.epi.components.compartment.SusceptibleCompartment;
 
+import nucleus.AgentContext;
 import plugins.compartments.support.CompartmentId;
-import plugins.components.agents.Component;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public enum Compartment implements CompartmentId {
 
-    SUSCEPTIBLE(SusceptibleCompartment.class),
+    SUSCEPTIBLE(() -> new SusceptibleCompartment()::init),
 
-    INFECTED(InfectedCompartment.class);
+    INFECTED(() -> new InfectedCompartment()::init);
 
-    private final Class<? extends Component> componentClass;
+    private final Supplier<Consumer<AgentContext>> componentInit;
 
-    Compartment(Class<? extends Component> componentClass) {
-        this.componentClass = componentClass;
+    Compartment(Supplier<Consumer<AgentContext>> componentInit) {
+        this.componentInit = componentInit;
     }
 
-    public Class<? extends Component> getComponentClass() {
-        return componentClass;
+    public Supplier<Consumer<AgentContext>> getComponentInit() {
+        return componentInit;
     }
 
 }

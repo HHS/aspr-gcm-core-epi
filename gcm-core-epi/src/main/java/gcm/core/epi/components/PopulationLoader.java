@@ -75,7 +75,7 @@ public class PopulationLoader extends AbstractComponent {
     */
     private static void addPersonToGroupWithType(BulkGroupMembershipData.Builder builder, int personIndex, int groupIndex,
                                                  ContactGroupType contactGroupType, List<ContactGroupType> groupTypes) {
-        if (!(groupIndex == PopulationDescription.NO_GROUP_ASSIGNED.intValue())) {
+        if (!(groupIndex == PopulationDescription.NO_GROUP_ASSIGNED)) {
             if (groupIndex > groupTypes.size()) {
                 throw new RuntimeException("Group ID assignment expected to be sequential");
             }

@@ -19,7 +19,6 @@ import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
 import plugins.gcm.experiment.ExperimentBuilder;
 import plugins.partitions.support.Equality;
-import plugins.partitions.support.Filter;
 import plugins.partitions.support.Partition;
 import plugins.partitions.support.PartitionSampler;
 import plugins.people.support.PersonId;
@@ -92,7 +91,7 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
     @Override
     public void load(ExperimentBuilder experimentBuilder) {
         VaccinePlugin.super.load(experimentBuilder);
-        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, VaccineManager.class);
+        experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, () -> new VaccineManager()::init);
     }
 
     /*

@@ -107,7 +107,7 @@ public class ContactTracingBehaviorPlugin extends BehaviorPlugin {
     @Override
     public void load(ExperimentBuilder experimentBuilder) {
         super.load(experimentBuilder);
-        experimentBuilder.addGlobalComponentId(CONTACT_TRACING_MANAGER_ID, ContactTracingManager.class);
+        experimentBuilder.addGlobalComponentId(CONTACT_TRACING_MANAGER_ID, () -> new ContactTracingManager()::init);
     }
 
     public enum ContactTracingRegionProperty implements DefinedRegionProperty {

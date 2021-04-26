@@ -8,7 +8,6 @@ import gcm.core.epi.population.AgeGroup;
 import nucleus.ReportContext;
 import plugins.globals.datacontainers.GlobalDataView;
 import plugins.globals.events.GlobalPropertyChangeObservationEvent;
-import plugins.globals.events.GlobalPropertyValueAssignmentEvent;
 import plugins.regions.datacontainers.RegionDataView;
 import plugins.regions.support.RegionId;
 import plugins.reports.support.ReportHeader;
@@ -39,7 +38,6 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
     }
 
     private GlobalDataView globalDataView;
-    private RegionDataView regionDataView;
 
     @Override
     public void init(final ReportContext reportContext) {
@@ -50,7 +48,7 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
                 DetailedResourceBasedVaccinePlugin.VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA)) {
             throw new RuntimeException("Detailed Resource Vaccination Report requires the corresponding plugin");
         }
-        regionDataView = reportContext.getDataView(RegionDataView.class).get();
+        RegionDataView regionDataView = reportContext.getDataView(RegionDataView.class).get();
 
         reportContext.subscribeToEvent(GlobalPropertyChangeObservationEvent.class);
         setConsumer(GlobalPropertyChangeObservationEvent.class, this::handleGlobalPropertyChangeObservationEvent);

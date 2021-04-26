@@ -1,8 +1,6 @@
 package gcm.core.epi.reports;
 
 import gcm.core.epi.propertytypes.FipsScope;
-import nucleus.ReportContext;
-import plugins.personproperties.support.PersonPropertyId;
 import plugins.regions.support.RegionId;
 import plugins.reports.support.PeriodicReport;
 

@@ -44,7 +44,7 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
     @Override
     public void load(ExperimentBuilder experimentBuilder) {
         TransmissionPlugin.super.load(experimentBuilder);
-        experimentBuilder.addGlobalComponentId(VARIANT_MANAGER_ID, VariantManager.class);
+        experimentBuilder.addGlobalComponentId(VARIANT_MANAGER_ID, () -> new VariantManager()::init);
     }
 
     public enum VariantRandomId implements RandomNumberGeneratorId {

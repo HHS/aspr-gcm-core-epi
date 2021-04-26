@@ -1,29 +1,32 @@
 package gcm.core.epi.identifiers;
 
 import gcm.core.epi.components.*;
-import plugins.components.agents.Component;
+import nucleus.AgentContext;
 import plugins.globals.support.GlobalComponentId;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public enum GlobalComponent implements GlobalComponentId {
 
-    POPULATION_LOADER(PopulationLoader.class),
+    POPULATION_LOADER(() -> new PopulationLoader()::init),
 
-    CONTACT_MANAGER(ContactManager.class),
+    CONTACT_MANAGER(() -> new ContactManager()::init),
 
-    HOSPITALIZATION_MANAGER(HospitalizationManager.class),
+    HOSPITALIZATION_MANAGER(() -> new HospitalizationManager()::init),
 
-    TRIGGER_MANAGER(TriggerManager.class),
+    TRIGGER_MANAGER(() -> new TriggerManager()::init),
 
-    SIMULATION_STOP_MANAGER(SimulationStopManager.class);
+    SIMULATION_STOP_MANAGER(() -> new SimulationStopManager()::init);
 
-    private final Class<? extends Component> componentClass;
+    private final Supplier<Consumer<AgentContext>> componentInit;
 
-    GlobalComponent(Class<? extends Component> componentClass) {
-        this.componentClass = componentClass;
+    GlobalComponent(Supplier<Consumer<AgentContext>> componentInit) {
+        this.componentInit = componentInit;
     }
 
-    public Class<? extends Component> getComponentClass() {
-        return componentClass;
+    public Supplier<Consumer<AgentContext>> getComponentInit() {
+        return componentInit;
     }
 
 }

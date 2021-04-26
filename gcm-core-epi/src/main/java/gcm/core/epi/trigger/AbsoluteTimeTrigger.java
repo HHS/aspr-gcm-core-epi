@@ -4,10 +4,11 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import gcm.core.epi.components.trigger.AbsoluteTimeTriggerComponent;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsScope;
+import nucleus.AgentContext;
 import org.immutables.value.Value;
-import plugins.components.agents.Component;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableAbsoluteTimeTrigger.class)
@@ -38,8 +39,8 @@ public abstract class AbsoluteTimeTrigger implements Trigger {
         return 0.0;
     }
 
-    public Class<? extends Component> triggerComponent() {
-        return AbsoluteTimeTriggerComponent.class;
+    public Consumer<AgentContext> triggerInit() {
+        return new AbsoluteTimeTriggerComponent()::init;
     }
 
 }

@@ -155,7 +155,7 @@ public class TeleworkBehaviorPlugin extends BehaviorPlugin {
     @Override
     public void load(ExperimentBuilder experimentBuilder) {
         super.load(experimentBuilder);
-        experimentBuilder.addGlobalComponentId(WORKPLACE_TELEWORK_MANAGER_ID, TeleworkManager.class);
+        experimentBuilder.addGlobalComponentId(WORKPLACE_TELEWORK_MANAGER_ID, () -> new TeleworkManager()::init);
     }
 
     private enum TeleworkRandomId implements RandomNumberGeneratorId {

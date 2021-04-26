@@ -80,7 +80,7 @@ public class TriggerManager extends AbstractComponent {
                 triggerId.trigger(),
                 trigger -> {
                     // Generate a new global component for this trigger
-                    environment.addGlobalComponent(triggerId, triggerId.trigger().triggerComponent());
+                    environment.addGlobalComponent(triggerId, triggerId.trigger().triggerInit());
                     return new HashSet<>();
                 }
         );

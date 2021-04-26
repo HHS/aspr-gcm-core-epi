@@ -6,13 +6,14 @@ import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsScope;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
+import nucleus.AgentContext;
 import org.immutables.value.Value;
-import plugins.components.agents.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableRelativeTimeTrigger.class)
@@ -29,8 +30,8 @@ public abstract class RelativeTimeTrigger implements Trigger, DefinedRegionPrope
 
     public abstract double defaultTime();
 
-    public Class<? extends Component> triggerComponent() {
-        return RelativeTimeTriggerComponent.class;
+    public Consumer<AgentContext> triggerInit() {
+        return new RelativeTimeTriggerComponent()::init;
     }
 
     @Override

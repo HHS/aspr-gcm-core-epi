@@ -76,13 +76,13 @@ public class Runner {
 
         // Add global components
         for (final GlobalComponent globalComponent : GlobalComponent.values()) {
-            experimentBuilder.addGlobalComponentId(globalComponent, globalComponent.getComponentClass());
+            experimentBuilder.addGlobalComponentId(globalComponent, globalComponent.getComponentInit());
         }
 
         // Add regions
         List<RegionFileRecord> regionFileRecords = CoreEpiBootstrapUtil.loadRegionsFromFile(inputPath.resolve(configuration.regions()));
         for (final RegionFileRecord regionFileRecord : regionFileRecords) {
-            experimentBuilder.addRegionId(StringRegionId.of(regionFileRecord.id()), Region.class);
+            experimentBuilder.addRegionId(StringRegionId.of(regionFileRecord.id()), () -> new Region()::init);
         }
 
         // Determine age groups
@@ -103,7 +103,7 @@ public class Runner {
 
         // Add compartments
         for (final Compartment compartment : Compartment.values()) {
-            experimentBuilder.addCompartmentId(compartment, compartment.getComponentClass());
+            experimentBuilder.addCompartmentId(compartment, compartment.getComponentInit());
         }
 
         // Add group type ids
