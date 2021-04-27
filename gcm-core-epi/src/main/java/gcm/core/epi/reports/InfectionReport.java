@@ -59,18 +59,15 @@ public class InfectionReport extends AbstractReport {
         setConsumer(GlobalPropertyChangeObservationEvent.class, this::handleGlobalPropertyChangeObservationEvent);
         globalDataView = reportContext.getDataView(GlobalDataView.class).get();
         personPropertyDataView = reportContext.getDataView(PersonPropertyDataView.class).get();
-        handleMostRecentInfectionDataAssignment();
     }
 
     private void handleGlobalPropertyChangeObservationEvent(GlobalPropertyChangeObservationEvent globalPropertyChangeObservationEvent) {
         if (globalPropertyChangeObservationEvent.getGlobalPropertyId() == GlobalProperty.MOST_RECENT_INFECTION_DATA) {
-            handleMostRecentInfectionDataAssignment();
+            handleMostRecentInfectionDataAssignment((Optional<InfectionData>) globalPropertyChangeObservationEvent.getCurrentPropertyValue());
         }
     }
 
-    private void handleMostRecentInfectionDataAssignment() {
-
-        Optional<InfectionData> optionalInfectionData = globalDataView.getGlobalPropertyValue(GlobalProperty.MOST_RECENT_INFECTION_DATA);
+    private void handleMostRecentInfectionDataAssignment(Optional<InfectionData> optionalInfectionData) {
 
         optionalInfectionData.ifPresent(infectionData -> {
             if (infectionData.transmissionOccurred() | showTransmissionAttempts) {
