@@ -63,6 +63,11 @@ public class OneDoseVaccinePlugin implements VaccinePlugin {
                 environment.getGlobalPropertyValue(VaccineGlobalProperty.VE_P) : 0.0;
     }
 
+    @Override
+    public double getVED(Environment environment, PersonId personId, VariantId variantId) {
+        return 0;
+    }
+
 
     @Override
     public Set<DefinedGlobalProperty> getGlobalProperties() {

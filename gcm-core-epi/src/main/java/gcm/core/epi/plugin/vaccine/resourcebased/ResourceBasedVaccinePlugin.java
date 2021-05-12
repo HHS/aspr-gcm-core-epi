@@ -113,6 +113,11 @@ public class ResourceBasedVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
+    public double getVED(Environment environment, PersonId personId, VariantId variantId) {
+        return 0;
+    }
+
+    @Override
     public Map<String, Set<TriggerCallback>> getTriggerCallbacks(Environment environment) {
         Map<String, Set<TriggerCallback>> triggerCallbacks = new HashMap<>();
         Map<DefinedGlobalAndRegionProperty, TriggerOverrideValidator> validators = new HashMap<>();

@@ -82,6 +82,11 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         return getEfficacyFunctionValue(environment, personId, variantId, VaccineDefinition.EfficacyType.VE_P);
     }
 
+    @Override
+    public double getVED(Environment environment, PersonId personId, VariantId variantId) {
+        return getEfficacyFunctionValue(environment, personId, variantId, VaccineDefinition.EfficacyType.VE_D);
+    }
+
     private double getEfficacyFunctionValue(Environment environment, PersonId personId, VariantId variantId,
                                             VaccineDefinition.EfficacyType efficacyType) {
         long numberOfDoses = environment.getPersonResourceLevel(personId, VaccineResourceId.VACCINE);
