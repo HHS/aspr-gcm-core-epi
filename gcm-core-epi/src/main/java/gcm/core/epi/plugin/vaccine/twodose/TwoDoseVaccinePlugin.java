@@ -78,6 +78,11 @@ public class TwoDoseVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
+    public double getVED(Environment environment, PersonId personId, VariantId variantId) {
+        return 0;
+    }
+
+    @Override
     public Set<DefinedGlobalProperty> getGlobalProperties() {
         return new HashSet<>(EnumSet.allOf(VaccineGlobalProperty.class));
     }

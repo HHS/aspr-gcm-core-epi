@@ -134,6 +134,11 @@ public class CombinationVaccinePlugin implements VaccinePlugin {
     }
 
     @Override
+    public double getVED(Environment environment, PersonId personId, VariantId variantId) {
+        return 0.0;
+    }
+
+    @Override
     public void load(ExperimentBuilder experimentBuilder) {
         VaccinePlugin.super.load(experimentBuilder);
         experimentBuilder.addGlobalComponentId(VACCINE_MANAGER_IDENTIFIER, VaccineManager.class);

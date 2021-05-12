@@ -2,12 +2,14 @@ package gcm.core.epi.components;
 
 import gcm.components.AbstractComponent;
 import gcm.core.epi.identifiers.*;
+import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.HospitalData;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.util.distributions.GammaHelper;
 import gcm.core.epi.variants.VariantDefinition;
+import gcm.core.epi.variants.VariantId;
 import gcm.core.epi.variants.VariantsDescription;
 import gcm.scenario.PersonId;
 import gcm.scenario.PersonPropertyId;
@@ -23,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class HospitalizationManager extends AbstractComponent {
 
@@ -139,10 +142,18 @@ public class HospitalizationManager extends AbstractComponent {
                 VariantDefinition variantDefinition = variantsDescription.getVariantDefinition(strainIndex);
                 double relativeSeverityFromStrain = variantDefinition.relativeSeverity();
 
+                // Reduced risk of severe disease among vaccine breakthrough cases
+                Optional<VaccinePlugin> vaccinePlugin = environment.getGlobalPropertyValue(GlobalProperty.VACCINE_PLUGIN);
+                VariantId variantId = variantsDescription.variantIdList().get(strainIndex);
+                final double relativeVaccineProtection = vaccinePlugin
+                        .map(plugin -> plugin.getVED(environment, personId, variantId))
+                        .orElse(0.0);
+
                 double adjustedCaseHospitalizationRatio = caseHospitalizationRatio * relativeSeverityFromStrain /
                         (fractionHighRiskForAgeGroup * highRiskMultiplierForAgeGroup +
                                 (1.0 - fractionHighRiskForAgeGroup)) *
-                        (isHighRisk ? highRiskMultiplierForAgeGroup : 1.0);
+                        (isHighRisk ? highRiskMultiplierForAgeGroup : 1.0) *
+                        (1.0 - relativeVaccineProtection);
 
                 if (environment.getRandomGeneratorFromId(RandomId.HOSPITALIZATION_MANAGER).nextDouble() <=
                         adjustedCaseHospitalizationRatio) {

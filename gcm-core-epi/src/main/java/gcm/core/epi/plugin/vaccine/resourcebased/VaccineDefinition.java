@@ -55,6 +55,11 @@ public abstract class VaccineDefinition {
         return 0;
     }
 
+    @Value.Default
+    double vED() {
+        return 0;
+    }
+
     public abstract Map<VariantId, Double> variantRelativeEfficacy();
 
     double getVaccineEfficacy(long doses, double timeSinceLastDose, VariantId variantId, EfficacyType efficacyType) {
@@ -71,6 +76,9 @@ public abstract class VaccineDefinition {
                 break;
             case VE_P:
                 efficacyTypeMultiplier = vEP();
+                break;
+            case VE_D:
+                efficacyTypeMultiplier = vED();
                 break;
             default:
                 efficacyTypeMultiplier = 0.0;
@@ -117,7 +125,8 @@ public abstract class VaccineDefinition {
     enum EfficacyType {
         VE_S,
         VE_I,
-        VE_P
+        VE_P,
+        VE_D
     }
 
 }
