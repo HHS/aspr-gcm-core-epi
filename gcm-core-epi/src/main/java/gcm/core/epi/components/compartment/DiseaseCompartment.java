@@ -1,7 +1,7 @@
 package gcm.core.epi.components.compartment;
 
 import gcm.core.epi.identifiers.Compartment;
-import nucleus.Plan;
+import plugins.gcm.agents.Plan;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
 import plugins.people.support.PersonId;

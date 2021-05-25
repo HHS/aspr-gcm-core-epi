@@ -1,5 +1,6 @@
 package gcm.core.epi.reports;
 
+import gcm.core.epi.propertytypes.FipsScope;
 import nucleus.ReportContext;
 import plugins.compartments.datacontainers.CompartmentDataView;
 import plugins.compartments.datacontainers.CompartmentLocationDataView;
@@ -13,6 +14,7 @@ import plugins.regions.datacontainers.RegionLocationDataView;
 import plugins.regions.support.RegionId;
 import plugins.reports.support.ReportHeader;
 import plugins.reports.support.ReportItem;
+import plugins.reports.support.ReportPeriod;
 import util.annotations.Source;
 import util.annotations.TestStatus;
 
@@ -46,24 +48,22 @@ public final class CompartmentRegionalTransferReport extends RegionAggregationPe
      * Map of counters
      */
     private final Map<String, Map<CompartmentId, Map<CompartmentId, Counter>>> regionMap = new LinkedHashMap<>();
-    private ReportHeader reportHeader;
+    private final ReportHeader reportHeader;
 
-    private ReportHeader getReportHeader() {
-        if (reportHeader == null) {
-            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
-            addTimeFieldHeaders(reportHeaderBuilder);
-            reportHeader = reportHeaderBuilder
-                    .add("Region")
-                    .add("SourceCompartment")
-                    .add("DestinationCompartment")
-                    .add("Transfers")
-                    .build();
-        }
-        return reportHeader;
+    public CompartmentRegionalTransferReport(ReportPeriod reportPeriod, FipsScope fipsScope) {
+        super(reportPeriod, fipsScope);
+        ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
+        addTimeFieldHeaders(reportHeaderBuilder);
+        reportHeader = reportHeaderBuilder
+                .add("Region")
+                .add("SourceCompartment")
+                .add("DestinationCompartment")
+                .add("Transfers")
+                .build();
     }
 
     @Override
-    protected void flush() {
+    protected void flush(ReportContext reportContext) {
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
         for (final String regionId : regionMap.keySet()) {
@@ -73,16 +73,16 @@ public final class CompartmentRegionalTransferReport extends RegionAggregationPe
                 for (final CompartmentId destinationCompartmentId : destinationCompartmentMap.keySet()) {
                     final Counter counter = destinationCompartmentMap.get(destinationCompartmentId);
                     if (counter.count > 0) {
-                        reportItemBuilder.setReportHeader(getReportHeader());
-                        reportItemBuilder.setReportType(getClass());
-                        buildTimeFields(reportItemBuilder);
+                        reportItemBuilder.setReportHeader(reportHeader);
+                        reportItemBuilder.setReportId(reportContext.getCurrentReportId());
+                        fillTimeFields(reportItemBuilder);
 
                         reportItemBuilder.addValue(regionId);
                         reportItemBuilder.addValue(sourceCompartmentId.toString());
                         reportItemBuilder.addValue(destinationCompartmentId.toString());
                         reportItemBuilder.addValue(counter.count);
 
-                        releaseOutputItem(reportItemBuilder.build());
+                        reportContext.releaseOutput(reportItemBuilder.build());
                         counter.count = 0;
                     }
                 }
@@ -90,7 +90,7 @@ public final class CompartmentRegionalTransferReport extends RegionAggregationPe
         }
     }
 
-    private void handlePersonCompartmentChangeObservationEvent(PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
+    private void handlePersonCompartmentChangeObservationEvent(ReportContext context, PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
         PersonId personId = personCompartmentChangeObservationEvent.getPersonId();
         CompartmentId sourceCompartmentId = personCompartmentChangeObservationEvent.getPreviousCompartmentId();
         final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
@@ -98,7 +98,7 @@ public final class CompartmentRegionalTransferReport extends RegionAggregationPe
         increment(regionId, sourceCompartmentId, destinationCompartmentId);
     }
 
-    private void handlePersonCreationObservationEvent(PersonCreationObservationEvent personCreationObservationEvent) {
+    private void handlePersonCreationObservationEvent(ReportContext context, PersonCreationObservationEvent personCreationObservationEvent) {
         PersonId personId = personCreationObservationEvent.getPersonId();
         final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
         final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
@@ -116,11 +116,8 @@ public final class CompartmentRegionalTransferReport extends RegionAggregationPe
     @Override
     public void init(final ReportContext context) {
         super.init(context);
-        context.subscribeToEvent(PersonCreationObservationEvent.class);
-        context.subscribeToEvent(PersonCompartmentChangeObservationEvent.class);
-
-        setConsumer(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
-        setConsumer(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
+        context.subscribeToEvent(PersonCreationObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
+        context.subscribeToEvent(PersonCompartmentChangeObservationEvent.class, this::handlePersonCreationObservationEvent);
 
         PersonDataView personDataView = context.getDataView(PersonDataView.class).get();
         compartmentLocationDataView = context.getDataView(CompartmentLocationDataView.class).get();

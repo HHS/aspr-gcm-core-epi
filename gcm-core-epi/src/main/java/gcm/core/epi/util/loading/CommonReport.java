@@ -2,97 +2,107 @@ package gcm.core.epi.util.loading;
 
 import gcm.core.epi.identifiers.Resource;
 import gcm.core.epi.plugin.Plugin;
-import plugins.gcm.experiment.ExperimentExecutor;
+import nucleus.ReportContext;
+import plugins.compartments.reports.CompartmentPropertyReport;
+import plugins.gcm.reports.*;
+import plugins.globals.reports.GlobalPropertyReport;
 import plugins.globals.support.GlobalPropertyId;
+import plugins.groups.reports.GroupPopulationReport;
 import plugins.groups.reports.GroupPropertyReport;
+import plugins.materials.reports.BatchStatusReport;
+import plugins.materials.reports.MaterialsProducerPropertyReport;
+import plugins.materials.reports.MaterialsProducerResourceReport;
+import plugins.materials.reports.StageReport;
 import plugins.personproperties.support.PersonPropertyId;
+import plugins.regions.reports.RegionPropertyReport;
 import plugins.regions.support.RegionPropertyId;
+import plugins.resources.reports.ResourcePropertyReport;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public enum CommonReport implements LoadableReport {
 
-    BATCH_STATUS_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addBatchStatusReport(path);
-    }),
-    COMPARTMENT_POPULATION_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addCompartmentPopulationReport(path, reportWrapperItem.period());
-    }),
-    COMPARTMENT_PROPERTY_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addCompartmentPropertyReport(path);
-    }),
-    COMPARTMENT_TRANSFER_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addCompartmentTransferReport(path, reportWrapperItem.period());
-    }),
-    GLOBAL_PROPERTY_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
+    BATCH_STATUS_REPORT((reportWrapperItem, pluginList) -> () -> new BatchStatusReport()::init),
+
+    COMPARTMENT_POPULATION_REPORT((reportWrapperItem, pluginList) ->
+            () -> new CompartmentPopulationReport(reportWrapperItem.period())::init),
+
+    COMPARTMENT_PROPERTY_REPORT((reportWrapperItem, pluginList) -> () -> new CompartmentPropertyReport()::init),
+
+    COMPARTMENT_TRANSFER_REPORT((reportWrapperItem, pluginList) ->
+            () -> new CompartmentTransferReport(reportWrapperItem.period())::init),
+
+    GLOBAL_PROPERTY_REPORT((reportWrapperItem, pluginList) -> {
         GlobalPropertyId[] globalPropertyIds = CoreEpiBootstrapUtil.getGlobalPropertyIdsFromStringSet(
                 reportWrapperItem.items(), pluginList).toArray(new GlobalPropertyId[0]);
-        experimentExecutor.addGlobalPropertyReport(path, globalPropertyIds);
+        return () -> new GlobalPropertyReport(globalPropertyIds)::init;
     }),
-    GROUP_POPULATION_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addGroupPopulationReport(path, reportWrapperItem.period());
-    }),
-    GROUP_PROPERTY_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
+
+    GROUP_POPULATION_REPORT((reportWrapperItem, pluginList) ->
+            () -> new GroupPopulationReport(reportWrapperItem.period())::init),
+
+    GROUP_PROPERTY_REPORT((reportWrapperItem, pluginList) -> () -> {
         // TODO: For now no group properties
         GroupPropertyReport.GroupPropertyReportSettingsBuilder groupPropertyReportSettingsBuilder =
                 GroupPropertyReport.settingsBuilder();
-        experimentExecutor.addGroupPropertyReport(path, reportWrapperItem.period(), groupPropertyReportSettingsBuilder.build());
+        return new GroupPropertyReport(reportWrapperItem.period(), groupPropertyReportSettingsBuilder.build())::init;
     }),
-    MATERIALS_PRODUCER_PROPERTY_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addMaterialsProducerPropertyReport(path);
-    }),
-    MATERIALS_PRODUCER_RESOURCE_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addMaterialsProducerResourceReport(path);
-    }),
-    PERSON_PROPERTY_INTERACTION_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
+
+    MATERIALS_PRODUCER_PROPERTY_REPORT((reportWrapperItem, pluginList) -> () -> new MaterialsProducerPropertyReport()::init),
+
+    MATERIALS_PRODUCER_RESOURCE_REPORT((reportWrapperItem, pluginList) -> () -> new MaterialsProducerResourceReport()::init),
+
+    PERSON_PROPERTY_INTERACTION_REPORT((reportWrapperItem, pluginList) -> {
         PersonPropertyId[] personPropertyIds = CoreEpiBootstrapUtil.getPersonPropertyIdsFromStringSet(
                 reportWrapperItem.items(), pluginList).toArray(new PersonPropertyId[0]);
-        experimentExecutor.addPersonPropertyInteractionReport(path, reportWrapperItem.period(), personPropertyIds);
+        return () -> new PersonPropertyInteractionReport(reportWrapperItem.period(), personPropertyIds)::init;
     }),
-    PERSON_PROPERTY_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
+
+    PERSON_PROPERTY_REPORT((reportWrapperItem, pluginList) -> {
         PersonPropertyId[] personPropertyIds = CoreEpiBootstrapUtil.getPersonPropertyIdsFromStringSet(
                 reportWrapperItem.items(), pluginList).toArray(new PersonPropertyId[0]);
-        experimentExecutor.addPersonPropertyReport(path, reportWrapperItem.period(), personPropertyIds);
+        return () -> new PersonPropertyReport(reportWrapperItem.period(), personPropertyIds)::init;
     }),
-    PERSON_RESOURCE_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
+
+    PERSON_RESOURCE_REPORT((reportWrapperItem, pluginList) -> {
         Set<Resource> resourceIds = getParsedResourceIds(reportWrapperItem);
-        experimentExecutor.addPersonResourceReport(path, reportWrapperItem.period(),
-                reportWrapperItem.reportPeopleWithoutResources(), reportWrapperItem.reportZeroPopulations(),
-                resourceIds.toArray(new Resource[0]));
+        return () -> new PersonResourceReport(reportWrapperItem.period(), reportWrapperItem.reportPeopleWithoutResources(),
+                reportWrapperItem.reportZeroPopulations(), resourceIds.toArray(new Resource[0]))::init;
     }),
-    REGION_PROPERTY_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
+
+    REGION_PROPERTY_REPORT((reportWrapperItem, pluginList) -> {
         RegionPropertyId[] regionPropertyIds = CoreEpiBootstrapUtil.getRegionPropertyIdsFromStringSet(
                 reportWrapperItem.items(), pluginList).toArray(new RegionPropertyId[0]);
-        experimentExecutor.addRegionPropertyReport(path, regionPropertyIds);
+        return () -> new RegionPropertyReport(regionPropertyIds)::init;
     }),
-    REGION_TRANSFER_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addMaterialsProducerResourceReport(path);
-    }),
-    RESOURCE_PROPERTY_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addResourcePropertyReport(path);
-    }),
-    RESOURCE_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
+
+    REGION_TRANSFER_REPORT((reportWrapperItem, pluginList) ->
+            () -> new RegionTransferReport(reportWrapperItem.period())::init),
+
+    RESOURCE_PROPERTY_REPORT((reportWrapperItem, pluginList) -> () -> new ResourcePropertyReport()::init),
+
+    RESOURCE_REPORT((reportWrapperItem, pluginList) -> {
         Set<Resource> resourceIds = getParsedResourceIds(reportWrapperItem);
-        experimentExecutor.addResourceReport(path, reportWrapperItem.period(), resourceIds.toArray(new Resource[0]));
+        return () -> new ResourceReport(reportWrapperItem.period(), resourceIds.toArray(new Resource[0]))::init;
     }),
-    STAGE_REPORT((experimentExecutor, path, reportWrapperItem, pluginList) -> {
-        experimentExecutor.addStageReport(path);
-    });
 
-    private final ReportLoader reportLoader;
+    STAGE_REPORT((reportWrapperItem, pluginList) -> () -> new StageReport()::init);
 
-    CommonReport(ReportLoader reportLoader) {
-        this.reportLoader = reportLoader;
+    private final ReportSupplier reportSupplier;
+
+    CommonReport(ReportSupplier reportSupplier) {
+        this.reportSupplier = reportSupplier;
     }
 
     private static Set<Resource> getParsedResourceIds(ReportWrapperItem reportWrapperItem) {
         return CoreEpiBootstrapUtil.getSetOfEnumsFromStringSet(reportWrapperItem.items(), Resource.class);
     }
 
-    public void load(ExperimentExecutor experimentExecutor, Path path, ReportWrapperItem reportWrapperItem, List<Plugin> pluginList) {
-        this.reportLoader.load(experimentExecutor, path, reportWrapperItem, pluginList);
+    public Supplier<Consumer<ReportContext>> getSupplier(ReportWrapperItem reportWrapperItem, List<Plugin> pluginList) {
+        return this.reportSupplier.getSupplier(reportWrapperItem, pluginList);
     }
 
 }

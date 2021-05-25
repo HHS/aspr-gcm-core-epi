@@ -5,13 +5,12 @@ import nucleus.ReportContext;
 import plugins.groups.datacontainers.PersonGroupDataView;
 import plugins.groups.support.GroupId;
 import plugins.people.support.PersonId;
-import plugins.reports.support.AbstractReport;
 import plugins.reports.support.ReportHeader;
 import plugins.reports.support.ReportItem;
 
 import java.util.List;
 
-public class GroupMembershipReport extends AbstractReport {
+public class GroupMembershipReport {
 
     private ReportHeader reportHeader;
 
@@ -29,33 +28,29 @@ public class GroupMembershipReport extends AbstractReport {
 
     PersonGroupDataView personGroupDataView;
 
-    @Override
     public void init(ReportContext reportContext) {
-        super.init(reportContext);
-
         personGroupDataView = reportContext.getDataView(PersonGroupDataView.class).get();
+        reportContext.subscribeToSimulationClose(this::close);
     }
 
-    @Override
-    public void close() {
+    public void close(ReportContext reportContext) {
         for (ContactGroupType contactGroupType : ContactGroupType.values()) {
             List<GroupId> groupIds = personGroupDataView.getGroupsForGroupType(contactGroupType);
             for (GroupId groupId : groupIds) {
                 List<PersonId> people = personGroupDataView.getPeopleForGroup(groupId);
                 for (PersonId personId : people) {
                     ReportItem.Builder reportItemBuilder = ReportItem.builder();
-                    reportItemBuilder.setReportType(getClass());
+                    reportItemBuilder.setReportId(reportContext.getCurrentReportId());
                     reportItemBuilder.setReportHeader(getReportHeader());
 
                     reportItemBuilder.addValue(groupId);
                     reportItemBuilder.addValue(contactGroupType);
                     reportItemBuilder.addValue(personId);
 
-                    releaseOutputItem(reportItemBuilder.build());
+                    reportContext.releaseOutput(reportItemBuilder.build());
                 }
             }
         }
-
     }
 
 }

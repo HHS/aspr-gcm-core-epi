@@ -1,5 +1,6 @@
 package gcm.core.epi.reports;
 
+import gcm.core.epi.propertytypes.FipsScope;
 import nucleus.ReportContext;
 import plugins.compartments.datacontainers.CompartmentDataView;
 import plugins.compartments.datacontainers.CompartmentLocationDataView;
@@ -18,6 +19,7 @@ import plugins.regions.events.observation.PersonRegionChangeObservationEvent;
 import plugins.regions.support.RegionId;
 import plugins.reports.support.ReportHeader;
 import plugins.reports.support.ReportItem;
+import plugins.reports.support.ReportPeriod;
 import util.annotations.Source;
 import util.annotations.TestStatus;
 
@@ -57,21 +59,22 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
      * events.
      */
     private final Map<String, Map<CompartmentId, Map<PersonPropertyId, Map<Object, Counter>>>> tupleMap = new LinkedHashMap<>();
-    private ReportHeader reportHeader;
+    private final ReportHeader reportHeader;
 
-    private ReportHeader getReportHeader() {
-        if (reportHeader == null) {
-            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
-            addTimeFieldHeaders(reportHeaderBuilder);
-            reportHeader = reportHeaderBuilder
-                    .add("Region")
-                    .add("Compartment")
-                    .add("Property")
-                    .add("Value")
-                    .add("PersonCount")
-                    .build();
+    public PersonRegionalPropertyReport(ReportPeriod reportPeriod, FipsScope fipsScope, PersonPropertyId... personPropertyIds) {
+        super(reportPeriod, fipsScope);
+        for (PersonPropertyId personPropertyId : personPropertyIds) {
+            this.personPropertyIds.add(personPropertyId);
         }
-        return reportHeader;
+        ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
+        addTimeFieldHeaders(reportHeaderBuilder);
+        reportHeader = reportHeaderBuilder
+                .add("Region")
+                .add("Compartment")
+                .add("Property")
+                .add("Value")
+                .add("PersonCount")
+                .build();
     }
 
     /*
@@ -82,7 +85,7 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
     }
 
     @Override
-    protected void flush() {
+    protected void flush(ReportContext reportContext) {
 
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
@@ -99,16 +102,16 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
                         final Counter counter = personPropertyValueMap.get(personPropertyValue);
                         if (counter.count > 0) {
                             final int personCount = counter.count;
-                            reportItemBuilder.setReportHeader(getReportHeader());
-                            reportItemBuilder.setReportType(getClass());
-                            buildTimeFields(reportItemBuilder);
+                            reportItemBuilder.setReportHeader(reportHeader);
+                            reportItemBuilder.setReportId(reportContext.getCurrentReportId());
+                            fillTimeFields(reportItemBuilder);
                             reportItemBuilder.addValue(regionId);
                             reportItemBuilder.addValue(compartmentId.toString());
                             reportItemBuilder.addValue(personPropertyId.toString());
                             reportItemBuilder.addValue(personPropertyValue);
                             reportItemBuilder.addValue(personCount);
 
-                            releaseOutputItem(reportItemBuilder.build());
+                            reportContext.releaseOutput(reportItemBuilder.build());
                         }
                     }
                 }
@@ -131,7 +134,7 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
 
     }
 
-    private void handlePersonCompartmentChangeObservationEvent(PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
+    private void handlePersonCompartmentChangeObservationEvent(ReportContext reportContext, PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
         PersonId personId = personCompartmentChangeObservationEvent.getPersonId();
         CompartmentId sourceCompartmentId = personCompartmentChangeObservationEvent.getPreviousCompartmentId();
 
@@ -145,7 +148,7 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
         }
     }
 
-    private void handlePersonCreationObservationEvent(PersonCreationObservationEvent personCreationObservationEvent) {
+    private void handlePersonCreationObservationEvent(ReportContext reportContext, PersonCreationObservationEvent personCreationObservationEvent) {
         PersonId personId = personCreationObservationEvent.getPersonId();
 
         final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
@@ -157,7 +160,7 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
         }
     }
 
-    private void handlePersonPropertyChangeObservationEvent(PersonPropertyChangeObservationEvent personPropertyChangeObservationEvent) {
+    private void handlePersonPropertyChangeObservationEvent(ReportContext reportContext, PersonPropertyChangeObservationEvent personPropertyChangeObservationEvent) {
         PersonPropertyId personPropertyId = personPropertyChangeObservationEvent.getPersonPropertyId();
         if (personPropertyIds.contains(personPropertyId)) {
             PersonId personId = personPropertyChangeObservationEvent.getPersonId();
@@ -170,7 +173,7 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
         }
     }
 
-    private void handlePersonImminentRemovalObservationEvent(PersonImminentRemovalObservationEvent personImminentRemovalObservationEvent) {
+    private void handlePersonImminentRemovalObservationEvent(ReportContext reportContext, PersonImminentRemovalObservationEvent personImminentRemovalObservationEvent) {
         PersonId personId = personImminentRemovalObservationEvent.getPersonId();
         RegionId regionId = regionLocationDataView.getPersonRegion(personId);
         CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
@@ -180,7 +183,7 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
         }
     }
 
-    private void handlePersonRegionChangeObservationEvent(PersonRegionChangeObservationEvent personRegionChangeObservationEvent) {
+    private void handlePersonRegionChangeObservationEvent(ReportContext reportContext, PersonRegionChangeObservationEvent personRegionChangeObservationEvent) {
         PersonId personId = personRegionChangeObservationEvent.getPersonId();
         RegionId previousRegionId = personRegionChangeObservationEvent.getPreviousRegionId();
         RegionId regionId = personRegionChangeObservationEvent.getCurrentRegionId();
@@ -202,37 +205,19 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
     }
 
     private PersonPropertyDataView personPropertyDataView;
-
     private CompartmentLocationDataView compartmentLocationDataView;
     private RegionLocationDataView regionLocationDataView;
 
-    @Override
-    public void setInitializingData(Set<Object> initialData) {
-        for (Object initialDatum : initialData) {
-            if (initialDatum instanceof PersonPropertyId) {
-                PersonPropertyId personPropertyId = (PersonPropertyId) initialDatum;
-                personPropertyIds.add(personPropertyId);
-            }
-        }
-    }
 
     @Override
     public void init(final ReportContext reportContext) {
         super.init(reportContext);
 
-        reportContext.subscribeToEvent(PersonPropertyChangeObservationEvent.class);
-        reportContext.subscribeToEvent(PersonCreationObservationEvent.class);
-        reportContext.subscribeToEvent(PersonImminentRemovalObservationEvent.class);
-        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class);
-        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class);
-
-        setConsumer(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
-        setConsumer(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
-        setConsumer(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
-        setConsumer(PersonPropertyChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
-        setConsumer(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
-
-
+        reportContext.subscribeToEvent(PersonPropertyChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
+        reportContext.subscribeToEvent(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
+        reportContext.subscribeToEvent(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
+        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
+        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
 
         compartmentLocationDataView = reportContext.getDataView(CompartmentLocationDataView.class).get();
         regionLocationDataView = reportContext.getDataView(RegionLocationDataView.class).get();

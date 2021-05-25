@@ -1,6 +1,7 @@
 package gcm.core.epi.reports;
 
 
+import gcm.core.epi.propertytypes.FipsScope;
 import nucleus.ReportContext;
 import plugins.compartments.datacontainers.CompartmentDataView;
 import plugins.compartments.datacontainers.CompartmentLocationDataView;
@@ -16,6 +17,7 @@ import plugins.regions.events.observation.PersonRegionChangeObservationEvent;
 import plugins.regions.support.RegionId;
 import plugins.reports.support.ReportHeader;
 import plugins.reports.support.ReportItem;
+import plugins.reports.support.ReportPeriod;
 import util.annotations.Source;
 import util.annotations.TestStatus;
 
@@ -50,6 +52,10 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
      */
     private ReportHeader reportHeader;
 
+    public CompartmentRegionalPopulationReport(ReportPeriod reportPeriod, FipsScope fipsScope) {
+        super(reportPeriod, fipsScope);
+    }
+
     /*
      * Returns the report header and builds it if it is null.
      */
@@ -77,7 +83,7 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
     }
 
     @Override
-    protected void flush() {
+    protected void flush(ReportContext reportContext) {
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
         /*
          * Report the population count for all region/compartment pairs that are
@@ -90,19 +96,19 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
                 final int personCount = counter.count;
                 if (personCount > 0) {
                     reportItemBuilder.setReportHeader(getReportHeader());
-                    reportItemBuilder.setReportType(getClass());
-                    buildTimeFields(reportItemBuilder);
+                    reportItemBuilder.setReportId(reportContext.getCurrentReportId());
+                    fillTimeFields(reportItemBuilder);
 
                     reportItemBuilder.addValue(regionId);
                     reportItemBuilder.addValue(compartmentId.toString());
                     reportItemBuilder.addValue(personCount);
-                    releaseOutputItem(reportItemBuilder.build());
+                    reportContext.releaseOutput(reportItemBuilder.build());
                 }
             }
         }
     }
 
-    private void handlePersonRegionChangeObservationEvent(PersonRegionChangeObservationEvent personRegionChangeObservationEvent) {
+    private void handlePersonRegionChangeObservationEvent(ReportContext context, PersonRegionChangeObservationEvent personRegionChangeObservationEvent) {
         PersonId personId = personRegionChangeObservationEvent.getPersonId();
         RegionId sourceRegionId = personRegionChangeObservationEvent.getPreviousRegionId();
         final RegionId destinationRegionId = personRegionChangeObservationEvent.getCurrentRegionId();
@@ -111,7 +117,7 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
         increment(destinationRegionId, compartmentId);
     }
 
-    private void handlePersonCompartmentChangeObservationEvent(PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
+    private void handlePersonCompartmentChangeObservationEvent(ReportContext context, PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
         CompartmentId sourceCompartmentId = personCompartmentChangeObservationEvent.getPreviousCompartmentId();
         PersonId personId = personCompartmentChangeObservationEvent.getPersonId();
         final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
@@ -120,14 +126,14 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
         increment(regionId, destinationCompartmentId);
     }
 
-    private void handlePersonCreationObservationEvent(PersonCreationObservationEvent personCreationObservationEvent) {
+    private void handlePersonCreationObservationEvent(ReportContext context, PersonCreationObservationEvent personCreationObservationEvent) {
         PersonId personId = personCreationObservationEvent.getPersonId();
         final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
         final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
         increment(regionId, compartmentId);
     }
 
-    private void handlePersonImminentRemovalObservationEvent(PersonImminentRemovalObservationEvent personImminentRemovalObservationEvent) {
+    private void handlePersonImminentRemovalObservationEvent(ReportContext context, PersonImminentRemovalObservationEvent personImminentRemovalObservationEvent) {
         PersonId personId = personImminentRemovalObservationEvent.getPersonId();
         RegionId regionId = regionLocationDataView.getPersonRegion(personId);
         CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
@@ -150,15 +156,10 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
     public void init(ReportContext reportContext) {
         super.init(reportContext);
 
-        reportContext.subscribeToEvent(PersonCreationObservationEvent.class);
-        reportContext.subscribeToEvent(PersonImminentRemovalObservationEvent.class);
-        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class);
-        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class);
-
-        setConsumer(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
-        setConsumer(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
-        setConsumer(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
-        setConsumer(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
+        reportContext.subscribeToEvent(PersonCreationObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
+        reportContext.subscribeToEvent(PersonImminentRemovalObservationEvent.class, this::handlePersonCreationObservationEvent);
+        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
+        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
 
         PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();
         compartmentLocationDataView = reportContext.getDataView(CompartmentLocationDataView.class).get();

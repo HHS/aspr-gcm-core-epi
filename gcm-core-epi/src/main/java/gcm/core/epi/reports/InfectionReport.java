@@ -9,73 +9,55 @@ import plugins.globals.datacontainers.GlobalDataView;
 import plugins.globals.events.GlobalPropertyChangeObservationEvent;
 import plugins.people.support.PersonId;
 import plugins.personproperties.datacontainers.PersonPropertyDataView;
-import plugins.reports.support.AbstractReport;
 import plugins.reports.support.ReportHeader;
 import plugins.reports.support.ReportItem;
 
 import java.util.Optional;
-import java.util.Set;
 
-public class InfectionReport extends AbstractReport {
+public class InfectionReport {
 
-    private ReportHeader reportHeader;
-    private boolean showTransmissionAttempts = false;
+    private final ReportHeader reportHeader;
+    private final boolean showTransmissionAttempts;
 
-    private ReportHeader getReportHeader() {
-        if (reportHeader == null) {
-            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder()
-                    .add("Time")
-                    .add("SourcePersonId")
-                    .add("SourcePersonAgeGroup")
-                    .add("TargetPersonId")
-                    .add("TargetPersonAgeGroup")
-                    .add("TransmissionSetting");
-            if (showTransmissionAttempts) {
-                reportHeaderBuilder.add("TransmissionOccurred");
-            }
-            reportHeader = reportHeaderBuilder.build();
+    public InfectionReport(boolean showTransmissionAttempts) {
+        this.showTransmissionAttempts = showTransmissionAttempts;
+        ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder()
+                .add("Time")
+                .add("SourcePersonId")
+                .add("SourcePersonAgeGroup")
+                .add("TargetPersonId")
+                .add("TargetPersonAgeGroup")
+                .add("TransmissionSetting");
+        if (showTransmissionAttempts) {
+            reportHeaderBuilder.add("TransmissionOccurred");
         }
-        return reportHeader;
-    }
-
-    @Override
-    public void setInitializingData(Set<Object> initialData) {
-        for (Object initialDatum : initialData) {
-            if (initialDatum instanceof Boolean) {
-                showTransmissionAttempts = (Boolean) initialDatum;
-            } else {
-                throw new RuntimeException("Invalid initial data passed to InfectionReport");
-            }
-        }
+        reportHeader = reportHeaderBuilder.build();
     }
 
     GlobalDataView globalDataView;
     PersonPropertyDataView personPropertyDataView;
 
-    @Override
     public void init(ReportContext reportContext) {
-        super.init(reportContext);
-        reportContext.subscribeToEvent(GlobalPropertyChangeObservationEvent.class);
-        setConsumer(GlobalPropertyChangeObservationEvent.class, this::handleGlobalPropertyChangeObservationEvent);
+        reportContext.subscribeToEvent(GlobalPropertyChangeObservationEvent.class,
+                this::handleGlobalPropertyChangeObservationEvent);
         globalDataView = reportContext.getDataView(GlobalDataView.class).get();
         personPropertyDataView = reportContext.getDataView(PersonPropertyDataView.class).get();
     }
 
-    private void handleGlobalPropertyChangeObservationEvent(GlobalPropertyChangeObservationEvent globalPropertyChangeObservationEvent) {
+    private void handleGlobalPropertyChangeObservationEvent(ReportContext context, GlobalPropertyChangeObservationEvent globalPropertyChangeObservationEvent) {
         if (globalPropertyChangeObservationEvent.getGlobalPropertyId() == GlobalProperty.MOST_RECENT_INFECTION_DATA) {
-            handleMostRecentInfectionDataAssignment((Optional<InfectionData>) globalPropertyChangeObservationEvent.getCurrentPropertyValue());
+            handleMostRecentInfectionDataAssignment(context, (Optional<InfectionData>) globalPropertyChangeObservationEvent.getCurrentPropertyValue());
         }
     }
 
-    private void handleMostRecentInfectionDataAssignment(Optional<InfectionData> optionalInfectionData) {
+    private void handleMostRecentInfectionDataAssignment(ReportContext context, Optional<InfectionData> optionalInfectionData) {
 
         optionalInfectionData.ifPresent(infectionData -> {
             if (infectionData.transmissionOccurred() | showTransmissionAttempts) {
                 final ReportItem.Builder reportItemBuilder = ReportItem.builder();
-                reportItemBuilder.setReportType(getClass());
-                reportItemBuilder.setReportHeader(getReportHeader());
-
-                reportItemBuilder.addValue(getTime());
+                reportItemBuilder.setReportId(context.getCurrentReportId());
+                reportItemBuilder.setReportHeader(reportHeader);
+                reportItemBuilder.addValue(context.getTime());
                 PopulationDescription populationDescription = globalDataView.getGlobalPropertyValue(GlobalProperty.POPULATION_DESCRIPTION);
 
                 if (infectionData.sourcePersonId().isPresent()) {
@@ -103,7 +85,7 @@ public class InfectionReport extends AbstractReport {
                     reportItemBuilder.addValue(infectionData.transmissionOccurred());
                 }
 
-                releaseOutputItem(reportItemBuilder.build());
+                context.releaseOutput(reportItemBuilder.build());
             }
         });
 

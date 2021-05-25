@@ -7,32 +7,21 @@ import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsScope;
 import nucleus.ReportContext;
 import plugins.globals.datacontainers.GlobalDataView;
-import plugins.reports.support.AbstractReport;
 import plugins.reports.support.ReportHeader;
 import plugins.reports.support.ReportItem;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
-public class PopulationReport extends AbstractReport {
+public class PopulationReport {
 
-    private FipsScope fipsScope = FipsScope.TRACT;
+    private final FipsScope fipsScope;
 
-    @Override
-    public void setInitializingData(Set<Object> initialData) {
-        for (Object initialDatum : initialData) {
-            if (initialDatum instanceof FipsScope) {
-                this.fipsScope = (FipsScope) initialDatum;
-                break;
-            }
-        }
+    public PopulationReport(FipsScope fipsScope) {
+        this.fipsScope = fipsScope;
     }
 
-    @Override
     public void init(ReportContext reportContext) {
-        super.init(reportContext);
-
         GlobalDataView globalDataView = reportContext.getDataView(GlobalDataView.class).get();
 
         // Count population by FIPS code and age group
@@ -61,11 +50,11 @@ public class PopulationReport extends AbstractReport {
                 .build();
         counters.forEach((fipsCode, populationByAge) -> populationByAge.forEach((ageGroup, population) -> {
             reportItemBuilder.setReportHeader(reportHeader);
-            reportItemBuilder.setReportType(getClass());
+            reportItemBuilder.setReportId(reportContext.getCurrentReportId());
             reportItemBuilder.addValue(fipsCode.code());
             reportItemBuilder.addValue(ageGroup.name());
             reportItemBuilder.addValue(population.count);
-            releaseOutputItem(reportItemBuilder.build());
+            reportContext.releaseOutput(reportItemBuilder.build());
         }));
     }
 

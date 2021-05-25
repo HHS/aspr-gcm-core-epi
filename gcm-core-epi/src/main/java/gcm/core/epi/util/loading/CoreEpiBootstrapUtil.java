@@ -303,25 +303,10 @@ public class CoreEpiBootstrapUtil {
     }
 
     /**
-     * Loads the reports into the ExperimentExecutor based upon user input.
+     * Gets the LoadableReport from the corresponding enum string
      *
-     * @param experimentExecutor The ExperimentExecutor into which to load the reports
-     * @param reportWrapperItems A List of ReportWrapperItems specifying what reports to produce.
-     * @param pluginList         The List of Plugins used by this experiment
-     * @param outputPath         The output Path for reporting
+     * @param report The string name of the report
      */
-    public static void loadReports(final ExperimentExecutor experimentExecutor,
-                                   final List<ReportWrapperItem> reportWrapperItems,
-                                   List<Plugin> pluginList,
-                                   Path outputPath) {
-
-        reportWrapperItems.forEach(item -> {
-            LoadableReport loadableReport = getLoadableReportFromString(item.report());
-            loadableReport.load(experimentExecutor, outputPath.resolve(item.file()), item, pluginList
-            );
-        });
-    }
-
     public static LoadableReport getLoadableReportFromString(String report) {
         try {
             return CommonReport.valueOf(report);

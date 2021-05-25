@@ -5,6 +5,7 @@ import gcm.core.epi.plugin.vaccine.resourcebased.DetailedResourceVaccinationData
 import gcm.core.epi.plugin.vaccine.resourcebased.VaccineAdministratorId;
 import gcm.core.epi.plugin.vaccine.resourcebased.VaccineId;
 import gcm.core.epi.population.AgeGroup;
+import gcm.core.epi.propertytypes.FipsScope;
 import nucleus.ReportContext;
 import plugins.globals.datacontainers.GlobalDataView;
 import plugins.globals.events.GlobalPropertyChangeObservationEvent;
@@ -12,6 +13,7 @@ import plugins.regions.datacontainers.RegionDataView;
 import plugins.regions.support.RegionId;
 import plugins.reports.support.ReportHeader;
 import plugins.reports.support.ReportItem;
+import plugins.reports.support.ReportPeriod;
 
 import java.util.*;
 
@@ -19,22 +21,20 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
 
     private final Map<String, Map<AdministrationData,
             Map<DetailedResourceVaccinationData.DoseType, Counter>>> regionCounterMap = new LinkedHashMap<>();
-    private ReportHeader reportHeader;
+    private final ReportHeader reportHeader;
 
-    private ReportHeader getReportHeader() {
-        if (reportHeader == null) {
-            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
-            addTimeFieldHeaders(reportHeaderBuilder);
-            reportHeader = reportHeaderBuilder
-                    .add("Region")
-                    .add("VaccineAdministrator")
-                    .add("Vaccine")
-                    .add("AgeGroup")
-                    .add("FirstDoses")
-                    .add("SecondDoses")
-                    .build();
-        }
-        return reportHeader;
+    public DetailedResourceVaccinationReport(ReportPeriod reportPeriod, FipsScope fipsScope) {
+        super(reportPeriod, fipsScope);
+        ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
+        addTimeFieldHeaders(reportHeaderBuilder);
+        reportHeader = reportHeaderBuilder
+                .add("Region")
+                .add("VaccineAdministrator")
+                .add("Vaccine")
+                .add("AgeGroup")
+                .add("FirstDoses")
+                .add("SecondDoses")
+                .build();
     }
 
     private GlobalDataView globalDataView;
@@ -50,8 +50,7 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
         }
         RegionDataView regionDataView = reportContext.getDataView(RegionDataView.class).get();
 
-        reportContext.subscribeToEvent(GlobalPropertyChangeObservationEvent.class);
-        setConsumer(GlobalPropertyChangeObservationEvent.class, this::handleGlobalPropertyChangeObservationEvent);
+        reportContext.subscribeToEvent(GlobalPropertyChangeObservationEvent.class, this::handleGlobalPropertyChangeObservationEvent);
 
         // Initialize regionCounterMap
         for (RegionId regionId : regionDataView.getRegionIds()) {
@@ -60,7 +59,7 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
     }
 
 
-    public void handleGlobalPropertyChangeObservationEvent(GlobalPropertyChangeObservationEvent globalPropertyChangeObservationEvent) {
+    public void handleGlobalPropertyChangeObservationEvent(ReportContext reportContext, GlobalPropertyChangeObservationEvent globalPropertyChangeObservationEvent) {
         if (globalPropertyChangeObservationEvent.getGlobalPropertyId().equals(DetailedResourceBasedVaccinePlugin
                 .VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA)) {
             Optional<DetailedResourceVaccinationData> vaccinationDataOptional = globalDataView.getGlobalPropertyValue(
@@ -80,16 +79,16 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
     }
 
     @Override
-    protected void flush() {
+    protected void flush(ReportContext reportContext) {
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
         regionCounterMap.forEach(
                 (regionId, counterMap) -> counterMap.forEach(
                         (administrationData, doseTypeCounterMap) -> {
-                            reportItemBuilder.setReportHeader(getReportHeader());
-                            reportItemBuilder.setReportType(getClass());
+                            reportItemBuilder.setReportHeader(reportHeader);
+                            reportItemBuilder.setReportId(reportContext.getCurrentReportId());
 
-                            buildTimeFields(reportItemBuilder);
+                            fillTimeFields(reportItemBuilder);
                             reportItemBuilder.addValue(regionId);
                             reportItemBuilder.addValue(administrationData.vaccineAdministratorId.id());
                             reportItemBuilder.addValue(administrationData.vaccineId.id());
@@ -99,7 +98,7 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
                             reportItemBuilder.addValue(doseTypeCounterMap
                                     .computeIfAbsent(DetailedResourceVaccinationData.DoseType.SECOND_DOSE, x -> new Counter()).count);
 
-                            releaseOutputItem(reportItemBuilder.build());
+                            reportContext.releaseOutput(reportItemBuilder.build());
 
                             // Reset counters
                             for (DetailedResourceVaccinationData.DoseType doseType :

@@ -12,7 +12,7 @@ import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.variants.VariantId;
 import gcm.core.epi.variants.VariantsDescription;
-import nucleus.Plan;
+import plugins.gcm.agents.Plan;
 import plugins.compartments.support.CompartmentId;
 import plugins.gcm.agents.Environment;
 import plugins.people.support.PersonId;

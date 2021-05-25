@@ -14,7 +14,7 @@ import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsCodeDouble;
 import gcm.core.epi.propertytypes.ImmutableInfectionData;
 import gcm.core.epi.util.loading.HospitalDataFileRecord;
-import nucleus.Plan;
+import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.BinomialDistribution;
 import plugins.compartments.support.CompartmentId;
 import plugins.compartments.support.CompartmentLabeler;

@@ -1,5 +1,6 @@
 package gcm.core.epi.reports;
 
+import gcm.core.epi.propertytypes.FipsScope;
 import nucleus.ReportContext;
 import plugins.compartments.datacontainers.CompartmentDataView;
 import plugins.compartments.datacontainers.CompartmentLocationDataView;
@@ -16,6 +17,7 @@ import plugins.regions.events.observation.PersonRegionChangeObservationEvent;
 import plugins.regions.support.RegionId;
 import plugins.reports.support.ReportHeader;
 import plugins.reports.support.ReportItem;
+import plugins.reports.support.ReportPeriod;
 import plugins.resources.datacontainers.ResourceDataView;
 import plugins.resources.events.observation.PersonResourceChangeObservationEvent;
 import plugins.resources.support.ResourceId;
@@ -50,7 +52,7 @@ import java.util.Set;
  * @author Shawn Hatch
  */
 @Source(status = TestStatus.UNEXPECTED)
-public final class PersonRegionResourceReport extends RegionAggregationPeriodicReport {
+public final class PersonRegionalResourceReport extends RegionAggregationPeriodicReport {
     /*
      * The resources that will be used in this report. They are derived from the
      * values passed in the init() method.
@@ -60,15 +62,13 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
     // sets of person id. Maintained via the processing of events.
     private final Map<String, Map<CompartmentId, Map<ResourceId, Map<InventoryType, Set<PersonId>>>>> regionMap = new LinkedHashMap<>();
     /*
-     * Boolean for controlling the reporting of people with out resources. Set
-     * in the init() method.
+     * Boolean for controlling the reporting of people without resources.
      */
-    private boolean reportPeopleWithoutResources;
+    private final boolean reportPeopleWithoutResources;
     /*
-     * Boolean for controlling the reporting of people with out resources. Set
-     * in the init() method.
+     * Boolean for controlling the reporting of people without resources.
      */
-    private boolean reportZeroPopulations;
+    private final boolean reportZeroPopulations;
     /*
      * The derived header for this report
      */
@@ -77,21 +77,25 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
     private RegionLocationDataView regionLocationDataView;
     private ResourceDataView resourceDataView;
 
-    private ReportHeader getReportHeader() {
-        if (reportHeader == null) {
-            ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
-            addTimeFieldHeaders(reportHeaderBuilder);
-            reportHeaderBuilder
-                    .add("Region")
-                    .add("Compartment")
-                    .add("Resource")
-                    .add("PeopleWithResource");
-            if (reportPeopleWithoutResources) {
-                reportHeaderBuilder.add("PeopleWithoutResource");
-            }
-            reportHeader = reportHeaderBuilder.build();
+    public PersonRegionalResourceReport(ReportPeriod reportPeriod, FipsScope fipsScope,
+                                        boolean reportPeopleWithoutResources, boolean reportZeroPopulations, ResourceId...resourceIds) {
+        super(reportPeriod, fipsScope);
+        this.reportPeopleWithoutResources = reportPeopleWithoutResources;
+        this.reportZeroPopulations = reportZeroPopulations;
+        for(ResourceId resourceId : resourceIds) {
+            this.resourceIds.add(resourceId);
         }
-        return reportHeader;
+        ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
+        addTimeFieldHeaders(reportHeaderBuilder);
+        reportHeaderBuilder
+                .add("Region")
+                .add("Compartment")
+                .add("Resource")
+                .add("PeopleWithResource");
+        if (reportPeopleWithoutResources) {
+            reportHeaderBuilder.add("PeopleWithoutResource");
+        }
+        reportHeader = reportHeaderBuilder.build();
     }
 
     /*
@@ -103,7 +107,7 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
     }
 
     @Override
-    protected void flush() {
+    protected void flush(ReportContext reportContext) {
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
         for (final String regionId : regionMap.keySet()) {
             final Map<CompartmentId, Map<ResourceId, Map<InventoryType, Set<PersonId>>>> compartmentMap = regionMap.get(regionId);
@@ -121,9 +125,9 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
                     final boolean shouldReport = reportZeroPopulations || (count > 0);
 
                     if (shouldReport) {
-                        reportItemBuilder.setReportHeader(getReportHeader());
-                        reportItemBuilder.setReportType(getClass());
-                        buildTimeFields(reportItemBuilder);
+                        reportItemBuilder.setReportHeader(reportHeader);
+                        reportItemBuilder.setReportId(reportContext.getCurrentReportId());
+                        fillTimeFields(reportItemBuilder);
                         reportItemBuilder.addValue(regionId);
                         reportItemBuilder.addValue(compartmentId.toString());
                         reportItemBuilder.addValue(resourceId.toString());
@@ -131,14 +135,14 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
                         if (reportPeopleWithoutResources) {
                             reportItemBuilder.addValue(zeroCount);
                         }
-                        releaseOutputItem(reportItemBuilder.build());
+                        reportContext.releaseOutput(reportItemBuilder.build());
                     }
                 }
             }
         }
     }
 
-    private void handlePersonCompartmentChangeObservationEvent(PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
+    private void handlePersonCompartmentChangeObservationEvent(ReportContext reportContext, PersonCompartmentChangeObservationEvent personCompartmentChangeObservationEvent) {
         PersonId personId = personCompartmentChangeObservationEvent.getPersonId();
         CompartmentId sourceCompartmentId = personCompartmentChangeObservationEvent.getPreviousCompartmentId();
         final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
@@ -158,7 +162,7 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
         }
     }
 
-    private void handlePersonCreationObservationEvent(PersonCreationObservationEvent personCreationObservationEvent) {
+    private void handlePersonCreationObservationEvent(ReportContext reportContext, PersonCreationObservationEvent personCreationObservationEvent) {
         PersonId personId = personCreationObservationEvent.getPersonId();
         final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
         final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
@@ -175,7 +179,7 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
         }
     }
 
-    private void handlePersonImminentRemovalObservationEvent(PersonImminentRemovalObservationEvent personImminentRemovalObservationEvent) {
+    private void handlePersonImminentRemovalObservationEvent(ReportContext reportContext, PersonImminentRemovalObservationEvent personImminentRemovalObservationEvent) {
         PersonId personId = personImminentRemovalObservationEvent.getPersonId();
         RegionId regionId = regionLocationDataView.getPersonRegion(personId);
         CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
@@ -191,7 +195,7 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
         }
     }
 
-    private void handlePersonResourceChangeObservationEvent(PersonResourceChangeObservationEvent personResourceChangeObservationEvent) {
+    private void handlePersonResourceChangeObservationEvent(ReportContext reportContext, PersonResourceChangeObservationEvent personResourceChangeObservationEvent) {
         ResourceId resourceId = personResourceChangeObservationEvent.getResourceId();
         if (!resourceIds.contains(resourceId)) {
             return;
@@ -228,7 +232,7 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
         }
     }
 
-    private void handlePersonRegionChangeObservationEvent(PersonRegionChangeObservationEvent personRegionChangeObservationEvent) {
+    private void handlePersonRegionChangeObservationEvent(ReportContext reportContext, PersonRegionChangeObservationEvent personRegionChangeObservationEvent) {
         PersonId personId = personRegionChangeObservationEvent.getPersonId();
         RegionId previousRegionId = personRegionChangeObservationEvent.getPreviousRegionId();
         RegionId currentRegionId = personRegionChangeObservationEvent.getCurrentRegionId();
@@ -249,54 +253,19 @@ public final class PersonRegionResourceReport extends RegionAggregationPeriodicR
     }
 
     @Override
-    public void setInitializingData(Set<Object> initialData) {
-        super.setInitializingData(initialData);
-        /*
-         * Determine the resources and display options from the initial data
-         */
-        for (Object initialDatum : initialData) {
-            if (initialDatum instanceof ResourceId) {
-                ResourceId resourceId = (ResourceId) initialDatum;
-                resourceIds.add(resourceId);
-            } else if (initialDatum instanceof PersonResourceReport.PersonResourceReportOption) {
-                PersonResourceReport.PersonResourceReportOption personResourceReportOption = (PersonResourceReport.PersonResourceReportOption) initialDatum;
-                switch (personResourceReportOption) {
-                    case REPORT_PEOPLE_WITHOUT_RESOURCES:
-                        reportPeopleWithoutResources = true;
-                        break;
-                    case REPORT_ZERO_POPULATIONS:
-                        reportZeroPopulations = true;
-                        break;
-                    default:
-                        throw new RuntimeException("unhandled PersonResourceReportOption");
-                }
-            }
-        }
-
-    }
-
-    @Override
     public void init(final ReportContext reportContext) {
         super.init(reportContext);
 
-        reportContext.subscribeToEvent(PersonResourceChangeObservationEvent.class);
-        reportContext.subscribeToEvent(PersonCreationObservationEvent.class);
-        reportContext.subscribeToEvent(PersonImminentRemovalObservationEvent.class);
-        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class);
-        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class);
-
-        setConsumer(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
-        setConsumer(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
-        setConsumer(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
-        setConsumer(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
-        setConsumer(PersonResourceChangeObservationEvent.class, this::handlePersonResourceChangeObservationEvent);
+        reportContext.subscribeToEvent(PersonResourceChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
+        reportContext.subscribeToEvent(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
+        reportContext.subscribeToEvent(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
+        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
+        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class, this::handlePersonResourceChangeObservationEvent);
 
         resourceDataView = reportContext.getDataView(ResourceDataView.class).get();
-
         PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();
         compartmentLocationDataView = reportContext.getDataView(CompartmentLocationDataView.class).get();
         regionLocationDataView = reportContext.getDataView(RegionLocationDataView.class).get();
-
         CompartmentDataView compartmentDataView = reportContext.getDataView(CompartmentDataView.class).get();
         RegionDataView regionDataView = reportContext.getDataView(RegionDataView.class).get();
 

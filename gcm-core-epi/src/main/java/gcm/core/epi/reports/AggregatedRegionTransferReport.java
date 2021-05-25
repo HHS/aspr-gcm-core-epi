@@ -1,5 +1,6 @@
 package gcm.core.epi.reports;
 
+import gcm.core.epi.propertytypes.FipsScope;
 import nucleus.ReportContext;
 import plugins.compartments.datacontainers.CompartmentDataView;
 import plugins.compartments.datacontainers.CompartmentLocationDataView;
@@ -13,6 +14,7 @@ import plugins.regions.events.observation.PersonRegionChangeObservationEvent;
 import plugins.regions.support.RegionId;
 import plugins.reports.support.ReportHeader;
 import plugins.reports.support.ReportItem;
+import plugins.reports.support.ReportPeriod;
 import util.annotations.Source;
 import util.annotations.TestStatus;
 
@@ -54,6 +56,10 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
      */
     private ReportHeader reportHeader;
 
+    public AggregatedRegionTransferReport(ReportPeriod reportPeriod, FipsScope fipsScope) {
+        super(reportPeriod, fipsScope);
+    }
+
     private ReportHeader getReportHeader() {
         if (reportHeader == null) {
             ReportHeader.Builder reportHeaderBuilder = ReportHeader.builder();
@@ -69,7 +75,7 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
     }
 
     @Override
-    protected void flush() {
+    protected void flush(ReportContext reportContext) {
 
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
@@ -81,14 +87,14 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
                     final Counter counter = destinationRegionMap.get(destinationRegionId);
                     if (counter.count > 0) {
                         reportItemBuilder.setReportHeader(getReportHeader());
-                        reportItemBuilder.setReportType(getClass());
-                        buildTimeFields(reportItemBuilder);
+                        reportItemBuilder.setReportId(reportContext.getCurrentReportId());
+                        fillTimeFields(reportItemBuilder);
 
                         reportItemBuilder.addValue(compartmentId.toString());
                         reportItemBuilder.addValue(sourceRegionId);
                         reportItemBuilder.addValue(destinationRegionId);
                         reportItemBuilder.addValue(counter.count);
-                        releaseOutputItem(reportItemBuilder.build());
+                        reportContext.releaseOutput(reportItemBuilder.build());
                         counter.count = 0;
                     }
                 }
@@ -96,7 +102,7 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
         }
     }
 
-    private void handlePersonCreationObservationEvent(PersonCreationObservationEvent personCreationObservationEvent) {
+    private void handlePersonCreationObservationEvent(ReportContext context, PersonCreationObservationEvent personCreationObservationEvent) {
         PersonId personId = personCreationObservationEvent.getPersonId();
         final RegionId regionId = regionLocationDataView.getPersonRegion(personId);
         final CompartmentId compartmentId = compartmentLocationDataView.getPersonCompartment(personId);
@@ -104,7 +110,7 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
     }
 
 
-    private void handlePersonRegionChangeObservationEvent(PersonRegionChangeObservationEvent personRegionChangeObservationEvent) {
+    private void handlePersonRegionChangeObservationEvent(ReportContext context, PersonRegionChangeObservationEvent personRegionChangeObservationEvent) {
         PersonId personId = personRegionChangeObservationEvent.getPersonId();
         RegionId previousRegionId = personRegionChangeObservationEvent.getPreviousRegionId();
         RegionId currentRegionId = personRegionChangeObservationEvent.getCurrentRegionId();
@@ -127,11 +133,8 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
     public void init(final ReportContext reportContext) {
         super.init(reportContext);
 
-        reportContext.subscribeToEvent(PersonCreationObservationEvent.class);
-        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class);
-
-        setConsumer(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
-        setConsumer(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
+        reportContext.subscribeToEvent(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
+        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
 
         PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();
         compartmentLocationDataView = reportContext.getDataView(CompartmentLocationDataView.class).get();

@@ -6,63 +6,45 @@ import plugins.people.support.PersonId;
 import plugins.personproperties.datacontainers.PersonPropertyDataView;
 import plugins.personproperties.events.observation.PersonPropertyChangeObservationEvent;
 import plugins.personproperties.support.PersonPropertyId;
-import plugins.reports.support.AbstractReport;
 import plugins.reports.support.ReportHeader;
 import plugins.reports.support.ReportItem;
 
 
-import java.util.LinkedHashSet;
 import java.util.Set;
-public final class IndividualPersonPropertyChangeReport extends AbstractReport {
+public final class IndividualPersonPropertyChangeReport {
 
-    private final Set<PersonPropertyId> personPropertyIds = new LinkedHashSet<>();
-    private ReportHeader reportHeader;
+    private final Set<PersonPropertyId> personPropertyIds;
+    private final ReportHeader reportHeader;
 
-    private ReportHeader getReportHeader() {
-        if (reportHeader == null) {
-            reportHeader = ReportHeader.builder()
-                    .add("Time")
-                    .add("PersonId")
-                    .add("Property")
-                    .add("Value")
-                    .build();
-        }
-        return reportHeader;
+    public IndividualPersonPropertyChangeReport(Set<PersonPropertyId> personPropertyIds) {
+        this.personPropertyIds = personPropertyIds;
+        reportHeader = ReportHeader.builder()
+                .add("Time")
+                .add("PersonId")
+                .add("Property")
+                .add("Value")
+                .build();
     }
 
-    private void handlePersonPropertyChangeObservationEvent(PersonPropertyChangeObservationEvent personPropertyChangeObservationEvent) {
+    private void handlePersonPropertyChangeObservationEvent(ReportContext context, PersonPropertyChangeObservationEvent personPropertyChangeObservationEvent) {
         PersonPropertyId personPropertyId = personPropertyChangeObservationEvent.getPersonPropertyId();
         if (personPropertyIds.contains(personPropertyId)) {
             ReportItem.Builder reportItemBuilder = ReportItem.builder();
-            reportItemBuilder.setReportType(getClass());
-            reportItemBuilder.setReportHeader(getReportHeader());
+            reportItemBuilder.setReportId(context.getCurrentReportId());
+            reportItemBuilder.setReportHeader(reportHeader);
 
-            reportItemBuilder.addValue(getTime());
+            reportItemBuilder.addValue(context.getTime());
             reportItemBuilder.addValue(personPropertyChangeObservationEvent.getPersonId());
             reportItemBuilder.addValue(personPropertyId);
             reportItemBuilder.addValue(personPropertyChangeObservationEvent.getCurrentPropertyValue());
 
-            releaseOutputItem(reportItemBuilder.build());
+            context.releaseOutput(reportItemBuilder.build());
         }
     }
 
-    @Override
-    public void setInitializingData(Set<Object> initialData) {
-        super.setInitializingData(initialData);
-        for (Object initialDatum : initialData) {
-            if (initialDatum instanceof PersonPropertyId) {
-                PersonPropertyId personPropertyId = (PersonPropertyId) initialDatum;
-                personPropertyIds.add(personPropertyId);
-            }
-        }
-    }
-
-    @Override
     public void init(ReportContext reportContext) {
-        super.init(reportContext);
 
-        reportContext.subscribeToEvent(PersonPropertyChangeObservationEvent.class);
-        setConsumer(PersonPropertyChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
+        reportContext.subscribeToEvent(PersonPropertyChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
 
         PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();
         PersonPropertyDataView personPropertyDataView = reportContext.getDataView(PersonPropertyDataView.class).get();
@@ -77,15 +59,15 @@ public final class IndividualPersonPropertyChangeReport extends AbstractReport {
         for (PersonId personId : personDataView.getPeople()) {
             for (PersonPropertyId personPropertyId : personPropertyIds) {
                 ReportItem.Builder reportItemBuilder = ReportItem.builder();
-                reportItemBuilder.setReportType(getClass());
-                reportItemBuilder.setReportHeader(getReportHeader());
+                reportItemBuilder.setReportId(reportContext.getCurrentReportId());
+                reportItemBuilder.setReportHeader(reportHeader);
 
-                reportItemBuilder.addValue(getTime());
+                reportItemBuilder.addValue(reportContext.getTime());
                 reportItemBuilder.addValue(personId);
                 reportItemBuilder.addValue(personPropertyId);
                 reportItemBuilder.addValue(personPropertyDataView.getPersonPropertyValue(personId, personPropertyId));
 
-                releaseOutputItem(reportItemBuilder.build());
+                reportContext.releaseOutput(reportItemBuilder.build());
             }
         }
 

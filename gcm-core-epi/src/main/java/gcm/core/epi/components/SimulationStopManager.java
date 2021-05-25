@@ -2,7 +2,7 @@ package gcm.core.epi.components;
 
 
 import gcm.core.epi.identifiers.GlobalProperty;
-import nucleus.Plan;
+import plugins.gcm.agents.Plan;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
 

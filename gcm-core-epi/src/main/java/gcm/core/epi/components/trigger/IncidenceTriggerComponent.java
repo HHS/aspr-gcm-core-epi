@@ -7,7 +7,7 @@ import gcm.core.epi.identifiers.Resource;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.propertytypes.FipsScope;
 import gcm.core.epi.trigger.*;
-import nucleus.Plan;
+import plugins.gcm.agents.Plan;
 import plugins.compartments.support.CompartmentId;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;

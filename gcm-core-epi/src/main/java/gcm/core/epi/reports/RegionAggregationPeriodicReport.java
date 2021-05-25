@@ -3,25 +3,21 @@ package gcm.core.epi.reports;
 import gcm.core.epi.propertytypes.FipsScope;
 import plugins.regions.support.RegionId;
 import plugins.reports.support.PeriodicReport;
+import plugins.reports.support.ReportPeriod;
 
 import java.util.Set;
 
 public abstract class RegionAggregationPeriodicReport extends PeriodicReport {
 
-    private FipsScope fipsScope = FipsScope.TRACT;
+    private final FipsScope fipsScope;
+
+    public RegionAggregationPeriodicReport(ReportPeriod reportPeriod, FipsScope fipsScope) {
+        super(reportPeriod);
+        this.fipsScope = fipsScope;
+    }
 
     protected String getFipsString(RegionId regionId) {
         return fipsScope.getFipsSubCode(regionId).code();
-    }
-
-    @Override
-    public void setInitializingData(Set<Object> initialData) {
-        for (Object initialDatum : initialData) {
-            if (initialDatum instanceof FipsScope) {
-                this.fipsScope = (FipsScope) initialDatum;
-                break;
-            }
-        }
     }
 
 }

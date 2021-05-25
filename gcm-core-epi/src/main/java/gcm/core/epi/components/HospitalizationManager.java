@@ -8,7 +8,7 @@ import gcm.core.epi.propertytypes.AgeWeights;
 import gcm.core.epi.util.distributions.GammaHelper;
 import gcm.core.epi.variants.VariantDefinition;
 import gcm.core.epi.variants.VariantsDescription;
-import nucleus.Plan;
+import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.GammaDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.util.Pair;

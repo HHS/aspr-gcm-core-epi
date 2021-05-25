@@ -26,6 +26,7 @@ import gcm.core.epi.util.property.DefinedRegionProperty;
 import plugins.gcm.experiment.Experiment;
 import plugins.gcm.experiment.ExperimentBuilder;
 import plugins.gcm.experiment.ExperimentExecutor;
+import plugins.gcm.experiment.output.NIOReportItemHandler;
 import plugins.regions.support.RegionId;
 
 import java.io.IOException;
@@ -188,6 +189,18 @@ public class Runner {
         }
         experimentBuilder.addGlobalPropertyValue(GlobalProperty.TRIGGER_CONTAINER, triggerContainerBuilder.build());
 
+        // Add reports and set output options
+        NIOReportItemHandler.Builder nioReportItemHandlerBuilder = NIOReportItemHandler.builder();
+        for (ReportWrapperItem reportWrapperItem : configuration.reports()) {
+            LoadableReport loadableReport = CoreEpiBootstrapUtil.getLoadableReportFromString(reportWrapperItem.report());
+            experimentBuilder.addReportId(loadableReport, loadableReport.getSupplier(reportWrapperItem, pluginList));
+            nioReportItemHandlerBuilder.addReport(loadableReport, outputPath.resolve(reportWrapperItem.file()));
+        }
+        nioReportItemHandlerBuilder.setDisplayExperimentColumnsInReports(configuration.displayExperimentColumns());
+        if (configuration.includeExperimentColumnReport()) {
+            nioReportItemHandlerBuilder.setExperimentColumnReport(outputPath.resolve("experiment_column_report.tsv"));
+        }
+
         // Build experiment
         Experiment experiment = experimentBuilder.build();
 
@@ -199,11 +212,7 @@ public class Runner {
         experimentExecutor.setReplicationCount(configuration.replications());
         experimentExecutor.setProduceSimulationStatusOutput(true);
         experimentExecutor.setLogItemHandler(new LogItemHandler());
-        CoreEpiBootstrapUtil.loadReports(experimentExecutor, configuration.reports(), pluginList, outputPath);
-        experimentExecutor.setDisplayExperimentColumnsInReports(configuration.displayExperimentColumns());
-        if (configuration.includeExperimentColumnReport()) {
-            experimentExecutor.addExperimentColumnReport(outputPath.resolve("experiment_column_report.tsv"));
-        }
+        experimentExecutor.addOutputItemHandler(nioReportItemHandlerBuilder.setRegularExperiment(experiment).build());
         if (configuration.useProgressLog()) {
             experimentExecutor.setExperimentProgressLog(outputPath.resolve("progress_log.tsv"));
         }

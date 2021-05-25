@@ -15,7 +15,7 @@ import gcm.core.epi.propertytypes.TransmissionStructure;
 import gcm.core.epi.variants.VariantDefinition;
 import gcm.core.epi.variants.VariantsDescription;
 import gcm.core.epi.variants.WaningImmunityFunction;
-import nucleus.Plan;
+import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;

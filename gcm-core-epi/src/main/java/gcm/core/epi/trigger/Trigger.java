@@ -1,5 +1,6 @@
 package gcm.core.epi.trigger;
 
+import gcm.core.epi.reports.CustomReport;
 import gcm.core.epi.reports.TriggerReport;
 import gcm.core.epi.util.property.DefinedRegionProperty;
 import nucleus.AgentContext;
@@ -14,7 +15,7 @@ import java.util.function.Consumer;
 public interface Trigger {
 
     static void performCallback(TriggerId<? extends Trigger> triggerId, TriggerCallback callback, Environment environment, RegionId regionId) {
-        if (environment.isActiveReport(TriggerReport.class)) {
+        if (environment.isActiveReport(CustomReport.TRIGGER_REPORT)) {
             environment.releaseOutput(TriggerReport.getReportItemFor(environment.getTime(), triggerId, regionId));
         }
         callback.trigger(environment, regionId);

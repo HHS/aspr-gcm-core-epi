@@ -2,14 +2,13 @@ package gcm.core.epi.util.loading;
 
 import gcm.core.epi.plugin.Plugin;
 import nucleus.ReportContext;
-import nucleus.ReportId;
-import plugins.gcm.experiment.ExperimentBuilder;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public interface LoadableReport extends ReportId {
+public interface ReportSupplier {
+
     Supplier<Consumer<ReportContext>> getSupplier(ReportWrapperItem reportWrapperItem, List<Plugin> pluginList);
+
 }

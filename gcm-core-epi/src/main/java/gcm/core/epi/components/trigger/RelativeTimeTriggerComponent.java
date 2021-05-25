@@ -3,7 +3,7 @@ package gcm.core.epi.components.trigger;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.propertytypes.FipsCode;
 import gcm.core.epi.trigger.*;
-import nucleus.Plan;
+import plugins.gcm.agents.Plan;
 import plugins.gcm.agents.Environment;
 import plugins.regions.support.RegionId;
 import plugins.regions.support.RegionPropertyId;

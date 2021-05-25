@@ -15,7 +15,7 @@ import gcm.core.epi.trigger.ImmutableAbsoluteTimeTrigger;
 import gcm.core.epi.trigger.TriggerCallback;
 import gcm.core.epi.util.property.*;
 import gcm.core.epi.variants.VariantId;
-import nucleus.Plan;
+import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.commons.math3.distribution.RealDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
