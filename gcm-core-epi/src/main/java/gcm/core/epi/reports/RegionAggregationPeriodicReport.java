@@ -5,8 +5,6 @@ import plugins.regions.support.RegionId;
 import plugins.reports.support.PeriodicReport;
 import plugins.reports.support.ReportPeriod;
 
-import java.util.Set;
-
 public abstract class RegionAggregationPeriodicReport extends PeriodicReport {
 
     private final FipsScope fipsScope;

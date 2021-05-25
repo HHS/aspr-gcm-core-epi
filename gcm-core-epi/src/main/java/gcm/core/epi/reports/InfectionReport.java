@@ -46,6 +46,7 @@ public class InfectionReport {
 
     private void handleGlobalPropertyChangeObservationEvent(ReportContext context, GlobalPropertyChangeObservationEvent globalPropertyChangeObservationEvent) {
         if (globalPropertyChangeObservationEvent.getGlobalPropertyId() == GlobalProperty.MOST_RECENT_INFECTION_DATA) {
+            //noinspection unchecked
             handleMostRecentInfectionDataAssignment(context, (Optional<InfectionData>) globalPropertyChangeObservationEvent.getCurrentPropertyValue());
         }
     }

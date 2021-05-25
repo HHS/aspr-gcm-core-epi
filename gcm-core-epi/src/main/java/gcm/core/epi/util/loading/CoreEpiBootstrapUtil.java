@@ -27,7 +27,6 @@ import org.simpleflatmapper.util.CloseableIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import plugins.gcm.experiment.ExperimentBuilder;
-import plugins.gcm.experiment.ExperimentExecutor;
 import plugins.globals.support.GlobalPropertyId;
 import plugins.groups.support.GroupTypeId;
 import plugins.personproperties.support.PersonPropertyId;

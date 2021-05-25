@@ -6,7 +6,6 @@ import plugins.compartments.datacontainers.CompartmentDataView;
 import plugins.compartments.datacontainers.CompartmentLocationDataView;
 import plugins.compartments.events.observation.PersonCompartmentChangeObservationEvent;
 import plugins.compartments.support.CompartmentId;
-import plugins.gcm.reports.PersonResourceReport;
 import plugins.people.datacontainers.PersonDataView;
 import plugins.people.events.observation.PersonCreationObservationEvent;
 import plugins.people.events.observation.PersonImminentRemovalObservationEvent;
@@ -72,7 +71,7 @@ public final class PersonRegionalResourceReport extends RegionAggregationPeriodi
     /*
      * The derived header for this report
      */
-    private ReportHeader reportHeader;
+    private final ReportHeader reportHeader;
     private CompartmentLocationDataView compartmentLocationDataView;
     private RegionLocationDataView regionLocationDataView;
     private ResourceDataView resourceDataView;
