@@ -58,6 +58,13 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
                 }).defaultValue(new HashMap<>()).build()),
 
         VARIANT_SEEDING_START(TypedPropertyDefinition.builder()
+                .type(Double.class).defaultValue(0.0).build()),
+
+        VARIANT_LATER_PREVALENCE(TypedPropertyDefinition.builder()
+                .typeReference(new TypeReference<Map<VariantId, Double>>() {
+        }).defaultValue(new HashMap<>()).build()),
+
+        VARIANT_LATER_SEEDING_DAY(TypedPropertyDefinition.builder()
                 .type(Double.class).defaultValue(0.0).build());
 
         private final TypedPropertyDefinition propertyDefinition;
@@ -83,7 +90,12 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
         @Override
         public void init(Environment environment) {
             double variantSeedingStart = environment.getGlobalPropertyValue(VariantGlobalProperty.VARIANT_SEEDING_START);
-            environment.addPlan(new VariantSeedingPlan(), variantSeedingStart);
+            Map<VariantId, Double> prevalence = environment.getGlobalPropertyValue(VariantGlobalProperty.VARIANT_INITIAL_PREVALENCE);
+            environment.addPlan(new VariantSeedingPlan(prevalence), variantSeedingStart);
+
+            double variantLaterSeedingDay = environment.getGlobalPropertyValue(VariantGlobalProperty.VARIANT_LATER_SEEDING_DAY);
+            prevalence = environment.getGlobalPropertyValue(VariantGlobalProperty.VARIANT_LATER_PREVALENCE);
+            environment.addPlan(new VariantSeedingPlan(prevalence), variantLaterSeedingDay);
         }
 
         @Override
@@ -91,12 +103,11 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
             // Only called to seed variants
 
             // Compute and validate weights
-            Map<VariantId, Double> variantInitialPrevalence = environment.getGlobalPropertyValue(
-                    VariantGlobalProperty.VARIANT_INITIAL_PREVALENCE);
-            if (variantInitialPrevalence.values().stream().anyMatch(x -> x < 0)) {
+            Map<VariantId, Double> variantSeedingPrevalence = ( (VariantSeedingPlan) plan).prevalence;
+            if (variantSeedingPrevalence.values().stream().anyMatch(x -> x < 0)) {
                 throw new RuntimeException("Negative initial prevalence");
             }
-            double total = variantInitialPrevalence.values().stream().mapToDouble(x -> x).sum();
+            double total = variantSeedingPrevalence.values().stream().mapToDouble(x -> x).sum();
             if (total > 1.0) {
                 throw new RuntimeException("Total initial prevalence is too high");
             }
@@ -109,7 +120,7 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
                     if (variantId.equals(VariantId.REFERENCE_ID) && total < 1.0) {
                         variantSamplingWeights.add(new Pair<>(VariantId.REFERENCE_ID, 1.0 - total));
                     } else {
-                        double variantPrevalence = variantInitialPrevalence.getOrDefault(variantId, 0.0);
+                        double variantPrevalence = variantSeedingPrevalence.getOrDefault(variantId, 0.0);
                         if (variantPrevalence > 0) {
                             variantSamplingWeights.add(new Pair<>(variantId, variantPrevalence));
                         }
@@ -122,7 +133,7 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
                 for (PersonId personId : environment.getPeopleInCompartment(Compartment.INFECTED)) {
                     // Update strain
                     VariantId variantId = variantIdDistribution.sample();
-                    // If not reference, update and re-assess transmissibility
+                    // If not reference (used in later seeding as a stand-in for existing variant mix), update and re-assess transmissibility
                     if (!variantId.equals(VariantId.REFERENCE_ID)) {
                         int strainIndex = variantsDescription.getVariantIndex(variantId);
                         environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1, strainIndex);
@@ -135,6 +146,11 @@ public class VariantTransmissionPlugin implements TransmissionPlugin {
         }
 
         private static final class VariantSeedingPlan implements Plan {
+            final Map<VariantId, Double> prevalence;
+
+            private VariantSeedingPlan(Map<VariantId, Double> prevalence) {
+                this.prevalence = prevalence;
+            }
         }
     }
 
