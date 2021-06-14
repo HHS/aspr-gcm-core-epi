@@ -62,7 +62,14 @@ public abstract class VaccineDefinition {
 
     public abstract Map<VariantId, Double> variantRelativeEfficacy();
 
-    double getVaccineEfficacy(long doses, double timeSinceLastDose, VariantId variantId, EfficacyType efficacyType) {
+    // Only used for TWO_DOSE type - this is in addition to the overall variant relative efficacy
+    public abstract Map<VariantId, Double> variantFirstDoseRelativeEfficacy();
+
+    // Only used for TWO_DOSE type
+    @Value.Default
+    public double variantFirstDoseRelativeEfficacyPhaseout() { return 0; }
+
+    public double getVaccineEfficacy(long doses, double timeSinceLastDose, VariantId variantId, EfficacyType efficacyType) {
         if (doses == 0) {
             return 0;
         }
@@ -94,11 +101,22 @@ public abstract class VaccineDefinition {
                 throw new RuntimeException("Unhandled number of doses");
             case TWO_DOSE:
                 if (doses == 1) {
-                    return efficacyTypeMultiplier * firstDoseEfficacyFunction().getValue(timeSinceLastDose)
-                            * relativeEfficacyOfFirstDose();
+                    double firstDoseEfficacyTypeMultiplier = variantFirstDoseRelativeEfficacy().getOrDefault(variantId, 1.0);
+                    return efficacyTypeMultiplier * firstDoseEfficacyTypeMultiplier *
+                            firstDoseEfficacyFunction().getValue(timeSinceLastDose) * relativeEfficacyOfFirstDose();
                 }
                 if (doses == 2) {
-                    return efficacyTypeMultiplier * secondDoseEfficacyFunction().getValue(timeSinceLastDose);
+                    if (variantFirstDoseRelativeEfficacyPhaseout() > 0 ) {
+                        double firstDoseEfficacyTypeMultiplier = variantFirstDoseRelativeEfficacy()
+                                .getOrDefault(variantId, 1.0);
+                        double adjustedFirstDoseEfficacyTypeMultiplier = firstDoseEfficacyTypeMultiplier +
+                                Math.min(timeSinceLastDose / variantFirstDoseRelativeEfficacyPhaseout(), 1.0) *
+                                        (1.0 - firstDoseEfficacyTypeMultiplier);
+                        return efficacyTypeMultiplier * adjustedFirstDoseEfficacyTypeMultiplier *
+                                secondDoseEfficacyFunction().getValue(timeSinceLastDose);
+                    } else {
+                        return efficacyTypeMultiplier * secondDoseEfficacyFunction().getValue(timeSinceLastDose);
+                    }
                 }
                 throw new RuntimeException("Unhandled number of doses");
             default:
@@ -117,12 +135,12 @@ public abstract class VaccineDefinition {
         }
     }
 
-    enum DoseType {
+    public enum DoseType {
         ONE_DOSE,
         TWO_DOSE
     }
 
-    enum EfficacyType {
+    public enum EfficacyType {
         VE_S,
         VE_I,
         VE_P,
