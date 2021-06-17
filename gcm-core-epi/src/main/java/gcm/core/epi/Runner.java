@@ -28,6 +28,8 @@ import plugins.gcm.experiment.ExperimentBuilder;
 import plugins.gcm.experiment.ExperimentExecutor;
 import plugins.gcm.experiment.output.NIOReportItemHandler;
 import plugins.regions.support.RegionId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -35,21 +37,44 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Runner {
 
+    private static final Logger logger = LoggerFactory.getLogger(Runner.class);
+
     public static void main(String[] args) throws IOException, InstantiationException, IllegalAccessException, IllegalArgumentException,
             InvocationTargetException, NoSuchMethodException, SecurityException {
-
         /*
          * CoreFlu Configuration
          *
-         * Note: args[0] should be the path to the YAML configuration file
+         * Note: args[0] should be the path to the YAML configuration file or directory
          */
         if (args.length == 0) {
-            throw new IllegalArgumentException("First argument must be path to YAML configuration file.");
+            throw new IllegalArgumentException("First argument must be path to YAML configuration file or directory.");
         }
         final Path inputConfigPath = CoreEpiBootstrapUtil.getPathFromRelativeString(args[0]);
+        if (Files.isDirectory(inputConfigPath)) {
+            // Iterate over files in directory and execute each of them
+            List<Path> inputConfigFiles = Files.list(inputConfigPath)
+                    .filter(file -> file.toString().endsWith(".yaml"))
+                    .sorted()
+                    .collect(Collectors.toList());
+            int counter = 1;
+            for (Path inputConfigFilePath : inputConfigFiles) {
+                logger.info("Running config " + counter + " of " + inputConfigFiles.size() + ": " + inputConfigFilePath);
+                runFromYaml(inputConfigFilePath);
+                counter++;
+            }
+        } else {
+            // Run the single file
+            runFromYaml(inputConfigPath);
+        }
+
+    }
+
+    private static void runFromYaml(Path inputConfigPath) throws IOException, InstantiationException, IllegalAccessException, IllegalArgumentException,
+            InvocationTargetException, NoSuchMethodException, SecurityException {
 
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory())
                 .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
@@ -218,7 +243,6 @@ public class Runner {
         }
 
         experimentExecutor.execute();
-
     }
 
 }
