@@ -52,7 +52,7 @@ public class HospitalizationManager extends AbstractComponent {
             //TODO: Update when ICU beds added
             if (environment.getPersonResourceLevel(personId, Resource.HOSPITAL_BED) != 0) {
                 // Record when they were supposed to be discharged and remove the old plan
-                double oldDischargeTime = environment.getPlanTime(personId);
+                double oldDischargeTime = environment.getPlanTime(personId).get();
                 environment.removePlan(personId);
 
                 logger.warn("Warning: Person attempted to be hospitalized due to reinfection who was already hospitalized");
