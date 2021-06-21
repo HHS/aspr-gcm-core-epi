@@ -50,7 +50,9 @@ public class DetailedResourceVaccinationReport extends RegionAggregationPeriodic
         }
         RegionDataView regionDataView = reportContext.getDataView(RegionDataView.class).get();
 
-        reportContext.subscribeToEvent(GlobalPropertyChangeObservationEvent.class, this::handleGlobalPropertyChangeObservationEvent);
+        reportContext.subscribe(GlobalPropertyChangeObservationEvent.getEventLabel(reportContext,
+                DetailedResourceBasedVaccinePlugin.VaccineGlobalProperty.MOST_RECENT_VACCINATION_DATA),
+                this::handleGlobalPropertyChangeObservationEvent);
 
         // Initialize regionCounterMap
         for (RegionId regionId : regionDataView.getRegionIds()) {

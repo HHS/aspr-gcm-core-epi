@@ -46,9 +46,7 @@ public enum CommonReport implements LoadableReport {
 
     GROUP_PROPERTY_REPORT((reportWrapperItem, pluginList) -> () -> {
         // TODO: For now no group properties
-        GroupPropertyReport.GroupPropertyReportSettingsBuilder groupPropertyReportSettingsBuilder =
-                GroupPropertyReport.settingsBuilder();
-        return new GroupPropertyReport(reportWrapperItem.period(), groupPropertyReportSettingsBuilder.build())::init;
+        return GroupPropertyReport.builder().build()::init;
     }),
 
     MATERIALS_PRODUCER_PROPERTY_REPORT((reportWrapperItem, pluginList) -> () -> new MaterialsProducerPropertyReport()::init),

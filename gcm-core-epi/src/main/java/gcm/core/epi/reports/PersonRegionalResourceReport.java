@@ -1,6 +1,7 @@
 package gcm.core.epi.reports;
 
 import gcm.core.epi.propertytypes.FipsScope;
+import nucleus.EventLabel;
 import nucleus.ReportContext;
 import plugins.compartments.datacontainers.CompartmentDataView;
 import plugins.compartments.datacontainers.CompartmentLocationDataView;
@@ -255,11 +256,10 @@ public final class PersonRegionalResourceReport extends RegionAggregationPeriodi
     public void init(final ReportContext reportContext) {
         super.init(reportContext);
 
-        reportContext.subscribeToEvent(PersonResourceChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
-        reportContext.subscribeToEvent(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
-        reportContext.subscribeToEvent(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
-        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
-        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class, this::handlePersonResourceChangeObservationEvent);
+        reportContext.subscribe(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
+        reportContext.subscribe(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
+        reportContext.subscribe(PersonCompartmentChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
+        reportContext.subscribe(PersonRegionChangeObservationEvent.class, this::handlePersonResourceChangeObservationEvent);
 
         resourceDataView = reportContext.getDataView(ResourceDataView.class).get();
         PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();
@@ -282,6 +282,17 @@ public final class PersonRegionalResourceReport extends RegionAggregationPeriodi
         for (final ResourceId resourceId : resourceIds) {
             if (!validResourceIds.contains(resourceId)) {
                 throw new RuntimeException("invalid resource id " + resourceId);
+            }
+        }
+
+        // If all resources are covered by this report, then subscribe to the
+        // event, otherwise subscribe to each resource id
+        if (resourceIds.equals(resourceDataView.getResourceIds())) {
+            reportContext.subscribe(PersonResourceChangeObservationEvent.class, this::handlePersonResourceChangeObservationEvent);
+        } else {
+            for (ResourceId resourceId : resourceIds) {
+                EventLabel<PersonResourceChangeObservationEvent> eventLabelByResource = PersonResourceChangeObservationEvent.getEventLabelByResource(reportContext, resourceId);
+                reportContext.subscribe(eventLabelByResource, this::handlePersonResourceChangeObservationEvent);
             }
         }
 

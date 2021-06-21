@@ -117,10 +117,16 @@ public class IncidenceReport extends RegionAggregationPeriodicReport {
     public void init(ReportContext reportContext) {
         super.init(reportContext);
 
-        // Changes to PersonProperty.IS_SYMPTOMATIC or PersonProperty.DID_NOT_RECEIVE_HOSPITAL_BED flags
-        reportContext.subscribeToEvent(PersonPropertyChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
-        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
-        reportContext.subscribeToEvent(PersonResourceChangeObservationEvent.class, this::handlePersonResourceChangeObservationEvent);
+        reportContext.subscribe(PersonPropertyChangeObservationEvent.getEventLabelByProperty(reportContext, PersonProperty.IS_SYMPTOMATIC),
+                this::handlePersonPropertyChangeObservationEvent);
+        reportContext.subscribe(PersonPropertyChangeObservationEvent.getEventLabelByProperty(reportContext, PersonProperty.DID_NOT_RECEIVE_HOSPITAL_BED),
+                this::handlePersonPropertyChangeObservationEvent);
+        reportContext.subscribe(PersonPropertyChangeObservationEvent.getEventLabelByProperty(reportContext, PersonProperty.IS_DEAD),
+                this::handlePersonPropertyChangeObservationEvent);
+        reportContext.subscribe(PersonCompartmentChangeObservationEvent.getEventLabelByArrivalComparment(reportContext, Compartment.INFECTED),
+                this::handlePersonCompartmentChangeObservationEvent);
+        reportContext.subscribe(PersonResourceChangeObservationEvent.getEventLabelByResource(reportContext,
+                Resource.HOSPITAL_BED), this::handlePersonResourceChangeObservationEvent);
 
         regionDataView = reportContext.getDataView(RegionDataView.class).get();
         regionLocationDataView = reportContext.getDataView(RegionLocationDataView.class).get();

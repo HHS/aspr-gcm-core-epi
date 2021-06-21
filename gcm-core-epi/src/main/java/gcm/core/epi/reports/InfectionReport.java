@@ -38,8 +38,8 @@ public class InfectionReport {
     PersonPropertyDataView personPropertyDataView;
 
     public void init(ReportContext reportContext) {
-        reportContext.subscribeToEvent(GlobalPropertyChangeObservationEvent.class,
-                this::handleGlobalPropertyChangeObservationEvent);
+        reportContext.subscribe(GlobalPropertyChangeObservationEvent.getEventLabel(reportContext,
+                GlobalProperty.MOST_RECENT_INFECTION_DATA), this::handleGlobalPropertyChangeObservationEvent);
         globalDataView = reportContext.getDataView(GlobalDataView.class).get();
         personPropertyDataView = reportContext.getDataView(PersonPropertyDataView.class).get();
     }

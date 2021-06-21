@@ -133,8 +133,8 @@ public final class AggregatedRegionTransferReport extends RegionAggregationPerio
     public void init(final ReportContext reportContext) {
         super.init(reportContext);
 
-        reportContext.subscribeToEvent(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
-        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
+        reportContext.subscribe(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
+        reportContext.subscribe(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
 
         PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();
         compartmentLocationDataView = reportContext.getDataView(CompartmentLocationDataView.class).get();

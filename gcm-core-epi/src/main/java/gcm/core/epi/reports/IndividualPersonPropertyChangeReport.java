@@ -1,5 +1,6 @@
 package gcm.core.epi.reports;
 
+import nucleus.EventLabel;
 import nucleus.ReportContext;
 import plugins.people.datacontainers.PersonDataView;
 import plugins.people.support.PersonId;
@@ -44,8 +45,6 @@ public final class IndividualPersonPropertyChangeReport {
 
     public void init(ReportContext reportContext) {
 
-        reportContext.subscribeToEvent(PersonPropertyChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
-
         PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();
         PersonPropertyDataView personPropertyDataView = reportContext.getDataView(PersonPropertyDataView.class).get();
 
@@ -54,6 +53,17 @@ public final class IndividualPersonPropertyChangeReport {
          */
         if (personPropertyIds.size() == 0) {
             personPropertyIds.addAll(personPropertyDataView.getPersonPropertyIds());
+        }
+
+        // If all person properties are included, then subscribe to the event
+        // class, otherwise subscribe to the individual property values
+        if (personPropertyIds.equals(personPropertyDataView.getPersonPropertyIds())) {
+            reportContext.subscribe(PersonPropertyChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
+        } else {
+            for (PersonPropertyId personPropertyId : personPropertyIds) {
+                EventLabel<PersonPropertyChangeObservationEvent> eventLabelByProperty = PersonPropertyChangeObservationEvent.getEventLabelByProperty(reportContext, personPropertyId);
+                reportContext.subscribe(eventLabelByProperty, this::handlePersonPropertyChangeObservationEvent);
+            }
         }
 
         for (PersonId personId : personDataView.getPeople()) {

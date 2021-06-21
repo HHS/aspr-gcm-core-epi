@@ -1,6 +1,7 @@
 package gcm.core.epi.reports;
 
 import gcm.core.epi.propertytypes.FipsScope;
+import nucleus.EventLabel;
 import nucleus.ReportContext;
 import plugins.compartments.datacontainers.CompartmentDataView;
 import plugins.compartments.datacontainers.CompartmentLocationDataView;
@@ -213,11 +214,10 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
     public void init(final ReportContext reportContext) {
         super.init(reportContext);
 
-        reportContext.subscribeToEvent(PersonPropertyChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
-        reportContext.subscribeToEvent(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
-        reportContext.subscribeToEvent(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
-        reportContext.subscribeToEvent(PersonCompartmentChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
-        reportContext.subscribeToEvent(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
+        reportContext.subscribe(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
+        reportContext.subscribe(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
+        reportContext.subscribe(PersonCompartmentChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
+        reportContext.subscribe(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
 
         compartmentLocationDataView = reportContext.getDataView(CompartmentLocationDataView.class).get();
         regionLocationDataView = reportContext.getDataView(RegionLocationDataView.class).get();
@@ -238,6 +238,17 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
         for (final PersonPropertyId personPropertyId : personPropertyIds) {
             if (!validPropertyIds.contains(personPropertyId)) {
                 throw new RuntimeException("invalid property id " + personPropertyId);
+            }
+        }
+
+        // If all person properties are included, then subscribe to the event
+        // class, otherwise subscribe to the individual property values
+        if (personPropertyIds.equals(personPropertyDataView.getPersonPropertyIds())) {
+            reportContext.subscribe(PersonPropertyChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
+        } else {
+            for (PersonPropertyId personPropertyId : personPropertyIds) {
+                EventLabel<PersonPropertyChangeObservationEvent> eventLabelByProperty = PersonPropertyChangeObservationEvent.getEventLabelByProperty(reportContext, personPropertyId);
+                reportContext.subscribe(eventLabelByProperty, this::handlePersonPropertyChangeObservationEvent);
             }
         }
 
