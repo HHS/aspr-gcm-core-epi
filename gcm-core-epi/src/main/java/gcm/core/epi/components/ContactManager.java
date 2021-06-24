@@ -417,14 +417,13 @@ public class ContactManager extends AbstractComponent {
                                 GlobalProperty.POPULATION_DESCRIPTION);
                         Integer ageGroupIndex = environment.getPersonPropertyValue(sourcePersonId, PersonProperty.AGE_GROUP_INDEX);
                         AgeGroup ageGroup = populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
-                        GroupSampler groupSampler = GroupSampler.create().excludePerson(sourcePersonId)
-                                .generator(RandomId.CONTACT_MANAGER);
+                        GroupSampler.Builder groupSamplerBuilder = GroupSampler.builder()
+                                .setExcludedPersonId(sourcePersonId)
+                                .setRandomNumberGeneratorId(RandomId.CONTACT_MANAGER);
                         if (groupWeightingFunctions != null && groupWeightingFunctions.containsKey(ageGroup)) {
-                            targetPersonId = environment.sampleGroup(contactGroupId,
-                                    groupSampler.weight(groupWeightingFunctions.get(ageGroup)));
-                        } else {
-                            targetPersonId = environment.sampleGroup(contactGroupId, groupSampler);
+                            groupSamplerBuilder.setGroupWeightingFunction(groupWeightingFunctions.get(ageGroup));
                         }
+                        targetPersonId = environment.sampleGroup(contactGroupId, groupSamplerBuilder.build());
                     }
                 }
 
