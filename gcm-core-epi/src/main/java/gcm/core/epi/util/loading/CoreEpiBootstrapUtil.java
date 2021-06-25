@@ -422,19 +422,11 @@ public class CoreEpiBootstrapUtil {
                     final Object result = parseJsonInput(objectMapper, jsonNode, inputPath, definedGlobalProperty,
                             ageGroupPartition);
                     experimentBuilder.addGlobalPropertyValue(definedGlobalProperty, result);
-//                    if (definedGlobalProperty.equals(GlobalProperty.POPULATION_DESCRIPTION)) {
-//                        experimentBuilder.addSuggestedPopulationSize(
-//                                ((PopulationDescription) propertyValue).dataByPersonId().size());
-//                    }
                 }
             } else {
                 logger.warn("Warning: External property " + propertyName + " is not defined in configuration file");
             }
         }
-
-//        // Covary population size suggestion
-//        experimentBuilder.covaryGlobalProperty(GlobalProperty.POPULATION_DESCRIPTION, "Suggested Population Size");
-//        experimentBuilder.covarySuggestedPopulationSize("Suggested Population Size");
 
         // Handle external property covariation
         for (PropertyGroupSpecification propertyGroupSpecification : configuration.propertyGroups()) {

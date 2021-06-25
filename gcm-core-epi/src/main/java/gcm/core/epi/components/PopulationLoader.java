@@ -100,6 +100,9 @@ public class PopulationLoader extends AbstractComponent {
                 GlobalProperty.POPULATION_DESCRIPTION);
         AgeWeights fractionHighRisk = environment.getGlobalPropertyValue(GlobalProperty.FRACTION_HIGH_RISK);
 
+        // Population size hint
+        environment.suggestedPopulationGrowth(populationDescription.homeGroupIdByPersonId().size());
+
         boolean USE_BULK_LOAD = true;
         if (USE_BULK_LOAD) {
             List<ContactGroupType> groupTypeList = new ArrayList<>();
