@@ -216,7 +216,7 @@ public final class PersonRegionalPropertyReport extends RegionAggregationPeriodi
 
         reportContext.subscribe(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
         reportContext.subscribe(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
-        reportContext.subscribe(PersonCompartmentChangeObservationEvent.class, this::handlePersonPropertyChangeObservationEvent);
+        reportContext.subscribe(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
         reportContext.subscribe(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
 
         compartmentLocationDataView = reportContext.getDataView(CompartmentLocationDataView.class).get();

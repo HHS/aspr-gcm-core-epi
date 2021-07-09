@@ -156,9 +156,9 @@ public final class CompartmentRegionalPopulationReport extends RegionAggregation
     public void init(ReportContext reportContext) {
         super.init(reportContext);
 
-        reportContext.subscribe(PersonCreationObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
-        reportContext.subscribe(PersonImminentRemovalObservationEvent.class, this::handlePersonCreationObservationEvent);
-        reportContext.subscribe(PersonCompartmentChangeObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
+        reportContext.subscribe(PersonCreationObservationEvent.class,this::handlePersonCreationObservationEvent);
+        reportContext.subscribe(PersonImminentRemovalObservationEvent.class,this::handlePersonImminentRemovalObservationEvent);
+        reportContext.subscribe(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
         reportContext.subscribe(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
 
         PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();

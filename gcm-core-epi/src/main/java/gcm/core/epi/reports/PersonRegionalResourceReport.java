@@ -258,8 +258,8 @@ public final class PersonRegionalResourceReport extends RegionAggregationPeriodi
 
         reportContext.subscribe(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
         reportContext.subscribe(PersonImminentRemovalObservationEvent.class, this::handlePersonImminentRemovalObservationEvent);
-        reportContext.subscribe(PersonCompartmentChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
-        reportContext.subscribe(PersonRegionChangeObservationEvent.class, this::handlePersonResourceChangeObservationEvent);
+        reportContext.subscribe(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
+        reportContext.subscribe(PersonRegionChangeObservationEvent.class, this::handlePersonRegionChangeObservationEvent);
 
         resourceDataView = reportContext.getDataView(ResourceDataView.class).get();
         PersonDataView personDataView = reportContext.getDataView(PersonDataView.class).get();

@@ -116,8 +116,9 @@ public final class CompartmentRegionalTransferReport extends RegionAggregationPe
     @Override
     public void init(final ReportContext context) {
         super.init(context);
-        context.subscribe(PersonCreationObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
-        context.subscribe(PersonCompartmentChangeObservationEvent.class, this::handlePersonCreationObservationEvent);
+        context.subscribe(PersonCreationObservationEvent.class, this::handlePersonCreationObservationEvent);
+        context.subscribe(PersonCompartmentChangeObservationEvent.class, this::handlePersonCompartmentChangeObservationEvent);
+
 
         PersonDataView personDataView = context.getDataView(PersonDataView.class).get();
         compartmentLocationDataView = context.getDataView(CompartmentLocationDataView.class).get();
