@@ -871,19 +871,26 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
                             .getReservedDosesFor(fipsCode) / vaccineDefinition.dosesPerRegimen();
                     if (regimensByType.get(vaccineId) > regimensInReserve) {
                         // Need to select a person to give the new dose to
+                        LabelSet fipsCodeFirstDoseLabelSet = LabelSet.builder()
+                                .setLabel(RegionId.class, fipsCode)
+                                // Be careful to use long and not int 0
+                                .setLabel(VaccineResourceId.VACCINE, 0L)
+                                .build();
+                        // First cache some population cell sizes for sampling normalization
+                        Map<LabelSet, Integer> cellSizeMap = environment.getPartitionSizeMap(VACCINE_PARTITION_KEY, fipsCodeFirstDoseLabelSet);
+                        Map<AgeGroup, Integer> populationByAgeInFipsCode = cellSizeMap.entrySet().stream()
+                                .collect(Collectors.groupingBy(entry -> (AgeGroup) entry.getKey().getLabel(PersonProperty.AGE_GROUP_INDEX).get(),
+                                        Collectors.summingInt(entry -> entry.getValue())));
+                        // Now select the person
                         personId = environment.samplePartition(VACCINE_PARTITION_KEY, PartitionSampler.builder()
-                                .setLabelSet(LabelSet.builder()
-                                        .setLabel(RegionId.class, fipsCode)
-                                        // Be careful to use long and not int 0
-                                        .setLabel(VaccineResourceId.VACCINE, 0L)
-                                        .build())
+                                .setLabelSet(fipsCodeFirstDoseLabelSet)
                                 .setLabelSetWeightingFunction((context, labelSet) -> {
                                     // We know this labelSet will have a label for this person property
                                     //noinspection OptionalGetWithoutIsPresent
                                     AgeGroup ageGroup = (AgeGroup) labelSet.getLabel(PersonProperty.AGE_GROUP_INDEX).get();
                                     //noinspection OptionalGetWithoutIsPresent
                                     boolean isHighRisk = (boolean) labelSet.getLabel(PersonProperty.IS_HIGH_RISK).get();
-                                    long populationInFipsCodeAndAge = getPopulationByFipsCodeAndAgeGroup(environment, fipsCode, ageGroup);
+                                    int populationInFipsCodeAndAge = populationByAgeInFipsCode.get(ageGroup);
                                     return vaccineUptakeWeights.getWeight(ageGroup) *
                                             // Handle uptake normalization
                                             (uptakeNormalization == VaccineAdministratorDefinition.UptakeNormalization.POPULATION ?
@@ -965,15 +972,6 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
 
             }
             // No vaccine available, so pause vaccinating for now and wait for vaccine delivery
-        }
-
-        private long getPopulationByFipsCodeAndAgeGroup(Environment environment, FipsCode fipsCode, AgeGroup ageGroup) {
-            return environment.getPartitionSize(VACCINE_PARTITION_KEY,
-                    LabelSet.builder()
-                            .setLabel(RegionId.class, fipsCode)
-                            .setLabel(PersonProperty.AGE_GROUP_INDEX, ageGroup)
-                            .setLabel(VaccineResourceId.VACCINE, 0L)
-                            .build());
         }
 
         private void toggleFipsCodePersonArrivalObservation(Environment environment, FipsCode fipsCode, boolean observe) {
