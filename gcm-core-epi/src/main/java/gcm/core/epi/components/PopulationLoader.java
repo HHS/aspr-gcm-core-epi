@@ -103,7 +103,7 @@ public class PopulationLoader extends AbstractComponent {
         // Population size hint
         environment.suggestedPopulationGrowth(populationDescription.homeGroupIdByPersonId().size());
 
-        boolean USE_BULK_LOAD = true;
+        boolean USE_BULK_LOAD = false;
         if (USE_BULK_LOAD) {
             List<ContactGroupType> groupTypeList = new ArrayList<>();
             BulkGroupMembershipData.Builder groupBuilder = BulkGroupMembershipData.builder();
