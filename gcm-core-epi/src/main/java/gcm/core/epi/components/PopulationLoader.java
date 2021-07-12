@@ -353,6 +353,7 @@ public class PopulationLoader extends AbstractComponent {
                                     // Will only infect if there are susceptible people that remain
                                     targetPersonId.ifPresent(personId -> {
                                                 environment.setPersonCompartment(personId, Compartment.INFECTED);
+                                                environment.setPersonPropertyValue(personId, PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1, 0);
                                                 // Store the data about this infection event for reporting
                                                 environment.setGlobalPropertyValue(GlobalProperty.MOST_RECENT_INFECTION_DATA,
                                                         Optional.of(ImmutableInfectionData.builder()

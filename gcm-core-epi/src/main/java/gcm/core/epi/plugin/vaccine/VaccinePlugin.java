@@ -5,6 +5,7 @@ import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.plugin.Plugin;
 import gcm.core.epi.variants.VariantId;
 import gcm.core.epi.variants.VariantsDescription;
+import nucleus.ReportContext;
 import plugins.gcm.agents.Environment;
 import plugins.gcm.experiment.ExperimentBuilder;
 import plugins.globals.support.GlobalComponentId;
@@ -54,6 +55,10 @@ public interface VaccinePlugin extends Plugin {
         double sourceVEI = getVEI(environment, sourcePersonId, sourceVariant);
         double targetVES = getVES(environment, targetPersonId, sourceVariant);
         return (1.0 - sourceVEI) * (1.0 - targetVES);
+    }
+
+    default String getVaccineStatusString(ReportContext reportContext, PersonId personId) {
+        return "";
     }
 
     @Override

@@ -17,6 +17,7 @@ import gcm.core.epi.util.property.DefinedPersonProperty;
 import gcm.core.epi.util.property.DefinedResourceProperty;
 import gcm.core.epi.util.property.TypedPropertyDefinition;
 import gcm.core.epi.variants.VariantId;
+import nucleus.ReportContext;
 import plugins.gcm.agents.Plan;
 import org.apache.commons.math3.distribution.EnumeratedDistribution;
 import org.apache.commons.math3.distribution.ExponentialDistribution;
@@ -26,14 +27,17 @@ import org.apache.commons.math3.util.Pair;
 import plugins.gcm.agents.AbstractComponent;
 import plugins.gcm.agents.Environment;
 import plugins.gcm.experiment.ExperimentBuilder;
+import plugins.globals.datacontainers.GlobalDataView;
 import plugins.globals.support.GlobalPropertyId;
 import plugins.partitions.support.*;
 import plugins.people.support.PersonId;
+import plugins.personproperties.datacontainers.PersonPropertyDataView;
 import plugins.personproperties.support.PersonPropertyLabeler;
 import plugins.personproperties.support.PropertyFilter;
 import plugins.properties.support.TimeTrackingPolicy;
 import plugins.regions.support.RegionId;
 import plugins.regions.support.RegionLabeler;
+import plugins.resources.datacontainers.ResourceDataView;
 import plugins.resources.support.ResourceId;
 import plugins.resources.support.ResourceLabeler;
 import plugins.stochastics.support.RandomNumberGeneratorId;
@@ -112,6 +116,25 @@ public class DetailedResourceBasedVaccinePlugin implements VaccinePlugin {
         // Vaccine has no properties
         resourcePropertyMap.put(VaccineResourceId.VACCINE, new HashSet<>());
         return resourcePropertyMap;
+    }
+
+    @Override
+    public String getVaccineStatusString(ReportContext reportContext, PersonId personId) {
+        long numberOfDoses = reportContext.getDataView(ResourceDataView.class).get()
+                .getPersonResourceLevel(VaccineResourceId.VACCINE, personId);
+        if (numberOfDoses > 0) {
+            List<VaccineDefinition> vaccineDefinitions = reportContext.getDataView(GlobalDataView.class).get()
+                    .getGlobalPropertyValue(VaccineGlobalProperty.VACCINE_DEFINITIONS);
+            int vaccineIndex = reportContext.getDataView(PersonPropertyDataView.class).get()
+                    .getPersonPropertyValue(personId, VaccinePersonProperty.VACCINE_INDEX);
+            if (vaccineIndex < 0 || vaccineIndex > vaccineDefinitions.size()) {
+                throw new RuntimeException("Invalid vaccine index");
+            }
+            String vaccineId = vaccineDefinitions.get(vaccineIndex).id().id();
+            return vaccineId + " - " + numberOfDoses;
+        } else {
+            return "Unvaccinated - 0";
+        }
     }
 
     @Override

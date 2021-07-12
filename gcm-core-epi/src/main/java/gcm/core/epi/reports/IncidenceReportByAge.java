@@ -4,6 +4,7 @@ import gcm.core.epi.identifiers.Compartment;
 import gcm.core.epi.identifiers.GlobalProperty;
 import gcm.core.epi.identifiers.PersonProperty;
 import gcm.core.epi.identifiers.Resource;
+import gcm.core.epi.plugin.vaccine.VaccinePlugin;
 import gcm.core.epi.population.AgeGroup;
 import gcm.core.epi.population.PopulationDescription;
 import gcm.core.epi.propertytypes.FipsScope;
@@ -28,7 +29,7 @@ import java.util.*;
 
 public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
 
-    private final Map<String, Map<AgeGroup, Map<VariantId, Map<CounterType, Counter>>>> counterMap = new LinkedHashMap<>();
+    private final Map<String, Map<AgeGroup, Map<String, Map<VariantId, Map<CounterType, Counter>>>>> counterMap = new LinkedHashMap<>();
     private final ReportHeader reportHeader;
 
     public IncidenceReportByAge(ReportPeriod reportPeriod, FipsScope fipsScope) {
@@ -38,6 +39,7 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
         reportHeader = reportHeaderBuilder
                 .add("Region")
                 .add("AgeGroup")
+                .add("VaccineStatus")
                 .add("Variant")
                 .add("Metric")
                 .add("Incidence")
@@ -51,6 +53,7 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
         return populationDescription.ageGroupPartition().getAgeGroupFromIndex(ageGroupIndex);
     }
 
+    ReportContext reportContext;
     GlobalDataView globalDataView;
     RegionDataView regionDataView;
     RegionLocationDataView regionLocationDataView;
@@ -59,6 +62,7 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
     @Override
     public void init(ReportContext reportContext) {
         super.init(reportContext);
+        this.reportContext = reportContext;
 
         reportContext.subscribe(PersonPropertyChangeObservationEvent.getEventLabelByProperty(reportContext, PersonProperty.IS_SYMPTOMATIC),
                 this::handlePersonPropertyChangeObservationEvent);
@@ -84,10 +88,18 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
         // Handle case that infection index has not been set yet from initial seeding
         int strainIndex = Math.max(personPropertyDataView.getPersonPropertyValue(personId,
                 PersonProperty.PRIOR_INFECTION_STRAIN_INDEX_1), 0);
-        VariantId variantId = variantsDescription.variantIdList().get(strainIndex);
+        final VariantId variantId = variantsDescription.variantIdList().get(strainIndex);
+        Optional<VaccinePlugin> vaccinePlugin = globalDataView.getGlobalPropertyValue(GlobalProperty.VACCINE_PLUGIN);
+        final String vaccineStatus;
+        if (vaccinePlugin.isPresent()) {
+            vaccineStatus = vaccinePlugin.get().getVaccineStatusString(this.reportContext, personId);
+        } else {
+            vaccineStatus = "";
+        }
         return counterMap
                 .computeIfAbsent(getFipsString(regionId), x -> new HashMap<>())
                 .computeIfAbsent(ageGroup, x -> new HashMap<>())
+                .computeIfAbsent(vaccineStatus, x -> new HashMap<>())
                 .computeIfAbsent(variantId, x -> new EnumMap<>(CounterType.class))
                 .computeIfAbsent(counterType, x -> new Counter());
     }
@@ -128,26 +140,30 @@ public class IncidenceReportByAge extends RegionAggregationPeriodicReport {
         final ReportItem.Builder reportItemBuilder = ReportItem.builder();
 
         for (String regionId : counterMap.keySet()) {
-            Map<AgeGroup, Map<VariantId, Map<CounterType, Counter>>> ageGroupCounterMap = counterMap.get(regionId);
+            Map<AgeGroup, Map<String, Map<VariantId, Map<CounterType, Counter>>>> ageGroupCounterMap = counterMap.get(regionId);
             for (AgeGroup ageGroup : ageGroupCounterMap.keySet()) {
-                Map<VariantId, Map<CounterType, Counter>> variantCounterMap = ageGroupCounterMap.get(ageGroup);
-                for (VariantId variantId : variantCounterMap.keySet()) {
-                    Map<CounterType, Counter> counters = variantCounterMap.get(variantId);
-                    for (CounterType counterType : counters.keySet()) {
-                        int count = counters.get(counterType).count;
-                        if (count > 0) {
-                            reportItemBuilder.setReportHeader(reportHeader);
-                            reportItemBuilder.setReportId(reportContext.getCurrentReportId());
-                            fillTimeFields(reportItemBuilder);
+                Map<String, Map<VariantId, Map<CounterType, Counter>>> vaccineStatusCounterMap = ageGroupCounterMap.get(ageGroup);
+                for (String vaccineStatus: vaccineStatusCounterMap.keySet()) {
+                    Map<VariantId, Map<CounterType, Counter>> variantCounterMap = vaccineStatusCounterMap.get(vaccineStatus);
+                    for (VariantId variantId : variantCounterMap.keySet()) {
+                        Map<CounterType, Counter> counters = variantCounterMap.get(variantId);
+                        for (CounterType counterType : counters.keySet()) {
+                            int count = counters.get(counterType).count;
+                            if (count > 0) {
+                                reportItemBuilder.setReportHeader(reportHeader);
+                                reportItemBuilder.setReportId(reportContext.getCurrentReportId());
+                                fillTimeFields(reportItemBuilder);
 
-                            reportItemBuilder.addValue(regionId);
-                            reportItemBuilder.addValue(ageGroup.toString());
-                            reportItemBuilder.addValue(variantId.id());
-                            reportItemBuilder.addValue(counterType.toString());
-                            reportItemBuilder.addValue(count);
+                                reportItemBuilder.addValue(regionId);
+                                reportItemBuilder.addValue(ageGroup.toString());
+                                reportItemBuilder.addValue(vaccineStatus);
+                                reportItemBuilder.addValue(variantId.id());
+                                reportItemBuilder.addValue(counterType.toString());
+                                reportItemBuilder.addValue(count);
 
-                            reportContext.releaseOutput(reportItemBuilder.build());
-                            counters.get(counterType).count = 0;
+                                reportContext.releaseOutput(reportItemBuilder.build());
+                                counters.get(counterType).count = 0;
+                            }
                         }
                     }
                 }
